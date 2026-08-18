@@ -61,8 +61,25 @@ export class CardStore {
 			source: str(fm.source),
 			sourceUrl: str(fm.source_url),
 			image: str(fm.image),
+			myExample: str(fm.my_example),
+			mnemonic: str(fm.mnemonic),
+			grammarNote: str(fm.grammar_note),
 			fsrs: fsrsFromFrontmatter(fm),
 		};
+	}
+
+	/** Ghi một field phụ (my_example / mnemonic / grammar_note) vào frontmatter thẻ */
+	async saveExtraField(
+		card: VocabCard,
+		key: "my_example" | "mnemonic" | "grammar_note",
+		value: string
+	): Promise<void> {
+		if (key === "my_example") card.myExample = value;
+		else if (key === "mnemonic") card.mnemonic = value;
+		else card.grammarNote = value;
+		await this.app.fileManager.processFrontMatter(card.file, (fm) => {
+			fm[key] = value;
+		});
 	}
 
 	/** Thẻ đến hạn ôn hôm nay (đã từng học), xếp theo hạn gần nhất trước */

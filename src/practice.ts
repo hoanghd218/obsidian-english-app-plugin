@@ -131,7 +131,7 @@ export function makeCloze(card: VocabCard): ClozeItem | null {
 }
 
 export function makeTyping(card: VocabCard): TypingItem | null {
-	if (card.type === "sentence" || card.type === "passage") return null;
+	if (card.type === "sentence" || card.type === "passage" || card.type === "grammar") return null;
 	if (!card.meaningVi && !card.meaningEn) return null;
 	return { mode: "typing", card };
 }
@@ -157,7 +157,7 @@ export function makeBuilder(card: VocabCard): BuilderItem | null {
 }
 
 export function makeChoice(card: VocabCard, pool: VocabCard[]): ChoiceItem | null {
-	if (card.type === "sentence" || card.type === "passage") return null;
+	if (card.type === "sentence" || card.type === "passage" || card.type === "grammar") return null;
 	const answer = card.meaningVi || card.meaningEn;
 	if (!answer) return null;
 	const sameCat = pool.filter((c) => c !== card && c.category === card.category);

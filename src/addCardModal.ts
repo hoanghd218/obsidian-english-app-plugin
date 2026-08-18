@@ -60,6 +60,7 @@ export class AddCardModal extends Modal {
 				.addOption("collocation", "Collocation")
 				.addOption("sentence", "Câu (sentence)")
 				.addOption("passage", "Đoạn ngắn (passage)")
+				.addOption("grammar", "Ngữ pháp (grammar)")
 				.setValue(this.input.type)
 				.onChange((v) => (this.input.type = v as CardType));
 		});

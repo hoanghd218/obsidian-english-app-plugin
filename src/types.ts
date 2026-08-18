@@ -7,6 +7,11 @@ export interface VocabForgeSettings {
 	requestRetention: number;
 	ttsRate: number;
 	ttsVoice: string;
+	dailyReviewGoal: number;
+	dailyNewGoal: number;
+	dailyPracticeGoal: number;
+	highlightEnabled: boolean;
+	grokPath: string;
 }
 
 export const DEFAULT_SETTINGS: VocabForgeSettings = {
@@ -15,9 +20,21 @@ export const DEFAULT_SETTINGS: VocabForgeSettings = {
 	requestRetention: 0.9,
 	ttsRate: 0.95,
 	ttsVoice: "",
+	dailyReviewGoal: 20,
+	dailyNewGoal: 5,
+	dailyPracticeGoal: 10,
+	highlightEnabled: true,
+	grokPath: "grok",
 };
 
-export type CardType = "word" | "phrase" | "idiom" | "collocation" | "sentence" | "passage";
+export type CardType =
+	| "word"
+	| "phrase"
+	| "idiom"
+	| "collocation"
+	| "sentence"
+	| "passage"
+	| "grammar";
 
 export const DEFAULT_CATEGORIES = [
 	"business",
@@ -57,6 +74,9 @@ export interface VocabCard {
 	source: string;
 	sourceUrl: string;
 	image: string;
+	myExample: string;
+	mnemonic: string;
+	grammarNote: string;
 	fsrs: FsrsCard;
 }
 
@@ -67,10 +87,26 @@ export interface DailyStat {
 	practice?: number;
 }
 
+export interface StoryCache {
+	date: string;
+	words: string[];
+	en: string;
+	vi: string;
+}
+
 export interface VocabForgeData {
 	settings: VocabForgeSettings;
 	stats: Record<string, DailyStat>;
+	xp: number;
+	freezes: number;
+	frozenDays: string[];
+	questRewardDates: string[];
+	story: StoryCache | null;
 }
+
+/** Mỗi level cần 300 XP */
+export const XP_PER_LEVEL = 300;
+export const MAX_FREEZES = 3;
 
 export function todayKey(d = new Date()): string {
 	const y = d.getFullYear();

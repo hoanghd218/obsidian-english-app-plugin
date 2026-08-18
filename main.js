@@ -36,7 +36,12 @@ var DEFAULT_SETTINGS = {
   newPerDay: 10,
   requestRetention: 0.9,
   ttsRate: 0.95,
-  ttsVoice: ""
+  ttsVoice: "",
+  dailyReviewGoal: 20,
+  dailyNewGoal: 5,
+  dailyPracticeGoal: 10,
+  highlightEnabled: true,
+  grokPath: "grok"
 };
 var DEFAULT_CATEGORIES = [
   "business",
@@ -60,6 +65,8 @@ var CATEGORY_EMOJI = {
 function categoryEmoji(cat) {
   return CATEGORY_EMOJI[cat] ?? "\u{1F3F7}\uFE0F";
 }
+var XP_PER_LEVEL = 300;
+var MAX_FREEZES = 3;
 function todayKey(d = /* @__PURE__ */ new Date()) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -111,7 +118,7 @@ var AddCardModal = class extends import_obsidian.Modal {
       t.inputEl.addClass("vf-input-wide");
     });
     new import_obsidian.Setting(contentEl).setName("Lo\u1EA1i th\u1EBB").addDropdown((d) => {
-      d.addOption("word", "T\u1EEB (word)").addOption("phrase", "C\u1EE5m t\u1EEB (phrase)").addOption("idiom", "Th\xE0nh ng\u1EEF (idiom)").addOption("collocation", "Collocation").addOption("sentence", "C\xE2u (sentence)").addOption("passage", "\u0110o\u1EA1n ng\u1EAFn (passage)").setValue(this.input.type).onChange((v) => this.input.type = v);
+      d.addOption("word", "T\u1EEB (word)").addOption("phrase", "C\u1EE5m t\u1EEB (phrase)").addOption("idiom", "Th\xE0nh ng\u1EEF (idiom)").addOption("collocation", "Collocation").addOption("sentence", "C\xE2u (sentence)").addOption("passage", "\u0110o\u1EA1n ng\u1EAFn (passage)").addOption("grammar", "Ng\u1EEF ph\xE1p (grammar)").setValue(this.input.type).onChange((v) => this.input.type = v);
     });
     new import_obsidian.Setting(contentEl).setName("Ch\u1EE7 \u0111\u1EC1 (deck)").setDesc("Th\u1EBB \u0111\u01B0\u1EE3c nh\xF3m theo ch\u1EE7 \u0111\u1EC1 tr\xEAn trang B\u1ED9 th\u1EBB \u2014 ch\u1ECDn c\xF3 s\u1EB5n ho\u1EB7c g\xF5 m\u1EDBi").addDropdown((d) => {
       const cats = new Set(DEFAULT_CATEGORIES);
@@ -2132,6 +2139,9 @@ function shuffle(arr) {
   }
   return a;
 }
+function sample(arr, n) {
+  return shuffle(arr).slice(0, n);
+}
 function findSurface(quote, word) {
   const tokens = word.trim().split(/\s+/);
   const tryPatterns = [];
@@ -2159,7 +2169,7 @@ function makeCloze(card) {
   return { mode: "cloze", card, ...hit };
 }
 function makeTyping(card) {
-  if (card.type === "sentence" || card.type === "passage") return null;
+  if (card.type === "sentence" || card.type === "passage" || card.type === "grammar") return null;
   if (!card.meaningVi && !card.meaningEn) return null;
   return { mode: "typing", card };
 }
@@ -2181,7 +2191,7 @@ function makeBuilder(card) {
   return { mode: "builder", card, tokens, shuffled };
 }
 function makeChoice(card, pool) {
-  if (card.type === "sentence" || card.type === "passage") return null;
+  if (card.type === "sentence" || card.type === "passage" || card.type === "grammar") return null;
   const answer = card.meaningVi || card.meaningEn;
   if (!answer) return null;
   const sameCat = pool.filter((c) => c !== card && c.category === card.category);
@@ -2213,6 +2223,74 @@ function buildPracticeQueue(mode, cards, size) {
   return items;
 }
 
+// src/ai.ts
+function nodeRequire(mod) {
+  const req = window.require;
+  if (!req) throw new Error("AI features ch\u1EC9 ch\u1EA1y tr\xEAn Obsidian desktop");
+  return req(mod);
+}
+function resolveGrokPath(custom) {
+  const fs = nodeRequire("fs");
+  const os = nodeRequire("os");
+  const candidates = [
+    custom,
+    `${os.homedir()}/.local/bin/grok`,
+    "/usr/local/bin/grok",
+    "/opt/homebrew/bin/grok"
+  ].filter(Boolean);
+  for (const c of candidates) {
+    if (c !== "grok" && fs.existsSync(c)) return c;
+  }
+  return "grok";
+}
+function runGrok(prompt, grokPath, timeoutMs = 9e4) {
+  const cp = nodeRequire("child_process");
+  const os = nodeRequire("os");
+  const proc = nodeRequire("process");
+  const bin = resolveGrokPath(grokPath);
+  const env = {
+    ...proc.env,
+    PATH: `${proc.env.PATH ?? ""}:${os.homedir()}/.local/bin:/usr/local/bin:/opt/homebrew/bin`
+  };
+  return new Promise((resolve, reject) => {
+    cp.execFile(
+      bin,
+      ["--no-auto-update", "--no-alt-screen", "--disable-web-search", "-p", prompt],
+      { timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024, env },
+      (err, stdout) => {
+        if (err) reject(err);
+        else resolve(String(stdout).trim());
+      }
+    );
+  });
+}
+function extractJson(raw) {
+  const start = raw.indexOf("{");
+  if (start === -1) return null;
+  for (let end = raw.length; end > start; end--) {
+    const slice = raw.slice(start, end);
+    if (!slice.endsWith("}")) continue;
+    try {
+      return JSON.parse(slice);
+    } catch {
+    }
+  }
+  return null;
+}
+function sentenceCheckPrompt(word, meaningEn, sentence) {
+  return `You are an English teacher for a Vietnamese B1 learner. The learner must write a sentence using the expression "${word}"` + (meaningEn ? ` (meaning: ${meaningEn})` : "") + `. Their sentence: "${sentence}". Evaluate correctness and naturalness. Reply with ONLY minified JSON, no markdown: {"ok":true|false,"score":0-10,"corrected":"improved or corrected sentence","explain_vi":"nh\u1EADn x\xE9t ng\u1EAFn g\u1ECDn b\u1EB1ng ti\u1EBFng Vi\u1EC7t"}`;
+}
+function mnemonicPrompt(word, meaningVi) {
+  return `T\u1EA1o m\u1ED9t m\u1EB9o nh\u1EDB (mnemonic) NG\u1EAEN b\u1EB1ng ti\u1EBFng Vi\u1EC7t cho c\u1EE5m ti\u1EBFng Anh "${word}" ngh\u0129a l\xE0 "${meaningVi}". T\u1ED1i \u0111a 2 c\xE2u, h\xECnh \u1EA3nh s\u1ED1ng \u0111\u1ED9ng, c\xF3 th\u1EC3 ch\u01A1i ch\u1EEF v\u1EDBi ti\u1EBFng Vi\u1EC7t. Ch\u1EC9 tr\u1EA3 v\u1EC1 \u0111\xFAng n\u1ED9i dung m\u1EB9o nh\u1EDB, kh\xF4ng gi\u1EA3i th\xEDch th\xEAm.`;
+}
+function grammarPrompt(quote) {
+  return `Gi\u1EA3i th\xEDch b\u1EB1ng ti\u1EBFng Vi\u1EC7t (cho ng\u01B0\u1EDDi h\u1ECDc B1) c\u1EA5u tr\xFAc ng\u1EEF ph\xE1p \u0111\xE1ng ch\xFA \xFD nh\u1EA5t trong c\xE2u ti\u1EBFng Anh sau, k\xE8m 1 v\xED d\u1EE5 kh\xE1c d\xF9ng c\xF9ng c\u1EA5u tr\xFAc: "${quote}". T\u1ED1i \u0111a 90 t\u1EEB. Ch\u1EC9 tr\u1EA3 v\u1EC1 ph\u1EA7n gi\u1EA3i th\xEDch.`;
+}
+function storyPrompt(words, categories) {
+  const topic = categories.includes("business") || categories.includes("content") ? "a creator building an online business" : "everyday work life";
+  return `Write a short story (100-130 words) in simple English (B1 level) about ${topic} that NATURALLY uses ALL of these expressions: ${words.map((w) => `"${w}"`).join(", ")}. Wrap each target expression in **double asterisks**. After the story, write a line with only "---", then a natural Vietnamese translation of the story. Reply with ONLY the story, the --- line, and the translation.`;
+}
+
 // src/reviewView.ts
 var VIEW_TYPE_VOCAB = "vocab-forge-review";
 var TYPE_LABELS = {
@@ -2221,7 +2299,8 @@ var TYPE_LABELS = {
   idiom: "Th\xE0nh ng\u1EEF",
   collocation: "Collocation",
   sentence: "C\xE2u",
-  passage: "\u0110o\u1EA1n"
+  passage: "\u0110o\u1EA1n",
+  grammar: "Ng\u1EEF ph\xE1p"
 };
 var STATE_LABELS = {
   [State.New]: "M\u1EDBi",
@@ -2256,6 +2335,11 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     this.practiceCorrect = false;
     this.builderPicked = [];
     this.practiceInput = null;
+    // --- AI production
+    this.aiSentence = "";
+    this.aiResult = null;
+    this.aiBusy = false;
+    this.storyBusy = false;
   }
   getViewType() {
     return VIEW_TYPE_VOCAB;
@@ -2307,6 +2391,9 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
       case "practice-done":
         this.renderPracticeDone(main);
         break;
+      case "story":
+        this.renderStory(main);
+        break;
       case "settings":
         this.renderSettings(main);
         break;
@@ -2340,7 +2427,16 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
       };
     }
     const foot = nav.createDiv({ cls: "vf-nav-foot" });
-    foot.createDiv({ text: `\u{1F525} ${this.computeStreak()} ng\xE0y`, cls: "vf-nav-streak" });
+    const xp = this.plugin.data.xp;
+    const level = Math.floor(xp / XP_PER_LEVEL) + 1;
+    const lvlBox = foot.createDiv({ cls: "vf-nav-level" });
+    lvlBox.createDiv({ text: `\u2B50 Level ${level}`, cls: "vf-nav-level-name" });
+    const lvlBar = lvlBox.createDiv({ cls: "vf-nav-level-bar" });
+    lvlBar.createDiv({ cls: "vf-nav-level-fill" }).style.width = `${Math.round(xp % XP_PER_LEVEL / XP_PER_LEVEL * 100)}%`;
+    lvlBox.createDiv({ text: `${xp} XP`, cls: "vf-nav-xp" });
+    const chips = foot.createDiv({ cls: "vf-nav-chips" });
+    chips.createSpan({ text: `\u{1F525} ${this.computeStreak()}`, cls: "vf-nav-streak" });
+    chips.createSpan({ text: `\u{1F9CA} \xD7${this.plugin.data.freezes}`, cls: "vf-nav-freeze" });
   }
   // ============================================================ DASHBOARD
   renderDashboard(main) {
@@ -2370,6 +2466,11 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
       this.section = "practice";
       this.render();
     };
+    const storyBtn = heroBtns.createEl("button", { text: "\u{1F4D6} Story h\xF4m nay", cls: "vf-btn-hero-ghost" });
+    storyBtn.onclick = () => {
+      this.section = "story";
+      this.render();
+    };
     const ring = hero.createDiv({ cls: "vf-hero-ring" });
     const pct = today ? Math.min(100, Math.round(today.reviews / Math.max(1, today.reviews + total) * 100)) : total > 0 ? 0 : 100;
     ring.style.setProperty("--vf-pct", String(pct));
@@ -2394,8 +2495,35 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
         this.deckCard(row, cat, cards, i++);
       }
     }
+    const quests = this.plugin.questProgress();
+    if (quests.length) {
+      const qhead = main.createDiv({ cls: "vf-section-head" });
+      qhead.createEl("h4", { text: "Nhi\u1EC7m v\u1EE5 h\xF4m nay" });
+      if (this.plugin.questRewardClaimed())
+        qhead.createSpan({ text: "\u{1F3C6} \u0110\xE3 nh\u1EADn th\u01B0\u1EDFng", cls: "vf-quest-done-tag" });
+      const qbox = main.createDiv({ cls: "vf-quest-box" });
+      for (const q of quests) {
+        const row = qbox.createDiv({ cls: "vf-quest-row" });
+        row.createSpan({ text: q.icon, cls: "vf-quest-icon" });
+        const mid2 = row.createDiv({ cls: "vf-quest-mid" });
+        const lr = mid2.createDiv({ cls: "vf-quest-label-row" });
+        lr.createSpan({ text: q.name, cls: "vf-quest-name" });
+        lr.createSpan({
+          text: q.cur >= q.goal ? "\u2713" : `${q.cur}/${q.goal}`,
+          cls: q.cur >= q.goal ? "vf-quest-check" : "vf-quest-count"
+        });
+        const qb = mid2.createDiv({ cls: "vf-quest-bar" });
+        qb.createDiv({ cls: "vf-quest-fill" }).style.width = `${Math.min(100, Math.round(q.cur / q.goal * 100))}%`;
+      }
+      qbox.createDiv({
+        text: "Ho\xE0n th\xE0nh c\u1EA3 3 \u2192 +50 XP v\xE0 +1 \u{1F9CA} streak freeze",
+        cls: "vf-quest-hint"
+      });
+    }
     main.createEl("h4", { text: "Ho\u1EA1t \u0111\u1ED9ng 17 tu\u1EA7n" });
     this.renderHeatmap(main.createDiv({ cls: "vf-heatmap" }));
+    main.createEl("h4", { text: "D\u1EF1 b\xE1o th\u1EBB \u0111\u1EBFn h\u1EA1n \u2014 30 ng\xE0y t\u1EDBi" });
+    this.renderForecast(main.createDiv({ cls: "vf-forecast" }), all);
     const hard = all.filter((c) => c.fsrs.lapses >= 2).sort((a, b) => b.fsrs.lapses - a.fsrs.lapses).slice(0, 6);
     if (hard.length) {
       main.createEl("h4", { text: "\u{1F624} T\u1EEB kh\xF3 nh\u1EB1n" });
@@ -2625,7 +2753,105 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     if (idx === -1) idx = 0;
     this.current = this.queue.splice(idx, 1)[0];
     this.flipped = false;
+    this.aiSentence = "";
+    this.aiResult = null;
     this.render();
+  }
+  // --------------------------------------------------------- AI (mặt sau)
+  renderAiSection(back, card) {
+    const box = back.createDiv({ cls: "vf-ai-box" });
+    if (card.mnemonic) {
+      const mn = box.createDiv({ cls: "vf-ai-note vf-ai-mnemonic" });
+      mn.createSpan({ text: "\u{1F9E0} ", cls: "vf-ai-note-icon" });
+      mn.createSpan({ text: card.mnemonic });
+    }
+    if (card.grammarNote) {
+      const gr = box.createDiv({ cls: "vf-ai-note vf-ai-grammar" });
+      gr.createSpan({ text: "\u{1F4D6} ", cls: "vf-ai-note-icon" });
+      gr.createSpan({ text: card.grammarNote });
+    }
+    if (card.myExample) {
+      const ex = box.createDiv({ cls: "vf-ai-note vf-ai-example" });
+      ex.createSpan({ text: "\u270D\uFE0F ", cls: "vf-ai-note-icon" });
+      ex.createSpan({ text: card.myExample });
+    }
+    const btnRow = box.createDiv({ cls: "vf-ai-btn-row" });
+    const mnBtn = btnRow.createEl("button", {
+      text: card.mnemonic ? "\u{1F9E0} M\u1EB9o nh\u1EDB m\u1EDBi" : "\u{1F9E0} T\u1EA1o m\u1EB9o nh\u1EDB",
+      cls: "vf-btn-icon vf-btn-ai"
+    });
+    mnBtn.onclick = () => void this.aiAction(mnBtn, async () => {
+      const out = await runGrok(
+        mnemonicPrompt(card.word, card.meaningVi || card.meaningEn),
+        this.plugin.settings.grokPath
+      );
+      if (out) await this.plugin.store.saveExtraField(card, "mnemonic", out.split("\n")[0].trim());
+    });
+    if (card.quote) {
+      const grBtn = btnRow.createEl("button", {
+        text: card.grammarNote ? "\u{1F4D6} Gi\u1EA3i th\xEDch l\u1EA1i" : "\u{1F4D6} Gi\u1EA3i th\xEDch ng\u1EEF ph\xE1p",
+        cls: "vf-btn-icon vf-btn-ai"
+      });
+      grBtn.onclick = () => void this.aiAction(grBtn, async () => {
+        const out = await runGrok(grammarPrompt(card.quote), this.plugin.settings.grokPath);
+        if (out) await this.plugin.store.saveExtraField(card, "grammar_note", out.trim());
+      });
+    }
+    const writeBox = box.createDiv({ cls: "vf-ai-write" });
+    const input = writeBox.createEl("input", {
+      cls: "vf-practice-input vf-ai-input",
+      attr: { type: "text", placeholder: `\u270D\uFE0F \u0110\u1EB7t c\xE2u c\u1EE7a b\u1EA1n v\u1EDBi "${card.word}"\u2026`, spellcheck: "false" }
+    });
+    input.value = this.aiSentence;
+    input.oninput = () => this.aiSentence = input.value;
+    input.onkeydown = (e) => e.stopPropagation();
+    const checkBtn = writeBox.createEl("button", { text: "AI ch\u1EA5m", cls: "vf-btn-icon vf-btn-ai" });
+    checkBtn.onclick = () => void this.aiAction(checkBtn, async () => {
+      if (!this.aiSentence.trim()) {
+        new import_obsidian2.Notice("G\xF5 c\xE2u c\u1EE7a b\u1EA1n tr\u01B0\u1EDBc \u0111\xE3");
+        return;
+      }
+      const raw = await runGrok(
+        sentenceCheckPrompt(card.word, card.meaningEn, this.aiSentence.trim()),
+        this.plugin.settings.grokPath
+      );
+      this.aiResult = extractJson(raw);
+      if (!this.aiResult) new import_obsidian2.Notice("AI tr\u1EA3 l\u1EDDi kh\xF4ng \u0111\xFAng \u0111\u1ECBnh d\u1EA1ng \u2014 th\u1EED l\u1EA1i");
+    });
+    if (this.aiResult) {
+      const r = this.aiResult;
+      const res = box.createDiv({
+        cls: `vf-feedback ${r.score >= 7 ? "vf-feedback-ok" : "vf-feedback-no"} vf-ai-result`
+      });
+      res.createDiv({ text: `${r.score >= 7 ? "\u{1F44D}" : "\u{1F6E0}"} ${r.score}/10 \u2014 ${r.explain_vi}`, cls: "vf-feedback-text" });
+      if (r.corrected && r.corrected.trim() && r.corrected.trim() !== this.aiSentence.trim())
+        res.createDiv({ text: `\u2192 ${r.corrected}`, cls: "vf-feedback-meaning" });
+      const save = res.createEl("button", { text: "\u{1F4BE} L\u01B0u c\xE2u v\xE0o th\u1EBB", cls: "vf-btn-icon" });
+      save.onclick = async () => {
+        const sentence = (r.score >= 7 ? this.aiSentence : r.corrected).trim();
+        await this.plugin.store.saveExtraField(card, "my_example", sentence);
+        new import_obsidian2.Notice("\u0110\xE3 l\u01B0u c\xE2u c\u1EE7a b\u1EA1n v\xE0o th\u1EBB \u270D\uFE0F");
+        this.render();
+      };
+    }
+  }
+  async aiAction(btn, fn) {
+    if (this.aiBusy) return;
+    this.aiBusy = true;
+    const orig = btn.textContent ?? "";
+    btn.disabled = true;
+    btn.setText("\u23F3 \u0110ang h\u1ECFi AI\u2026");
+    try {
+      await fn();
+    } catch (e) {
+      console.error("Vocab Forge AI:", e);
+      new import_obsidian2.Notice("L\u1ED7i g\u1ECDi Grok CLI \u2014 ki\u1EC3m tra \u0111\u01B0\u1EDDng d\u1EABn grok trong C\xE0i \u0111\u1EB7t");
+    } finally {
+      this.aiBusy = false;
+      btn.disabled = false;
+      btn.setText(orig);
+      this.render();
+    }
   }
   renderCard(main) {
     const card = this.current;
@@ -2714,6 +2940,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
         window.open(card.sourceUrl);
       };
     }
+    this.renderAiSection(back, card);
     const now = /* @__PURE__ */ new Date();
     const preview = this.plugin.scheduler.repeat(card.fsrs, now);
     const btnRow = main.createDiv({ cls: "vf-rate-row" });
@@ -3054,7 +3281,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     this.practiceCorrect = correct;
     if (correct) this.practiceScore++;
     else this.practiceWrong.push(item);
-    this.plugin.recordPractice();
+    this.plugin.recordPractice(correct);
     this.plugin.speak(item.mode === "builder" ? item.tokens.join(" ") : item.card.word);
     this.render();
   }
@@ -3170,18 +3397,160 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
       s.cardsFolder = inp.value.trim() || "5. Toolbox/English/Cards";
       await this.plugin.saveAll();
     };
+    const c6 = group("Highlight t\u1EEB \u0111\xE3 h\u1ECDc", "G\u1EA1ch ch\xE2n t\u1EEB \u0111ang h\u1ECDc trong reading mode to\xE0n vault");
+    const chk = c6.createEl("input", { attr: { type: "checkbox" } });
+    chk.checked = s.highlightEnabled;
+    chk.onchange = async () => {
+      s.highlightEnabled = chk.checked;
+      this.plugin.invalidateKnownWords();
+      await this.plugin.saveAll();
+    };
+    main.createEl("h4", { text: "Nhi\u1EC7m v\u1EE5 h\u1EB1ng ng\xE0y" });
+    const goals = [
+      ["M\u1EE5c ti\xEAu l\u01B0\u1EE3t \xF4n", "dailyReviewGoal", 0, 100],
+      ["M\u1EE5c ti\xEAu th\u1EBB m\u1EDBi", "dailyNewGoal", 0, 30],
+      ["M\u1EE5c ti\xEAu c\xE2u luy\u1EC7n t\u1EADp", "dailyPracticeGoal", 0, 50]
+    ];
+    for (const [label, key, min, max] of goals) {
+      const cg = group(label, "0 = t\u1EAFt nhi\u1EC7m v\u1EE5 n\xE0y");
+      const vg = cg.createSpan({ text: String(s[key]), cls: "vf-setting-value" });
+      const rg = cg.createEl("input", {
+        attr: { type: "range", min: String(min), max: String(max), step: "1", value: String(s[key]) }
+      });
+      rg.oninput = () => vg.setText(rg.value);
+      rg.onchange = async () => {
+        s[key] = Number(rg.value);
+        await this.plugin.saveAll();
+      };
+    }
+    main.createEl("h4", { text: "AI (Grok CLI)" });
+    const c7 = group("\u0110\u01B0\u1EDDng d\u1EABn l\u1EC7nh grok", "D\xF9ng cho m\u1EB9o nh\u1EDB, ch\u1EA5m c\xE2u, gi\u1EA3i th\xEDch ng\u1EEF ph\xE1p, story");
+    const gp = c7.createEl("input", { attr: { type: "text", value: s.grokPath }, cls: "vf-input" });
+    gp.onchange = async () => {
+      s.grokPath = gp.value.trim() || "grok";
+      await this.plugin.saveAll();
+    };
   }
   // ================================================================ MISC
   computeStreak() {
     const stats = this.plugin.data.stats;
+    const active = (k) => (stats[k]?.reviews ?? 0) > 0 || this.plugin.isFrozen(k);
     let streak = 0;
     const d = /* @__PURE__ */ new Date();
-    if (!stats[todayKey(d)]?.reviews) d.setDate(d.getDate() - 1);
-    while ((stats[todayKey(d)]?.reviews ?? 0) > 0) {
+    if (!active(todayKey(d))) d.setDate(d.getDate() - 1);
+    while (active(todayKey(d))) {
       streak++;
       d.setDate(d.getDate() - 1);
     }
     return streak;
+  }
+  /** Biểu đồ cột: số thẻ đến hạn trong 30 ngày tới (quá hạn dồn vào hôm nay) */
+  renderForecast(el, all) {
+    const DAYS = 30;
+    const counts = new Array(DAYS).fill(0);
+    const startToday = /* @__PURE__ */ new Date();
+    startToday.setHours(0, 0, 0, 0);
+    for (const c of all) {
+      if (c.fsrs.state === State.New) continue;
+      const due = new Date(c.fsrs.due);
+      due.setHours(0, 0, 0, 0);
+      const idx = Math.round((due.getTime() - startToday.getTime()) / 864e5);
+      if (idx < 0) counts[0]++;
+      else if (idx < DAYS) counts[idx]++;
+    }
+    const max = Math.max(1, ...counts);
+    for (let i = 0; i < DAYS; i++) {
+      const col = el.createDiv({ cls: "vf-fc-col" });
+      const bar = col.createDiv({ cls: `vf-fc-bar ${i === 0 ? "vf-fc-today" : ""}` });
+      bar.style.height = `${Math.max(3, Math.round(counts[i] / max * 60))}px`;
+      bar.setAttr("aria-label", `+${i} ng\xE0y: ${counts[i]} th\u1EBB`);
+      if (i % 5 === 0) col.createDiv({ text: i === 0 ? "nay" : `+${i}`, cls: "vf-fc-label" });
+    }
+  }
+  // ================================================================ STORY
+  renderStory(main) {
+    const head = main.createDiv({ cls: "vf-deck-head" });
+    const backBtn = head.createEl("button", { text: "\u2190", cls: "vf-btn-icon" });
+    backBtn.onclick = () => {
+      this.section = "dashboard";
+      this.render();
+    };
+    head.createEl("h3", { text: "\u{1F4D6} Story h\xF4m nay" });
+    main.createDiv({
+      text: "AI d\u1EC7t c\xE1c t\u1EEB s\u1EAFp \xF4n th\xE0nh m\u1ED9t c\xE2u chuy\u1EC7n ng\u1EAFn \u2014 \u0111\u1ECDc tr\u01B0\u1EDBc khi \xF4n \u0111\u1EC3 g\u1EB7p t\u1EEB trong ng\u1EEF c\u1EA3nh m\u1EDBi.",
+      cls: "vf-muted"
+    });
+    const story = this.plugin.data.story;
+    const fresh = story && story.date === todayKey();
+    if (this.storyBusy) {
+      const wait = main.createDiv({ cls: "vf-story-wait" });
+      wait.createDiv({ text: "\u23F3", cls: "vf-done-emoji" });
+      wait.createDiv({ text: "Grok \u0111ang vi\u1EBFt story t\u1EEB c\xE1c th\u1EBB c\u1EE7a b\u1EA1n\u2026 (~30\u201360s)", cls: "vf-muted" });
+      return;
+    }
+    if (fresh && story) {
+      const box = main.createDiv({ cls: "vf-story-box" });
+      const en = box.createDiv({ cls: "vf-story-en" });
+      this.renderBoldText(en, story.en);
+      const speakBtn = box.createEl("button", { text: "\u{1F50A} Nghe story", cls: "vf-btn-icon" });
+      speakBtn.onclick = () => this.plugin.speak(story.en.replace(/\*\*/g, ""));
+      const viBox = box.createEl("details", { cls: "vf-story-vi" });
+      viBox.createEl("summary", { text: "\u{1F1FB}\u{1F1F3} Xem b\u1EA3n d\u1ECBch ti\u1EBFng Vi\u1EC7t" });
+      viBox.createDiv({ text: story.vi });
+      const chips = main.createDiv({ cls: "vf-chips vf-story-words" });
+      for (const w of story.words) chips.createSpan({ text: w, cls: "vf-chip" });
+      const btns = main.createDiv({ cls: "vf-actions" });
+      const go = btns.createEl("button", { text: "\u25B6  V\xE0o \xF4n t\u1EADp", cls: "vf-btn-hero vf-btn-hero-small" });
+      go.onclick = () => this.startSession(null);
+      const redo = btns.createEl("button", { text: "\u{1F504} Story m\u1EDBi", cls: "vf-btn-icon" });
+      redo.onclick = () => void this.generateStory();
+      return;
+    }
+    const empty = main.createDiv({ cls: "vf-story-wait" });
+    empty.createDiv({ text: "\u{1F4D6}", cls: "vf-done-emoji" });
+    const gen = empty.createEl("button", {
+      text: "\u2728 T\u1EA1o story t\u1EEB th\u1EBB h\xF4m nay",
+      cls: "vf-btn-hero vf-btn-hero-small"
+    });
+    gen.onclick = () => void this.generateStory();
+  }
+  renderBoldText(el, text) {
+    const parts = text.split("**");
+    parts.forEach((p, i) => {
+      if (i % 2 === 1) el.createEl("strong", { text: p, cls: "vf-story-hit" });
+      else el.appendText(p);
+    });
+  }
+  async generateStory() {
+    const due = this.plugin.store.getDueCards();
+    const news = this.plugin.store.getNewCards().slice(0, this.plugin.newRemainingToday());
+    let pool = [...due, ...news].filter((c) => c.type !== "sentence" && c.type !== "passage" && c.type !== "grammar");
+    if (pool.length < 3)
+      pool = this.plugin.store.getAllCards().filter((c) => c.type !== "sentence" && c.type !== "passage" && c.type !== "grammar");
+    if (pool.length < 3) {
+      new import_obsidian2.Notice("Ch\u01B0a \u0111\u1EE7 th\u1EBB \u0111\u1EC3 t\u1EA1o story");
+      return;
+    }
+    const picked = sample(pool, 7);
+    const words = picked.map((c) => c.word);
+    const cats = [...new Set(picked.map((c) => c.category))];
+    this.storyBusy = true;
+    this.render();
+    try {
+      const raw = await runGrok(storyPrompt(words, cats), this.plugin.settings.grokPath, 15e4);
+      const sep = raw.indexOf("---");
+      const en = (sep === -1 ? raw : raw.slice(0, sep)).trim();
+      const vi = sep === -1 ? "" : raw.slice(sep + 3).trim();
+      if (!en) throw new Error("empty story");
+      this.plugin.data.story = { date: todayKey(), words, en, vi };
+      await this.plugin.saveAll();
+    } catch (e) {
+      console.error("Vocab Forge story:", e);
+      new import_obsidian2.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c story \u2014 ki\u1EC3m tra Grok CLI");
+    } finally {
+      this.storyBusy = false;
+      this.render();
+    }
   }
   renderHeatmap(el) {
     const stats = this.plugin.data.stats;
@@ -3286,8 +3655,20 @@ var CardStore = class {
       source: str(fm.source),
       sourceUrl: str(fm.source_url),
       image: str(fm.image),
+      myExample: str(fm.my_example),
+      mnemonic: str(fm.mnemonic),
+      grammarNote: str(fm.grammar_note),
       fsrs: fsrsFromFrontmatter(fm)
     };
+  }
+  /** Ghi một field phụ (my_example / mnemonic / grammar_note) vào frontmatter thẻ */
+  async saveExtraField(card, key, value) {
+    if (key === "my_example") card.myExample = value;
+    else if (key === "mnemonic") card.mnemonic = value;
+    else card.grammarNote = value;
+    await this.app.fileManager.processFrontMatter(card.file, (fm) => {
+      fm[key] = value;
+    });
   }
   /** Thẻ đến hạn ôn hôm nay (đã từng học), xếp theo hạn gần nhất trước */
   getDueCards() {
@@ -3431,13 +3812,24 @@ var VocabForgeSettingTab = class extends import_obsidian4.PluginSettingTab {
 
 // src/main.ts
 var VocabForgePlugin = class extends import_obsidian5.Plugin {
+  constructor() {
+    super(...arguments);
+    // --------------------------------------------------- HIGHLIGHT (immersion)
+    this.knownRegexCache = null;
+  }
   async onload() {
     const raw = await this.loadData();
     this.data = {
       settings: { ...DEFAULT_SETTINGS, ...raw?.settings ?? {} },
-      stats: raw?.stats ?? {}
+      stats: raw?.stats ?? {},
+      xp: raw?.xp ?? 0,
+      freezes: raw?.freezes ?? 1,
+      frozenDays: raw?.frozenDays ?? [],
+      questRewardDates: raw?.questRewardDates ?? [],
+      story: raw?.story ?? null
     };
     this.settings = this.data.settings;
+    this.autoFreeze();
     this.store = new CardStore(this.app, () => this.settings);
     this.scheduler = makeScheduler(this.settings.requestRetention);
     this.registerView(VIEW_TYPE_VOCAB, (leaf) => new VocabReviewView(leaf, this));
@@ -3467,10 +3859,21 @@ var VocabForgePlugin = class extends import_obsidian5.Plugin {
         );
       })
     );
+    this.registerMarkdownPostProcessor((el, ctx) => {
+      if (ctx.sourcePath.startsWith(this.settings.cardsFolder)) return;
+      try {
+        this.highlightElement(el);
+      } catch (e) {
+        console.error("Vocab Forge highlight:", e);
+      }
+    });
     this.statusEl = this.addStatusBarItem();
     this.statusEl.addClass("vf-statusbar", "mod-clickable");
     this.statusEl.onclick = () => void this.activateView();
-    const refresh = (0, import_obsidian5.debounce)(() => this.refreshStatusBar(), 2e3, true);
+    const refresh = (0, import_obsidian5.debounce)(() => {
+      this.invalidateKnownWords();
+      this.refreshStatusBar();
+    }, 2e3, true);
     this.registerEvent(this.app.metadataCache.on("resolved", refresh));
     this.registerEvent(this.app.vault.on("modify", refresh));
     this.registerInterval(window.setInterval(() => this.refreshStatusBar(), 6e4));
@@ -3528,14 +3931,142 @@ var VocabForgePlugin = class extends import_obsidian5.Plugin {
     const stat = (_a = this.data.stats)[key] ?? (_a[key] = { reviews: 0, newCards: 0 });
     stat.reviews++;
     if (wasNew) stat.newCards++;
+    this.data.xp += 10;
+    this.maybeGrantQuestReward();
     void this.saveAll();
   }
-  recordPractice() {
+  recordPractice(correct) {
     var _a;
     const key = todayKey();
     const stat = (_a = this.data.stats)[key] ?? (_a[key] = { reviews: 0, newCards: 0 });
     stat.practice = (stat.practice ?? 0) + 1;
+    this.data.xp += correct ? 5 : 2;
+    this.maybeGrantQuestReward();
     void this.saveAll();
+  }
+  // ------------------------------------------------------- QUEST & STREAK
+  /** 3 nhiệm vụ mỗi ngày: [tên, tiến độ, mục tiêu] */
+  questProgress() {
+    const s = this.data.stats[todayKey()];
+    return [
+      { icon: "\u{1F4D6}", name: "\xD4n t\u1EADp", cur: s?.reviews ?? 0, goal: this.settings.dailyReviewGoal },
+      { icon: "\u2728", name: "Th\u1EBB m\u1EDBi", cur: s?.newCards ?? 0, goal: this.settings.dailyNewGoal },
+      { icon: "\u{1F3AF}", name: "Luy\u1EC7n t\u1EADp", cur: s?.practice ?? 0, goal: this.settings.dailyPracticeGoal }
+    ].filter((q) => q.goal > 0);
+  }
+  questsAllDone() {
+    const qs = this.questProgress();
+    return qs.length > 0 && qs.every((q) => q.cur >= q.goal);
+  }
+  questRewardClaimed() {
+    return this.data.questRewardDates.includes(todayKey());
+  }
+  maybeGrantQuestReward() {
+    if (this.questRewardClaimed() || !this.questsAllDone()) return;
+    this.data.questRewardDates.push(todayKey());
+    this.data.xp += 50;
+    if (this.data.freezes < MAX_FREEZES) this.data.freezes++;
+    new import_obsidian5.Notice("\u{1F3C6} Ho\xE0n th\xE0nh nhi\u1EC7m v\u1EE5 ng\xE0y! +50 XP, +1 \u{1F9CA} streak freeze");
+  }
+  /** Tự dùng streak freeze để vá các ngày nghỉ (nếu đủ freeze vá kín) */
+  autoFreeze() {
+    const stats = this.data.stats;
+    const isActive = (k) => (stats[k]?.reviews ?? 0) > 0 || this.data.frozenDays.includes(k);
+    const gap = [];
+    const d = /* @__PURE__ */ new Date();
+    d.setDate(d.getDate() - 1);
+    for (let i = 0; i < 30; i++) {
+      const k = todayKey(d);
+      if (isActive(k)) {
+        if (gap.length > 0 && gap.length <= this.data.freezes) {
+          this.data.frozenDays.push(...gap);
+          this.data.freezes -= gap.length;
+          new import_obsidian5.Notice(`\u{1F9CA} \u0110\xE3 d\xF9ng ${gap.length} streak freeze \u0111\u1EC3 gi\u1EEF chu\u1ED7i ng\xE0y!`);
+          void this.saveAll();
+        }
+        return;
+      }
+      gap.push(k);
+      d.setDate(d.getDate() - 1);
+    }
+  }
+  isFrozen(day) {
+    return this.data.frozenDays.includes(day);
+  }
+  /** Regex + map các từ đã học (state != New) để highlight trong reading mode */
+  getKnownWords() {
+    const now = Date.now();
+    if (this.knownRegexCache && now - this.knownRegexCache.at < 6e4) return this.knownRegexCache;
+    const map = /* @__PURE__ */ new Map();
+    const parts = [];
+    const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const cards = this.store.getAllCards().filter(
+      (c) => c.fsrs.state !== State.New && c.type !== "sentence" && c.type !== "passage" && c.type !== "grammar" && c.word.length >= 3 && c.word.split(/\s+/).length <= 4
+    ).sort((a, b) => b.word.length - a.word.length);
+    for (const c of cards) {
+      const tokens = c.word.trim().split(/\s+/);
+      const pattern = tokens.map((t, i) => i === tokens.length - 1 ? `${esc(t)}(?:s|es|ed|d|ing)?` : esc(t)).join("\\s+");
+      parts.push(pattern);
+      map.set(c.word.toLowerCase(), c);
+      for (const suf of ["s", "es", "ed", "d", "ing"]) map.set(c.word.toLowerCase() + suf, c);
+    }
+    const re = parts.length ? new RegExp(`\\b(${parts.join("|")})\\b`, "gi") : null;
+    this.knownRegexCache = { re, map, at: now };
+    return this.knownRegexCache;
+  }
+  invalidateKnownWords() {
+    this.knownRegexCache = null;
+  }
+  lookupKnown(matched) {
+    const map = this.knownRegexCache?.map;
+    if (!map) return void 0;
+    const m = matched.toLowerCase().replace(/\s+/g, " ");
+    return map.get(m);
+  }
+  highlightElement(el) {
+    if (!this.settings.highlightEnabled) return;
+    const { re } = this.getKnownWords();
+    if (!re) return;
+    const SKIP = /* @__PURE__ */ new Set(["CODE", "PRE", "A", "BUTTON", "INPUT", "TEXTAREA", "SVG", "STYLE"]);
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
+      acceptNode: (node) => {
+        let p = node.parentElement;
+        while (p && p !== el) {
+          if (SKIP.has(p.tagName) || p.classList.contains("vf-known")) return NodeFilter.FILTER_REJECT;
+          p = p.parentElement;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    const targets = [];
+    let n;
+    while (n = walker.nextNode()) targets.push(n);
+    let budget = 200;
+    for (const textNode of targets) {
+      if (budget <= 0) break;
+      const text = textNode.textContent ?? "";
+      if (text.length < 3) continue;
+      re.lastIndex = 0;
+      if (!re.test(text)) continue;
+      re.lastIndex = 0;
+      const frag = document.createDocumentFragment();
+      let last = 0;
+      let m;
+      while ((m = re.exec(text)) && budget > 0) {
+        frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+        const card = this.lookupKnown(m[1]);
+        const span = document.createElement("span");
+        span.textContent = m[0];
+        const learning = card && (card.fsrs.state === State.Learning || card.fsrs.state === State.Relearning);
+        span.className = `vf-known ${learning ? "vf-known-learning" : "vf-known-review"}`;
+        if (card) span.setAttribute("aria-label", card.meaningVi || card.meaningEn);
+        frag.appendChild(span);
+        last = m.index + m[0].length;
+        budget--;
+      }
+      frag.appendChild(document.createTextNode(text.slice(last)));
+      textNode.replaceWith(frag);
+    }
   }
   refreshStatusBar() {
     if (!this.statusEl) return;

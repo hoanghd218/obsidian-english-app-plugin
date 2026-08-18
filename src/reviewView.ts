@@ -7,9 +7,20 @@ import {
 	fuzzyEqual,
 	MODE_INFO,
 	shuffle,
+	sample,
 	type PracticeItem,
 	type PracticeMode,
 } from "./practice";
+import {
+	extractJson,
+	grammarPrompt,
+	mnemonicPrompt,
+	runGrok,
+	sentenceCheckPrompt,
+	storyPrompt,
+	type SentenceCheck,
+} from "./ai";
+import { XP_PER_LEVEL } from "./types";
 
 export const VIEW_TYPE_VOCAB = "vocab-forge-review";
 
@@ -22,6 +33,7 @@ type Section =
 	| "practice"
 	| "practice-run"
 	| "practice-done"
+	| "story"
 	| "settings";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -31,6 +43,7 @@ const TYPE_LABELS: Record<string, string> = {
 	collocation: "Collocation",
 	sentence: "Câu",
 	passage: "Đoạn",
+	grammar: "Ngữ pháp",
 };
 
 const STATE_LABELS: Record<number, string> = {
@@ -66,6 +79,12 @@ export class VocabReviewView extends ItemView {
 	private practiceCorrect = false;
 	private builderPicked: number[] = [];
 	private practiceInput: HTMLInputElement | null = null;
+
+	// --- AI production
+	private aiSentence = "";
+	private aiResult: SentenceCheck | null = null;
+	private aiBusy = false;
+	private storyBusy = false;
 
 	constructor(leaf: WorkspaceLeaf, private plugin: VocabForgePlugin) {
 		super(leaf);
@@ -109,6 +128,7 @@ export class VocabReviewView extends ItemView {
 			case "practice": this.renderPracticeHub(main); break;
 			case "practice-run": this.renderPracticeRun(main); break;
 			case "practice-done": this.renderPracticeDone(main); break;
+			case "story": this.renderStory(main); break;
 			case "settings": this.renderSettings(main); break;
 		}
 	}
@@ -147,7 +167,17 @@ export class VocabReviewView extends ItemView {
 		}
 
 		const foot = nav.createDiv({ cls: "vf-nav-foot" });
-		foot.createDiv({ text: `🔥 ${this.computeStreak()} ngày`, cls: "vf-nav-streak" });
+		const xp = this.plugin.data.xp;
+		const level = Math.floor(xp / XP_PER_LEVEL) + 1;
+		const lvlBox = foot.createDiv({ cls: "vf-nav-level" });
+		lvlBox.createDiv({ text: `⭐ Level ${level}`, cls: "vf-nav-level-name" });
+		const lvlBar = lvlBox.createDiv({ cls: "vf-nav-level-bar" });
+		lvlBar.createDiv({ cls: "vf-nav-level-fill" }).style.width =
+			`${Math.round(((xp % XP_PER_LEVEL) / XP_PER_LEVEL) * 100)}%`;
+		lvlBox.createDiv({ text: `${xp} XP`, cls: "vf-nav-xp" });
+		const chips = foot.createDiv({ cls: "vf-nav-chips" });
+		chips.createSpan({ text: `🔥 ${this.computeStreak()}`, cls: "vf-nav-streak" });
+		chips.createSpan({ text: `🧊 ×${this.plugin.data.freezes}`, cls: "vf-nav-freeze" });
 	}
 
 	// ============================================================ DASHBOARD
@@ -181,6 +211,8 @@ export class VocabReviewView extends ItemView {
 		startBtn.onclick = () => this.startSession(null);
 		const practiceBtn = heroBtns.createEl("button", { text: "🎯 Luyện tập", cls: "vf-btn-hero-ghost" });
 		practiceBtn.onclick = () => { this.section = "practice"; this.render(); };
+		const storyBtn = heroBtns.createEl("button", { text: "📖 Story hôm nay", cls: "vf-btn-hero-ghost" });
+		storyBtn.onclick = () => { this.section = "story"; this.render(); };
 		const ring = hero.createDiv({ cls: "vf-hero-ring" });
 		const pct = today ? Math.min(100, Math.round((today.reviews / Math.max(1, today.reviews + total)) * 100)) : total > 0 ? 0 : 100;
 		ring.style.setProperty("--vf-pct", String(pct));
@@ -207,9 +239,41 @@ export class VocabReviewView extends ItemView {
 			}
 		}
 
+		// --- Nhiệm vụ ngày
+		const quests = this.plugin.questProgress();
+		if (quests.length) {
+			const qhead = main.createDiv({ cls: "vf-section-head" });
+			qhead.createEl("h4", { text: "Nhiệm vụ hôm nay" });
+			if (this.plugin.questRewardClaimed())
+				qhead.createSpan({ text: "🏆 Đã nhận thưởng", cls: "vf-quest-done-tag" });
+			const qbox = main.createDiv({ cls: "vf-quest-box" });
+			for (const q of quests) {
+				const row = qbox.createDiv({ cls: "vf-quest-row" });
+				row.createSpan({ text: q.icon, cls: "vf-quest-icon" });
+				const mid2 = row.createDiv({ cls: "vf-quest-mid" });
+				const lr = mid2.createDiv({ cls: "vf-quest-label-row" });
+				lr.createSpan({ text: q.name, cls: "vf-quest-name" });
+				lr.createSpan({
+					text: q.cur >= q.goal ? "✓" : `${q.cur}/${q.goal}`,
+					cls: q.cur >= q.goal ? "vf-quest-check" : "vf-quest-count",
+				});
+				const qb = mid2.createDiv({ cls: "vf-quest-bar" });
+				qb.createDiv({ cls: "vf-quest-fill" }).style.width =
+					`${Math.min(100, Math.round((q.cur / q.goal) * 100))}%`;
+			}
+			qbox.createDiv({
+				text: "Hoàn thành cả 3 → +50 XP và +1 🧊 streak freeze",
+				cls: "vf-quest-hint",
+			});
+		}
+
 		// --- Heatmap
 		main.createEl("h4", { text: "Hoạt động 17 tuần" });
 		this.renderHeatmap(main.createDiv({ cls: "vf-heatmap" }));
+
+		// --- Dự báo 30 ngày
+		main.createEl("h4", { text: "Dự báo thẻ đến hạn — 30 ngày tới" });
+		this.renderForecast(main.createDiv({ cls: "vf-forecast" }), all);
 
 		// --- Từ khó
 		const hard = all
@@ -448,7 +512,116 @@ export class VocabReviewView extends ItemView {
 		if (idx === -1) idx = 0;
 		this.current = this.queue.splice(idx, 1)[0];
 		this.flipped = false;
+		this.aiSentence = "";
+		this.aiResult = null;
 		this.render();
+	}
+
+	// --------------------------------------------------------- AI (mặt sau)
+
+	private renderAiSection(back: HTMLElement, card: VocabCard): void {
+		const box = back.createDiv({ cls: "vf-ai-box" });
+
+		if (card.mnemonic) {
+			const mn = box.createDiv({ cls: "vf-ai-note vf-ai-mnemonic" });
+			mn.createSpan({ text: "🧠 ", cls: "vf-ai-note-icon" });
+			mn.createSpan({ text: card.mnemonic });
+		}
+		if (card.grammarNote) {
+			const gr = box.createDiv({ cls: "vf-ai-note vf-ai-grammar" });
+			gr.createSpan({ text: "📖 ", cls: "vf-ai-note-icon" });
+			gr.createSpan({ text: card.grammarNote });
+		}
+		if (card.myExample) {
+			const ex = box.createDiv({ cls: "vf-ai-note vf-ai-example" });
+			ex.createSpan({ text: "✍️ ", cls: "vf-ai-note-icon" });
+			ex.createSpan({ text: card.myExample });
+		}
+
+		const btnRow = box.createDiv({ cls: "vf-ai-btn-row" });
+		const mnBtn = btnRow.createEl("button", {
+			text: card.mnemonic ? "🧠 Mẹo nhớ mới" : "🧠 Tạo mẹo nhớ",
+			cls: "vf-btn-icon vf-btn-ai",
+		});
+		mnBtn.onclick = () =>
+			void this.aiAction(mnBtn, async () => {
+				const out = await runGrok(
+					mnemonicPrompt(card.word, card.meaningVi || card.meaningEn),
+					this.plugin.settings.grokPath
+				);
+				if (out) await this.plugin.store.saveExtraField(card, "mnemonic", out.split("\n")[0].trim());
+			});
+		if (card.quote) {
+			const grBtn = btnRow.createEl("button", {
+				text: card.grammarNote ? "📖 Giải thích lại" : "📖 Giải thích ngữ pháp",
+				cls: "vf-btn-icon vf-btn-ai",
+			});
+			grBtn.onclick = () =>
+				void this.aiAction(grBtn, async () => {
+					const out = await runGrok(grammarPrompt(card.quote), this.plugin.settings.grokPath);
+					if (out) await this.plugin.store.saveExtraField(card, "grammar_note", out.trim());
+				});
+		}
+
+		// --- đặt câu → AI chấm
+		const writeBox = box.createDiv({ cls: "vf-ai-write" });
+		const input = writeBox.createEl("input", {
+			cls: "vf-practice-input vf-ai-input",
+			attr: { type: "text", placeholder: `✍️ Đặt câu của bạn với "${card.word}"…`, spellcheck: "false" },
+		});
+		input.value = this.aiSentence;
+		input.oninput = () => (this.aiSentence = input.value);
+		input.onkeydown = (e) => e.stopPropagation();
+		const checkBtn = writeBox.createEl("button", { text: "AI chấm", cls: "vf-btn-icon vf-btn-ai" });
+		checkBtn.onclick = () =>
+			void this.aiAction(checkBtn, async () => {
+				if (!this.aiSentence.trim()) {
+					new Notice("Gõ câu của bạn trước đã");
+					return;
+				}
+				const raw = await runGrok(
+					sentenceCheckPrompt(card.word, card.meaningEn, this.aiSentence.trim()),
+					this.plugin.settings.grokPath
+				);
+				this.aiResult = extractJson<SentenceCheck>(raw);
+				if (!this.aiResult) new Notice("AI trả lời không đúng định dạng — thử lại");
+			});
+
+		if (this.aiResult) {
+			const r = this.aiResult;
+			const res = box.createDiv({
+				cls: `vf-feedback ${r.score >= 7 ? "vf-feedback-ok" : "vf-feedback-no"} vf-ai-result`,
+			});
+			res.createDiv({ text: `${r.score >= 7 ? "👍" : "🛠"} ${r.score}/10 — ${r.explain_vi}`, cls: "vf-feedback-text" });
+			if (r.corrected && r.corrected.trim() && r.corrected.trim() !== this.aiSentence.trim())
+				res.createDiv({ text: `→ ${r.corrected}`, cls: "vf-feedback-meaning" });
+			const save = res.createEl("button", { text: "💾 Lưu câu vào thẻ", cls: "vf-btn-icon" });
+			save.onclick = async () => {
+				const sentence = (r.score >= 7 ? this.aiSentence : r.corrected).trim();
+				await this.plugin.store.saveExtraField(card, "my_example", sentence);
+				new Notice("Đã lưu câu của bạn vào thẻ ✍️");
+				this.render();
+			};
+		}
+	}
+
+	private async aiAction(btn: HTMLButtonElement, fn: () => Promise<void>): Promise<void> {
+		if (this.aiBusy) return;
+		this.aiBusy = true;
+		const orig = btn.textContent ?? "";
+		btn.disabled = true;
+		btn.setText("⏳ Đang hỏi AI…");
+		try {
+			await fn();
+		} catch (e) {
+			console.error("Vocab Forge AI:", e);
+			new Notice("Lỗi gọi Grok CLI — kiểm tra đường dẫn grok trong Cài đặt");
+		} finally {
+			this.aiBusy = false;
+			btn.disabled = false;
+			btn.setText(orig);
+			this.render();
+		}
 	}
 
 	private renderCard(main: HTMLElement): void {
@@ -543,6 +716,7 @@ export class VocabReviewView extends ItemView {
 				window.open(card.sourceUrl);
 			};
 		}
+		this.renderAiSection(back, card);
 
 		// --- rating
 		const now = new Date();
@@ -914,7 +1088,7 @@ export class VocabReviewView extends ItemView {
 		this.practiceCorrect = correct;
 		if (correct) this.practiceScore++;
 		else this.practiceWrong.push(item);
-		this.plugin.recordPractice();
+		this.plugin.recordPractice(correct);
 		this.plugin.speak(item.mode === "builder" ? item.tokens.join(" ") : item.card.word);
 		this.render();
 	}
@@ -1020,20 +1194,166 @@ export class VocabReviewView extends ItemView {
 		const c5 = group("Folder chứa thẻ", "Mỗi thẻ là một file .md trong folder này");
 		const inp = c5.createEl("input", { attr: { type: "text", value: s.cardsFolder }, cls: "vf-input" });
 		inp.onchange = async () => { s.cardsFolder = inp.value.trim() || "5. Toolbox/English/Cards"; await this.plugin.saveAll(); };
+
+		// highlight
+		const c6 = group("Highlight từ đã học", "Gạch chân từ đang học trong reading mode toàn vault");
+		const chk = c6.createEl("input", { attr: { type: "checkbox" } });
+		chk.checked = s.highlightEnabled;
+		chk.onchange = async () => { s.highlightEnabled = chk.checked; this.plugin.invalidateKnownWords(); await this.plugin.saveAll(); };
+
+		// mục tiêu ngày
+		main.createEl("h4", { text: "Nhiệm vụ hằng ngày" });
+		const goals: Array<[string, "dailyReviewGoal" | "dailyNewGoal" | "dailyPracticeGoal", number, number]> = [
+			["Mục tiêu lượt ôn", "dailyReviewGoal", 0, 100],
+			["Mục tiêu thẻ mới", "dailyNewGoal", 0, 30],
+			["Mục tiêu câu luyện tập", "dailyPracticeGoal", 0, 50],
+		];
+		for (const [label, key, min, max] of goals) {
+			const cg = group(label, "0 = tắt nhiệm vụ này");
+			const vg = cg.createSpan({ text: String(s[key]), cls: "vf-setting-value" });
+			const rg = cg.createEl("input", {
+				attr: { type: "range", min: String(min), max: String(max), step: "1", value: String(s[key]) },
+			});
+			rg.oninput = () => vg.setText(rg.value);
+			rg.onchange = async () => { s[key] = Number(rg.value); await this.plugin.saveAll(); };
+		}
+
+		// grok path
+		main.createEl("h4", { text: "AI (Grok CLI)" });
+		const c7 = group("Đường dẫn lệnh grok", "Dùng cho mẹo nhớ, chấm câu, giải thích ngữ pháp, story");
+		const gp = c7.createEl("input", { attr: { type: "text", value: s.grokPath }, cls: "vf-input" });
+		gp.onchange = async () => { s.grokPath = gp.value.trim() || "grok"; await this.plugin.saveAll(); };
 	}
 
 	// ================================================================ MISC
 
 	private computeStreak(): number {
 		const stats = this.plugin.data.stats;
+		const active = (k: string) => (stats[k]?.reviews ?? 0) > 0 || this.plugin.isFrozen(k);
 		let streak = 0;
 		const d = new Date();
-		if (!stats[todayKey(d)]?.reviews) d.setDate(d.getDate() - 1);
-		while ((stats[todayKey(d)]?.reviews ?? 0) > 0) {
+		if (!active(todayKey(d))) d.setDate(d.getDate() - 1);
+		while (active(todayKey(d))) {
 			streak++;
 			d.setDate(d.getDate() - 1);
 		}
 		return streak;
+	}
+
+	/** Biểu đồ cột: số thẻ đến hạn trong 30 ngày tới (quá hạn dồn vào hôm nay) */
+	private renderForecast(el: HTMLElement, all: VocabCard[]): void {
+		const DAYS = 30;
+		const counts = new Array<number>(DAYS).fill(0);
+		const startToday = new Date();
+		startToday.setHours(0, 0, 0, 0);
+		for (const c of all) {
+			if (c.fsrs.state === State.New) continue;
+			const due = new Date(c.fsrs.due);
+			due.setHours(0, 0, 0, 0);
+			const idx = Math.round((due.getTime() - startToday.getTime()) / 86_400_000);
+			if (idx < 0) counts[0]++;
+			else if (idx < DAYS) counts[idx]++;
+		}
+		const max = Math.max(1, ...counts);
+		for (let i = 0; i < DAYS; i++) {
+			const col = el.createDiv({ cls: "vf-fc-col" });
+			const bar = col.createDiv({ cls: `vf-fc-bar ${i === 0 ? "vf-fc-today" : ""}` });
+			bar.style.height = `${Math.max(3, Math.round((counts[i] / max) * 60))}px`;
+			bar.setAttr("aria-label", `+${i} ngày: ${counts[i]} thẻ`);
+			if (i % 5 === 0) col.createDiv({ text: i === 0 ? "nay" : `+${i}`, cls: "vf-fc-label" });
+		}
+	}
+
+	// ================================================================ STORY
+
+	private renderStory(main: HTMLElement): void {
+		const head = main.createDiv({ cls: "vf-deck-head" });
+		const backBtn = head.createEl("button", { text: "←", cls: "vf-btn-icon" });
+		backBtn.onclick = () => { this.section = "dashboard"; this.render(); };
+		head.createEl("h3", { text: "📖 Story hôm nay" });
+
+		main.createDiv({
+			text: "AI dệt các từ sắp ôn thành một câu chuyện ngắn — đọc trước khi ôn để gặp từ trong ngữ cảnh mới.",
+			cls: "vf-muted",
+		});
+
+		const story = this.plugin.data.story;
+		const fresh = story && story.date === todayKey();
+
+		if (this.storyBusy) {
+			const wait = main.createDiv({ cls: "vf-story-wait" });
+			wait.createDiv({ text: "⏳", cls: "vf-done-emoji" });
+			wait.createDiv({ text: "Grok đang viết story từ các thẻ của bạn… (~30–60s)", cls: "vf-muted" });
+			return;
+		}
+
+		if (fresh && story) {
+			const box = main.createDiv({ cls: "vf-story-box" });
+			const en = box.createDiv({ cls: "vf-story-en" });
+			this.renderBoldText(en, story.en);
+			const speakBtn = box.createEl("button", { text: "🔊 Nghe story", cls: "vf-btn-icon" });
+			speakBtn.onclick = () => this.plugin.speak(story.en.replace(/\*\*/g, ""));
+			const viBox = box.createEl("details", { cls: "vf-story-vi" });
+			viBox.createEl("summary", { text: "🇻🇳 Xem bản dịch tiếng Việt" });
+			viBox.createDiv({ text: story.vi });
+			const chips = main.createDiv({ cls: "vf-chips vf-story-words" });
+			for (const w of story.words) chips.createSpan({ text: w, cls: "vf-chip" });
+
+			const btns = main.createDiv({ cls: "vf-actions" });
+			const go = btns.createEl("button", { text: "▶  Vào ôn tập", cls: "vf-btn-hero vf-btn-hero-small" });
+			go.onclick = () => this.startSession(null);
+			const redo = btns.createEl("button", { text: "🔄 Story mới", cls: "vf-btn-icon" });
+			redo.onclick = () => void this.generateStory();
+			return;
+		}
+
+		const empty = main.createDiv({ cls: "vf-story-wait" });
+		empty.createDiv({ text: "📖", cls: "vf-done-emoji" });
+		const gen = empty.createEl("button", {
+			text: "✨ Tạo story từ thẻ hôm nay",
+			cls: "vf-btn-hero vf-btn-hero-small",
+		});
+		gen.onclick = () => void this.generateStory();
+	}
+
+	private renderBoldText(el: HTMLElement, text: string): void {
+		const parts = text.split("**");
+		parts.forEach((p, i) => {
+			if (i % 2 === 1) el.createEl("strong", { text: p, cls: "vf-story-hit" });
+			else el.appendText(p);
+		});
+	}
+
+	private async generateStory(): Promise<void> {
+		const due = this.plugin.store.getDueCards();
+		const news = this.plugin.store.getNewCards().slice(0, this.plugin.newRemainingToday());
+		let pool = [...due, ...news].filter((c) => c.type !== "sentence" && c.type !== "passage" && c.type !== "grammar");
+		if (pool.length < 3)
+			pool = this.plugin.store.getAllCards().filter((c) => c.type !== "sentence" && c.type !== "passage" && c.type !== "grammar");
+		if (pool.length < 3) {
+			new Notice("Chưa đủ thẻ để tạo story");
+			return;
+		}
+		const picked = sample(pool, 7);
+		const words = picked.map((c) => c.word);
+		const cats = [...new Set(picked.map((c) => c.category))];
+		this.storyBusy = true;
+		this.render();
+		try {
+			const raw = await runGrok(storyPrompt(words, cats), this.plugin.settings.grokPath, 150_000);
+			const sep = raw.indexOf("---");
+			const en = (sep === -1 ? raw : raw.slice(0, sep)).trim();
+			const vi = sep === -1 ? "" : raw.slice(sep + 3).trim();
+			if (!en) throw new Error("empty story");
+			this.plugin.data.story = { date: todayKey(), words, en, vi };
+			await this.plugin.saveAll();
+		} catch (e) {
+			console.error("Vocab Forge story:", e);
+			new Notice("Không tạo được story — kiểm tra Grok CLI");
+		} finally {
+			this.storyBusy = false;
+			this.render();
+		}
 	}
 
 	private renderHeatmap(el: HTMLElement): void {

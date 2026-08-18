@@ -851,6 +851,159 @@
 }
 .vf-wrong-list { width: 100%; max-width: 420px; }
 
+/* ---------------- LEVEL / XP / FREEZE (sidebar) ---------------- */
+.vf-nav-level { padding: 8px 6px 4px; }
+.vf-nav-level-name { color: #ffb43d; font-weight: 800; font-size: 0.85em; }
+.vf-nav-level-bar {
+	height: 6px;
+	border-radius: 3px;
+	background: rgba(232, 239, 242, 0.15);
+	margin: 5px 0 3px;
+	overflow: hidden;
+}
+.vf-nav-level-fill {
+	height: 100%;
+	border-radius: 3px;
+	background: linear-gradient(90deg, #ffb43d, #57d6c6);
+}
+.vf-nav-xp { font-size: 0.7em; color: rgba(232, 239, 242, 0.55); }
+.vf-nav-chips { display: flex; gap: 6px; justify-content: center; margin-top: 8px; }
+.vf-nav-freeze {
+	background: rgba(87, 214, 198, 0.14);
+	color: #57d6c6;
+	border-radius: 20px;
+	padding: 6px 10px;
+	font-size: 0.85em;
+	font-weight: 700;
+}
+
+/* ---------------- QUESTS ---------------- */
+.vf-quest-box {
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 16px;
+	padding: 14px 18px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+.vf-quest-row { display: flex; align-items: center; gap: 12px; }
+.vf-quest-icon { font-size: 1.3em; }
+.vf-quest-mid { flex: 1; }
+.vf-quest-label-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.vf-quest-name { font-weight: 700; font-size: 0.9em; }
+.vf-quest-count { color: var(--text-muted); font-size: 0.82em; font-weight: 600; }
+.vf-quest-check { color: #0e7c8b; font-weight: 800; }
+.vf-quest-bar {
+	height: 8px;
+	border-radius: 4px;
+	background: var(--background-modifier-border);
+	overflow: hidden;
+}
+.vf-quest-fill {
+	height: 100%;
+	border-radius: 4px;
+	background: linear-gradient(90deg, #0e7c8b, #57d6c6);
+	transition: width 0.3s ease;
+}
+.vf-quest-hint { font-size: 0.75em; color: var(--text-faint); }
+.vf-quest-done-tag {
+	color: #ffb43d;
+	font-size: 0.8em;
+	font-weight: 700;
+}
+
+/* ---------------- FORECAST ---------------- */
+.vf-forecast {
+	display: flex;
+	align-items: flex-end;
+	gap: 4px;
+	height: 84px;
+	padding: 4px 0 2px;
+}
+.vf-fc-col { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; }
+.vf-fc-bar {
+	width: 100%;
+	max-width: 16px;
+	border-radius: 4px 4px 0 0;
+	background: rgba(14, 124, 139, 0.55);
+	align-self: center;
+}
+.vf-fc-today { background: #57d6c6; }
+.vf-fc-label { font-size: 0.6em; color: var(--text-faint); }
+
+/* ---------------- AI BOX (mặt sau thẻ) ---------------- */
+.vf-ai-box {
+	border-top: 1px dashed var(--background-modifier-border);
+	padding-top: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+.vf-ai-note {
+	border-radius: 10px;
+	padding: 10px 14px;
+	font-size: 0.9em;
+	line-height: 1.5;
+}
+.vf-ai-mnemonic { background: rgba(255, 180, 61, 0.12); }
+.vf-ai-grammar { background: rgba(14, 124, 139, 0.1); }
+.vf-ai-example { background: rgba(87, 214, 198, 0.1); font-style: italic; }
+.vf-ai-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.vf-btn-ai { font-size: 0.85em; }
+.vf-ai-write { display: flex; gap: 8px; align-items: center; }
+.vf-ai-input { flex: 1; font-size: 0.95em; padding: 10px 14px; }
+.vf-ai-result { margin-top: 0; }
+.vf-ai-result .vf-btn-icon { margin-top: 8px; }
+
+/* ---------------- STORY ---------------- */
+.vf-story-box {
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 20px;
+	padding: 24px 26px;
+	margin-top: 14px;
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	box-shadow: 0 10px 28px rgba(6, 26, 43, 0.12);
+}
+.vf-story-en { font-size: 1.1em; line-height: 1.8; }
+.vf-story-hit {
+	color: #0e7c8b;
+	background: rgba(87, 214, 198, 0.15);
+	border-radius: 5px;
+	padding: 0 5px;
+}
+.vf-story-vi { color: var(--text-muted); font-size: 0.95em; line-height: 1.7; }
+.vf-story-vi summary { cursor: pointer; font-weight: 600; margin-bottom: 6px; }
+.vf-story-words { margin-top: 12px; }
+.vf-story-wait {
+	text-align: center;
+	padding-top: 50px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 12px;
+}
+
+/* ---------------- KNOWN-WORD HIGHLIGHT (reading mode toàn vault) ---------------- */
+.vf-known {
+	border-radius: 3px;
+	cursor: help;
+	text-decoration-thickness: 2px;
+	text-underline-offset: 3px;
+}
+.vf-known-review {
+	text-decoration: underline;
+	text-decoration-color: rgba(14, 124, 139, 0.55);
+}
+.vf-known-learning {
+	text-decoration: underline;
+	text-decoration-color: rgba(255, 180, 61, 0.75);
+}
+.vf-known:hover { background: rgba(87, 214, 198, 0.16); }
+
 /* ---------------- MODAL ---------------- */
 .vf-add-modal .vf-input-wide { width: 100%; }
 .vf-add-modal { max-height: 75vh; overflow-y: auto; }
