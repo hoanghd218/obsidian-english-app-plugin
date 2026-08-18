@@ -1,7 +1,7 @@
 {
   "id": "vocab-forge",
   "name": "Vocab Forge",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "minAppVersion": "1.4.0",
   "description": "English Fluency OS trong Obsidian: Smart Capture YouTube, FSRS, dictation, shadowing, voice roleplay và AI qua CLI local hoặc API key (DeepSeek, MiniMax, OpenAI, Claude, Gemini, OpenRouter — dùng được trên iPhone/iPad). Mỗi thẻ là một note Markdown.",
   "author": "Tony Hoang (Trần Văn Hoàng)",

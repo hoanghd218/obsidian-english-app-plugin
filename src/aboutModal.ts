@@ -14,7 +14,7 @@ export class AboutModal extends Modal {
 		const header = contentEl.createDiv({ cls: "vf-about-header" });
 		header.createDiv({ text: "🎓", cls: "vf-about-icon" });
 		header.createEl("h2", { text: "Vocab Forge", cls: "vf-about-title" });
-		header.createSpan({ text: "v2.1.0", cls: "vf-about-version" });
+		header.createSpan({ text: "v2.2.0", cls: "vf-about-version" });
 		header.createDiv({
 			text: "English Fluency OS: từ video thật đến ghi nhớ, nghe, nói và viết",
 			cls: "vf-about-subtitle",

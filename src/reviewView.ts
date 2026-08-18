@@ -35,7 +35,12 @@ import {
 	type SentenceCheck,
 } from "./ai";
 import { XP_PER_LEVEL } from "./types";
-import { AI_API_PROVIDERS, AI_API_PROVIDER_IDS } from "./aiApi";
+import {
+	AI_API_PROVIDERS,
+	AI_API_PROVIDER_IDS,
+	fetchOpenRouterModelGroups,
+	renderOpenRouterOptions,
+} from "./aiApi";
 import { BADGES } from "./badges";
 import type { ErrorItem } from "./practice";
 import {
@@ -1906,8 +1911,15 @@ export class VocabReviewView extends ItemView {
 			keyBtn.onclick = () => window.open(info.keyUrl);
 
 			const currentModel = (s.apiModels[s.apiProvider] ?? "").trim() || info.defaultModel;
-			const customModel = this.apiModelCustom || !info.models.includes(currentModel);
-			const cModel = group("Model AI", `Mặc định: ${info.defaultModel}`);
+			const isOpenRouter = s.apiProvider === "openrouter";
+			// OpenRouter: model đã lưu có thể đến từ danh sách tải động → không ép sang chế độ tự nhập
+			const customModel = this.apiModelCustom || (!isOpenRouter && !info.models.includes(currentModel));
+			const cModel = group(
+				"Model AI",
+				isOpenRouter && !customModel
+					? "Danh sách tải từ OpenRouter: Miễn phí → công ty lớn · giá $/1M token (vào/ra)"
+					: `Mặc định: ${info.defaultModel}`
+			);
 			if (customModel) {
 				const mInput = cModel.createEl("input", {
 					attr: { type: "text", value: s.apiModels[s.apiProvider] ?? "", placeholder: info.defaultModel },
@@ -1924,6 +1936,8 @@ export class VocabReviewView extends ItemView {
 			} else {
 				const mSel = cModel.createEl("select", { cls: "dropdown" });
 				for (const m of info.models) mSel.createEl("option", { text: m, attr: { value: m } });
+				if (!info.models.includes(currentModel))
+					mSel.createEl("option", { text: currentModel, attr: { value: currentModel } });
 				mSel.createEl("option", { text: "Khác (tự nhập)…", attr: { value: "__custom__" } });
 				mSel.value = currentModel;
 				mSel.onchange = async () => {
@@ -1931,6 +1945,28 @@ export class VocabReviewView extends ItemView {
 					s.apiModels[s.apiProvider] = mSel.value;
 					await this.plugin.saveAll();
 				};
+				if (isOpenRouter) {
+					// Thay danh sách gợi ý tĩnh bằng catalog thật (đã phân nhóm) ngay khi tải xong
+					void fetchOpenRouterModelGroups()
+						.then((groups) => {
+							if (!mSel.isConnected) return;
+							renderOpenRouterOptions(mSel, groups, (s.apiModels.openrouter ?? "").trim() || info.defaultModel);
+						})
+						.catch(() => { /* offline — giữ danh sách gợi ý tĩnh */ });
+					const reloadBtn = cModel.createEl("button", { text: "🔄", cls: "vf-btn-icon" });
+					reloadBtn.setAttr("aria-label", "Tải lại danh sách model từ OpenRouter");
+					reloadBtn.onclick = async () => {
+						reloadBtn.disabled = true;
+						try {
+							const groups = await fetchOpenRouterModelGroups(true);
+							renderOpenRouterOptions(mSel, groups, (s.apiModels.openrouter ?? "").trim() || info.defaultModel);
+							const total = groups.reduce((n, g) => n + g.models.length, 0);
+							new Notice(`✅ Đã tải ${total} model từ OpenRouter`);
+						} catch (e) {
+							new Notice(`❌ ${e instanceof Error ? e.message : String(e)}`, 6000);
+						} finally { reloadBtn.disabled = false; }
+					};
+				}
 			}
 
 			const cTest = group("Kiểm tra kết nối API", "Gửi một câu ngắn tới model đã chọn để xác nhận key hoạt động");
@@ -1971,7 +2007,7 @@ export class VocabReviewView extends ItemView {
 		const authorGroup = main.createDiv({ cls: "vf-setting vf-author-card" });
 		const authorInfo = authorGroup.createDiv({ cls: "vf-setting-info" });
 		authorInfo.createDiv({ text: "👤 Tony Hoang (Trần Văn Hoàng)", cls: "vf-setting-name" });
-		authorInfo.createDiv({ text: "✉️ tony@tranvanhoang.com · Vocab Forge v2.1", cls: "vf-setting-desc" });
+		authorInfo.createDiv({ text: "✉️ tony@tranvanhoang.com · Vocab Forge v2.2", cls: "vf-setting-desc" });
 		const authorCtrl = authorGroup.createDiv({ cls: "vf-setting-control" });
 		const infoModalBtn = authorCtrl.createEl("button", { text: "ℹ️ Thông tin", cls: "vf-btn-icon" });
 		infoModalBtn.onclick = () => new AboutModal(this.app, this.plugin).open();
