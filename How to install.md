@@ -141,6 +141,13 @@ Nếu người dùng muốn cấu hình sẵn đường dẫn thẻ hoặc mục
 }
 ```
 
+### Bước 6: Bật Smart Capture và AI local
+
+- Cài `yt-dlp` nếu muốn plugin tự tải subtitle YouTube, rồi kiểm tra bằng `yt-dlp --version`.
+- Cài và đăng nhập ít nhất một trong các CLI: Claude, Codex, Gemini hoặc Grok. Plugin gọi tài khoản local đã đăng nhập và không yêu cầu/truyền API key.
+- Trong **Vocab Forge → Cài đặt → AI CLI**, chọn **Tự động** rồi bấm **Kiểm tra**. Có thể nhập đường dẫn tuyệt đối hoặc đường dẫn bắt đầu bằng `~/` nếu Obsidian không tìm thấy binary trong `PATH`.
+- AI CLI là tính năng desktop; Smart Capture trên mobile vẫn nhận transcript/note và tự tạo thẻ câu bằng fallback cục bộ.
+
 ---
 
 ## ⚡ One-Line Automated Bash Script (Dành cho AI chạy trực tiếp)
@@ -201,6 +208,8 @@ AI hãy hướng dẫn hoặc xác nhận với người dùng:
 1. Mở **Obsidian** > Kiểm tra icon mũ tốt nghiệp **🎓 Vocab Forge** ở thanh ribbon bên trái.
 2. Vào **🗂️ Bộ thẻ (Decks)** > Kiểm tra các bộ thẻ Cambridge C1, C2, C3, Idiom, Grammar, Business đã hiển thị đầy đủ.
 3. Nhấn **▶️ Học ngay** hoặc **🎯 Luyện tập** để bắt đầu buổi học đầu tiên với thuật toán FSRS.
+4. Mở **✨ Smart Capture**, dán URL YouTube và xác nhận màn preview tạo đúng quote/timestamp trước khi lưu.
+5. Mở **🎙️ Fluency Lab** để thử dictation, ghi âm shadowing và Video Comprehension Score.
 
 ---
 

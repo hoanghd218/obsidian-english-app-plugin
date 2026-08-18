@@ -355,8 +355,10 @@ export default class VocabForgePlugin extends Plugin {
 
 	recordSkill(skill: LearningSkill, score: number): void {
 		const stat = this.data.skillStats[skill];
+		const bounded = Math.max(0, Math.min(100, score));
 		stat.attempts++;
-		stat.totalScore += Math.max(0, Math.min(100, score));
+		stat.totalScore += bounded;
+		stat.recentScore = stat.recentScore == null ? bounded : stat.recentScore * 0.72 + bounded * 0.28;
 		stat.lastAt = new Date().toISOString();
 		this.data.xp += score >= 80 ? 8 : score >= 60 ? 5 : 2;
 		void this.saveAll();

@@ -70,7 +70,7 @@ export class AboutModal extends Modal {
 			{ icon: "🧠", title: "FSRS Spaced Repetition", desc: "Thuật toán lặp lại ngắt quãng hiện đại tối ưu khả năng ghi nhớ dài hạn." },
 			{ icon: "✨", title: "YouTube Smart Capture", desc: "Dán URL hoặc transcript, AI CLI chọn cụm hữu dụng và tạo thẻ đúng timestamp." },
 			{ icon: "🎙️", title: "Fluency Lab", desc: "Listening, dictation, ghi âm shadowing, word-level diff và Video Comprehension Score." },
-			{ icon: "🤖", title: "AI CLI không API key", desc: "Dùng tài khoản Claude, Codex, Gemini hoặc Grok CLI đã đăng nhập trên máy." },
+			{ icon: "🤖", title: "AI CLI local", desc: "Dùng tài khoản Claude, Codex, Gemini hoặc Grok CLI đã đăng nhập; plugin không yêu cầu API key." },
 			{ icon: "🎯", title: "Nhiều chế độ luyện tập", desc: "Trắc nghiệm, nối từ, điền từ vào câu, xếp từ & tìm lỗi sai." },
 			{ icon: "📝", title: "100% Markdown Vault Native", desc: "Toàn bộ từ vựng được lưu trữ an toàn dưới dạng file Markdown trong Vault của bạn." },
 		];

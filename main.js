@@ -470,7 +470,7 @@ var AboutModal = class extends import_obsidian2.Modal {
       { icon: "\u{1F9E0}", title: "FSRS Spaced Repetition", desc: "Thu\u1EADt to\xE1n l\u1EB7p l\u1EA1i ng\u1EAFt qu\xE3ng hi\u1EC7n \u0111\u1EA1i t\u1ED1i \u01B0u kh\u1EA3 n\u0103ng ghi nh\u1EDB d\xE0i h\u1EA1n." },
       { icon: "\u2728", title: "YouTube Smart Capture", desc: "D\xE1n URL ho\u1EB7c transcript, AI CLI ch\u1ECDn c\u1EE5m h\u1EEFu d\u1EE5ng v\xE0 t\u1EA1o th\u1EBB \u0111\xFAng timestamp." },
       { icon: "\u{1F399}\uFE0F", title: "Fluency Lab", desc: "Listening, dictation, ghi \xE2m shadowing, word-level diff v\xE0 Video Comprehension Score." },
-      { icon: "\u{1F916}", title: "AI CLI kh\xF4ng API key", desc: "D\xF9ng t\xE0i kho\u1EA3n Claude, Codex, Gemini ho\u1EB7c Grok CLI \u0111\xE3 \u0111\u0103ng nh\u1EADp tr\xEAn m\xE1y." },
+      { icon: "\u{1F916}", title: "AI CLI local", desc: "D\xF9ng t\xE0i kho\u1EA3n Claude, Codex, Gemini ho\u1EB7c Grok CLI \u0111\xE3 \u0111\u0103ng nh\u1EADp; plugin kh\xF4ng y\xEAu c\u1EA7u API key." },
       { icon: "\u{1F3AF}", title: "Nhi\u1EC1u ch\u1EBF \u0111\u1ED9 luy\u1EC7n t\u1EADp", desc: "Tr\u1EAFc nghi\u1EC7m, n\u1ED1i t\u1EEB, \u0111i\u1EC1n t\u1EEB v\xE0o c\xE2u, x\u1EBFp t\u1EEB & t\xECm l\u1ED7i sai." },
       { icon: "\u{1F4DD}", title: "100% Markdown Vault Native", desc: "To\xE0n b\u1ED9 t\u1EEB v\u1EF1ng \u0111\u01B0\u1EE3c l\u01B0u tr\u1EEF an to\xE0n d\u01B0\u1EDBi d\u1EA1ng file Markdown trong Vault c\u1EE7a b\u1EA1n." }
     ];
@@ -3817,13 +3817,13 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
     const grid = main.createDiv({ cls: "vf-coach-grid" });
     const coach = grid.createDiv({ cls: "vf-coach-card" });
     coach.createDiv({ text: "Adaptive Today Coach", cls: "vf-eyebrow" });
-    coach.createDiv({ text: `Phi\xEAn ${Math.max(1, Math.round(plan.totalMinutes))} ph\xFAt d\xE0nh ri\xEAng cho b\u1EA1n`, cls: "vf-coach-title" });
+    coach.createDiv({ text: `L\u1ED9 tr\xECnh ${Math.max(1, Math.round(plan.totalMinutes))} ph\xFAt d\xE0nh ri\xEAng cho b\u1EA1n`, cls: "vf-coach-title" });
     coach.createDiv({ text: plan.weakReason, cls: "vf-muted" });
     const chips = coach.createDiv({ cls: "vf-coach-plan" });
     for (const block of plan.blocks.slice(0, 5)) {
       chips.createSpan({ text: `${this.skillIcon(block.skill)} ${block.count} ${this.skillName(block.skill)}`, cls: "vf-plan-chip" });
     }
-    const start = coach.createEl("button", { text: "B\u1EAFt \u0111\u1EA7u phi\xEAn \u0111\u1EC1 xu\u1EA5t \u2192", cls: "vf-btn-hero vf-btn-hero-small" });
+    const start = coach.createEl("button", { text: "B\u1EAFt \u0111\u1EA7u b\u01B0\u1EDBc \u01B0u ti\xEAn \u2192", cls: "vf-btn-hero vf-btn-hero-small" });
     start.onclick = () => {
       if ((plan.weakSkill === "listening" || plan.weakSkill === "shadowing") && cards.some((c) => c.quote)) {
         this.labMode = plan.weakSkill === "shadowing" ? "shadowing" : "dictation";
@@ -3838,7 +3838,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
     goal.createDiv({ text: this.goalStep(cards), cls: "vf-goal-step" });
     for (const [skill, label] of [["memory", "Ghi nh\u1EDB"], ["listening", "Nghe"], ["speaking", "N\xF3i"], ["writing", "Vi\u1EBFt"]]) {
       const stat = this.plugin.data.skillStats[skill];
-      const avg = stat.attempts ? Math.round(stat.totalScore / stat.attempts) : 0;
+      const avg = stat.attempts ? Math.round(stat.recentScore ?? stat.totalScore / stat.attempts) : 0;
       const row = goal.createDiv({ cls: "vf-skill-row" });
       row.createSpan({ text: label });
       const track = row.createDiv({ cls: "vf-skill-track" });
@@ -3851,7 +3851,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
     return {
       attempts: stat.attempts,
       correct: stat.totalScore / 100,
-      recentAccuracy: stat.attempts ? stat.totalScore / stat.attempts / 100 : void 0,
+      recentAccuracy: stat.attempts ? (stat.recentScore ?? stat.totalScore / stat.attempts) / 100 : void 0,
       lastPracticed: stat.lastAt || void 0
     };
   }
@@ -4976,13 +4976,13 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
       s.dailyMinutes = Number(minRange.value);
       await this.plugin.saveAll();
     };
-    const errorPath = group("S\u1ED5 l\u1ED7i c\xE1 nh\xE2n", "L\u01B0u l\u1ED7i AI ph\xE1t hi\u1EC7n th\xE0nh note Markdown c\xF3 th\u1EC3 \xF4n l\u1EA1i");
+    const errorPath = group("S\u1ED5 l\u1ED7i c\xE1 nh\xE2n", "L\u01B0u l\u1ED7i vi\u1EBFt \u0111\xE3 \u0111\u01B0\u1EE3c AI s\u1EEDa th\xE0nh note Markdown c\xF3 th\u1EC3 \xF4n l\u1EA1i");
     const ep = errorPath.createEl("input", { attr: { type: "text", value: s.errorNotebookPath }, cls: "vf-input" });
     ep.onchange = async () => {
       s.errorNotebookPath = ep.value.trim() || "5. Toolbox/English/My English Errors.md";
       await this.plugin.saveAll();
     };
-    main.createEl("h4", { text: "AI CLI \xB7 kh\xF4ng d\xF9ng API key" });
+    main.createEl("h4", { text: "AI CLI local \xB7 plugin kh\xF4ng y\xEAu c\u1EA7u API key" });
     const c7 = group("AI m\u1EB7c \u0111\u1ECBnh", "Auto \u01B0u ti\xEAn Claude \u2192 Grok \u2192 Gemini \u2192 Codex \u0111\xE3 \u0111\u0103ng nh\u1EADp tr\xEAn m\xE1y");
     const provider = c7.createEl("select", { cls: "dropdown" });
     for (const [value, label] of [["auto", "T\u1EF1 \u0111\u1ED9ng"], ["claude", "Claude CLI"], ["codex", "Codex CLI"], ["gemini", "Gemini CLI"], ["grok", "Grok CLI"]])
@@ -5124,8 +5124,12 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
     const capture = head.createEl("button", { text: "\u2728 Smart Capture", cls: "vf-btn-icon" });
     capture.onclick = () => this.plugin.openSmartCapture();
     const tabs = main.createDiv({ cls: "vf-lab-tabs" });
+    tabs.setAttr("role", "tablist");
+    tabs.setAttr("aria-label", "Ch\u1EBF \u0111\u1ED9 Fluency Lab");
     for (const [mode, label] of [["dictation", "\u{1F3A7} Listening & Dictation"], ["shadowing", "\u{1F399}\uFE0F Shadowing"], ["coverage", "\u{1F4CA} Video Score"]]) {
       const tab = tabs.createEl("button", { text: label, cls: `vf-lab-tab ${this.labMode === mode ? "vf-lab-tab-on" : ""}` });
+      tab.setAttr("role", "tab");
+      tab.setAttr("aria-selected", String(this.labMode === mode));
       tab.onclick = () => {
         this.labMode = mode;
         this.resetLabAttempt();
@@ -5279,7 +5283,8 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
     } catch (e) {
       console.error("Vocab Forge recorder:", e);
       this.audioRecorder.cancel();
-      if (this.section === "lab") new import_obsidian5.Notice("Kh\xF4ng m\u1EDF \u0111\u01B0\u1EE3c microphone \u2014 ki\u1EC3m tra quy\u1EC1n microphone c\u1EE7a Obsidian");
+      const cancelled = e instanceof Error && e.message.includes("cancelled");
+      if (this.section === "lab" && !cancelled) new import_obsidian5.Notice("Kh\xF4ng m\u1EDF \u0111\u01B0\u1EE3c microphone \u2014 ki\u1EC3m tra quy\u1EC1n microphone c\u1EE7a Obsidian");
     } finally {
       this.labStarting = false;
       if (this.section === "lab") this.render();
@@ -5948,7 +5953,7 @@ var VocabForgeSettingTab = class extends import_obsidian7.PluginSettingTab {
         await this.plugin.saveAll();
       });
     });
-    containerEl.createEl("h3", { text: "AI CLI \u2014 kh\xF4ng c\u1EA7n API key" });
+    containerEl.createEl("h3", { text: "AI CLI local \u2014 plugin kh\xF4ng y\xEAu c\u1EA7u API key" });
     new import_obsidian7.Setting(containerEl).setName("AI m\u1EB7c \u0111\u1ECBnh").setDesc("Auto s\u1EBD ch\u1ECDn CLI kh\u1EA3 d\u1EE5ng theo th\u1EE9 t\u1EF1 Claude \u2192 Grok \u2192 Gemini \u2192 Codex").addDropdown(
       (d) => d.addOption("auto", "T\u1EF1 \u0111\u1ED9ng").addOption("claude", "Claude CLI").addOption("codex", "Codex CLI").addOption("gemini", "Gemini CLI").addOption("grok", "Grok CLI").setValue(this.plugin.settings.aiProvider).onChange(async (v) => {
         this.plugin.settings.aiProvider = v;
@@ -5984,7 +5989,7 @@ var VocabForgeSettingTab = class extends import_obsidian7.PluginSettingTab {
         await this.plugin.saveAll();
       })
     );
-    new import_obsidian7.Setting(containerEl).setName("S\u1ED5 l\u1ED7i c\xE1 nh\xE2n").setDesc("AI s\u1EBD l\u01B0u l\u1ED7i vi\u1EBFt/n\xF3i v\xE0o note Markdown n\xE0y").addText(
+    new import_obsidian7.Setting(containerEl).setName("S\u1ED5 l\u1ED7i c\xE1 nh\xE2n").setDesc("L\u01B0u c\xE1c l\u1ED7i vi\u1EBFt \u0111\xE3 \u0111\u01B0\u1EE3c AI s\u1EEDa v\xE0o note Markdown n\xE0y").addText(
       (t) => t.setValue(this.plugin.settings.errorNotebookPath).onChange(async (v) => {
         this.plugin.settings.errorNotebookPath = v.trim() || "5. Toolbox/English/My English Errors.md";
         await this.plugin.saveAll();
@@ -6675,17 +6680,21 @@ function buildSmartCapturePrompt(context) {
 }
 function extractJsonArray(raw) {
   const cleaned = raw.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
+  let emptyArray = null;
   for (let start = cleaned.indexOf("["); start !== -1; start = cleaned.indexOf("[", start + 1)) {
     for (let end = cleaned.length; end > start; end--) {
       if (cleaned[end - 1] !== "]") continue;
       try {
         const parsed = JSON.parse(cleaned.slice(start, end));
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) {
+          if (!parsed.length) emptyArray = parsed;
+          else if (parsed.some((item) => item && typeof item === "object" && "word" in item)) return parsed;
+        }
       } catch {
       }
     }
   }
-  return null;
+  return emptyArray;
 }
 function parseSmartCaptureSuggestions(raw) {
   const values = extractJsonArray(raw);
@@ -6864,6 +6873,9 @@ var SmartCaptureModal = class extends import_obsidian8.Modal {
         category: this.category,
         maxCandidates
       };
+      if (context.transcript.length > 36e3) {
+        this.status = "Transcript d\xE0i: AI ph\xE2n t\xEDch 36.000 k\xFD t\u1EF1 \u0111\u1EA7u. C\xF3 th\u1EC3 t\xE1ch note th\xE0nh ph\u1EA7n nh\u1ECF \u0111\u1EC3 bao ph\u1EE7 to\xE0n b\u1ED9.";
+      }
       let suggestions;
       if (this.options.extractor) {
         try {
@@ -6883,6 +6895,9 @@ var SmartCaptureModal = class extends import_obsidian8.Modal {
       if (!suggestions.length) throw new Error("Kh\xF4ng t\xECm th\u1EA5y n\u1ED9i dung ph\xF9 h\u1EE3p \u0111\u1EC3 t\u1EA1o th\u1EBB");
       this.preparePreview(suggestions);
       if (!this.previewCards.length) throw new Error("AI kh\xF4ng tr\u1EA3 v\u1EC1 c\u1EE5m n\xE0o th\u1EF1c s\u1EF1 c\xF3 trong transcript");
+      if (this.status.startsWith("AI CLI \u0111ang")) {
+        this.status = `\u0110\xE3 \u0111\u1ED1i chi\u1EBFu ${this.previewCards.length} th\u1EBB v\u1EDBi transcript ngu\u1ED3n.`;
+      }
       extracted = true;
     } catch (error) {
       console.error("Vocab Forge Smart Capture:", error);
@@ -6935,6 +6950,7 @@ var SmartCaptureModal = class extends import_obsidian8.Modal {
   }
   renderPreview() {
     this.renderHeader();
+    if (this.status) this.contentEl.createDiv({ cls: "vf-muted vf-smart-status", text: this.status });
     const selected = this.previewCards.filter((card) => card.selected).length;
     this.contentEl.createEl("h3", { text: `Xem tr\u01B0\u1EDBc \xB7 ${selected}/${this.previewCards.length} th\u1EBB \u0111\u01B0\u1EE3c ch\u1ECDn` });
     const toolbar = new import_obsidian8.Setting(this.contentEl);
@@ -6958,7 +6974,7 @@ var SmartCaptureModal = class extends import_obsidian8.Modal {
         card.duplicate ? "\u0110\xE3 c\xF3 trong vault \u2014 b\u1ECF ch\u1ECDn m\u1EB7c \u0111\u1ECBnh" : `${card.input.type} \xB7 ${card.input.category}${card.timestampSeconds == null ? "" : ` \xB7 ${Math.floor(card.timestampSeconds)}s`}`
       );
       heading.addToggle(
-        (toggle) => toggle.setValue(card.selected).setDisabled(this.busy).onChange((value) => {
+        (toggle) => toggle.setValue(card.selected).setDisabled(this.busy || card.duplicate).onChange((value) => {
           this.previewCards[index].selected = value;
           this.renderPreview();
         })
@@ -6970,6 +6986,32 @@ var SmartCaptureModal = class extends import_obsidian8.Modal {
       if (card.input.collocations.length) {
         item.createDiv({ cls: "vf-muted", text: `Collocations: ${card.input.collocations.join(" \xB7 ")}` });
       }
+      const editor = item.createEl("details", { cls: "vf-smart-editor" });
+      editor.createEl("summary", { text: "Ch\u1EC9nh th\u1EBB tr\u01B0\u1EDBc khi l\u01B0u" });
+      const fields = editor.createDiv({ cls: "vf-smart-editor-grid" });
+      for (const [label, key] of [
+        ["C\u1EE5m t\u1EEB", "word"],
+        ["Deck", "category"],
+        ["Ngh\u0129a Vi\u1EC7t", "meaningVi"],
+        ["Ngh\u0129a Anh", "meaningEn"]
+      ]) {
+        const field = fields.createEl("label");
+        field.createSpan({ text: label });
+        const input = field.createEl("input", { attr: { type: "text" } });
+        input.value = card.input[key];
+        input.disabled = this.busy;
+        input.oninput = () => {
+          this.previewCards[index].input[key] = input.value.trim();
+        };
+      }
+      const quoteField = fields.createEl("label", { cls: "vf-smart-editor-wide" });
+      quoteField.createSpan({ text: "C\xE2u ngu\u1ED3n" });
+      const quoteInput = quoteField.createEl("textarea", { attr: { rows: "2" } });
+      quoteInput.value = card.input.quote;
+      quoteInput.disabled = this.busy;
+      quoteInput.oninput = () => {
+        this.previewCards[index].input.quote = quoteInput.value.trim();
+      };
     });
     const actions = new import_obsidian8.Setting(this.contentEl);
     actions.addButton((button) => button.setButtonText("\u2190 S\u1EEDa ngu\u1ED3n").setDisabled(this.busy).onClick(() => this.renderInput()));
@@ -6984,9 +7026,14 @@ var SmartCaptureModal = class extends import_obsidian8.Modal {
     this.renderPreview();
     let created = 0;
     const failed = [];
+    const existing = new Set(this.store.getAllCards().map((card) => normalizedWords(card.word)));
     for (const card of selected) {
+      if (this.closed) break;
       try {
+        const key = normalizedWords(card.input.word);
+        if (!key || existing.has(key)) throw new Error("Th\u1EBB tr\u1ED1ng ho\u1EB7c \u0111\xE3 t\u1ED3n t\u1EA1i");
         await this.store.createCard(card.input);
+        existing.add(key);
         created++;
       } catch (error) {
         console.error(`Vocab Forge: cannot create Smart Capture card "${card.input.word}"`, error);
@@ -7284,8 +7331,10 @@ var VocabForgePlugin = class extends import_obsidian9.Plugin {
   }
   recordSkill(skill, score) {
     const stat = this.data.skillStats[skill];
+    const bounded = Math.max(0, Math.min(100, score));
     stat.attempts++;
-    stat.totalScore += Math.max(0, Math.min(100, score));
+    stat.totalScore += bounded;
+    stat.recentScore = stat.recentScore == null ? bounded : stat.recentScore * 0.72 + bounded * 0.28;
     stat.lastAt = (/* @__PURE__ */ new Date()).toISOString();
     this.data.xp += score >= 80 ? 8 : score >= 60 ? 5 : 2;
     void this.saveAll();
