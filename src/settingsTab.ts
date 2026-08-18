@@ -78,7 +78,7 @@ export class VocabForgeSettingTab extends PluginSettingTab {
 				});
 			});
 
-		containerEl.createEl("h3", { text: "AI CLI — không cần API key" });
+		containerEl.createEl("h3", { text: "AI CLI local — plugin không yêu cầu API key" });
 		new Setting(containerEl)
 			.setName("AI mặc định")
 			.setDesc("Auto sẽ chọn CLI khả dụng theo thứ tự Claude → Grok → Gemini → Codex")
@@ -143,7 +143,7 @@ export class VocabForgeSettingTab extends PluginSettingTab {
 			);
 		new Setting(containerEl)
 			.setName("Sổ lỗi cá nhân")
-			.setDesc("AI sẽ lưu lỗi viết/nói vào note Markdown này")
+			.setDesc("Lưu các lỗi viết đã được AI sửa vào note Markdown này")
 			.addText((t) =>
 				t.setValue(this.plugin.settings.errorNotebookPath).onChange(async (v) => {
 					this.plugin.settings.errorNotebookPath = v.trim() || "5. Toolbox/English/My English Errors.md";
