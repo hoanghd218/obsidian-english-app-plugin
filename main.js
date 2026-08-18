@@ -27,6 +27,113 @@ __export(main_exports, {
 module.exports = __toCommonJS(main_exports);
 var import_obsidian5 = require("obsidian");
 
+// src/ai.ts
+function nodeRequire(mod) {
+  const req = window.require;
+  if (!req) throw new Error("AI features ch\u1EC9 ch\u1EA1y tr\xEAn Obsidian desktop");
+  return req(mod);
+}
+function resolveGrokPath(custom) {
+  const fs = nodeRequire("fs");
+  const os = nodeRequire("os");
+  const candidates = [
+    custom,
+    `${os.homedir()}/.local/bin/grok`,
+    "/usr/local/bin/grok",
+    "/opt/homebrew/bin/grok"
+  ].filter(Boolean);
+  for (const c of candidates) {
+    if (c !== "grok" && fs.existsSync(c)) return c;
+  }
+  return "grok";
+}
+function runGrok(prompt, grokPath, timeoutMs = 9e4, sessionId) {
+  const cp = nodeRequire("child_process");
+  const os = nodeRequire("os");
+  const proc = nodeRequire("process");
+  const bin = resolveGrokPath(grokPath);
+  const env = {
+    ...proc.env,
+    PATH: `${proc.env.PATH ?? ""}:${os.homedir()}/.local/bin:/usr/local/bin:/opt/homebrew/bin`
+  };
+  const args = ["--no-auto-update", "--no-alt-screen", "--disable-web-search"];
+  if (sessionId) args.push("-s", sessionId);
+  args.push("-p", prompt);
+  return new Promise((resolve, reject) => {
+    cp.execFile(
+      bin,
+      args,
+      { timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024, env },
+      (err, stdout) => {
+        if (err) reject(err);
+        else resolve(String(stdout).trim());
+      }
+    );
+  });
+}
+function extractJson(raw) {
+  const start = raw.indexOf("{");
+  if (start === -1) return null;
+  for (let end = raw.length; end > start; end--) {
+    const slice = raw.slice(start, end);
+    if (!slice.endsWith("}")) continue;
+    try {
+      return JSON.parse(slice);
+    } catch {
+    }
+  }
+  return null;
+}
+function sentenceCheckPrompt(word, meaningEn, sentence) {
+  return `You are an English teacher for a Vietnamese B1 learner. The learner must write a sentence using the expression "${word}"` + (meaningEn ? ` (meaning: ${meaningEn})` : "") + `. Their sentence: "${sentence}". Evaluate correctness and naturalness. Reply with ONLY minified JSON, no markdown: {"ok":true|false,"score":0-10,"corrected":"improved or corrected sentence","explain_vi":"nh\u1EADn x\xE9t ng\u1EAFn g\u1ECDn b\u1EB1ng ti\u1EBFng Vi\u1EC7t"}`;
+}
+function mnemonicPrompt(word, meaningVi) {
+  return `T\u1EA1o m\u1ED9t m\u1EB9o nh\u1EDB (mnemonic) NG\u1EAEN b\u1EB1ng ti\u1EBFng Vi\u1EC7t cho c\u1EE5m ti\u1EBFng Anh "${word}" ngh\u0129a l\xE0 "${meaningVi}". T\u1ED1i \u0111a 2 c\xE2u, h\xECnh \u1EA3nh s\u1ED1ng \u0111\u1ED9ng, c\xF3 th\u1EC3 ch\u01A1i ch\u1EEF v\u1EDBi ti\u1EBFng Vi\u1EC7t. Ch\u1EC9 tr\u1EA3 v\u1EC1 \u0111\xFAng n\u1ED9i dung m\u1EB9o nh\u1EDB, kh\xF4ng gi\u1EA3i th\xEDch th\xEAm.`;
+}
+function grammarPrompt(quote) {
+  return `Gi\u1EA3i th\xEDch b\u1EB1ng ti\u1EBFng Vi\u1EC7t (cho ng\u01B0\u1EDDi h\u1ECDc B1) c\u1EA5u tr\xFAc ng\u1EEF ph\xE1p \u0111\xE1ng ch\xFA \xFD nh\u1EA5t trong c\xE2u ti\u1EBFng Anh sau, k\xE8m 1 v\xED d\u1EE5 kh\xE1c d\xF9ng c\xF9ng c\u1EA5u tr\xFAc: "${quote}". T\u1ED1i \u0111a 90 t\u1EEB. Ch\u1EC9 tr\u1EA3 v\u1EC1 ph\u1EA7n gi\u1EA3i th\xEDch.`;
+}
+function cardFillPrompt(word) {
+  return `You are a lexicographer helping a Vietnamese B1 English learner (works in business/AI/content). For the English item "${word}", reply with ONLY minified JSON, no markdown fences: {"type":"word|phrase|idiom|collocation","ipa":"/IPA/","meaning_en":"simple learner's-dictionary definition","meaning_vi":"ngh\u0129a ti\u1EBFng Vi\u1EC7t t\u1EF1 nhi\xEAn","collocations":["2-3 common collocations"],"example":"one natural example sentence using it in a business/content context","forms":["real inflected forms only, [] if fixed"],"category":"business|startup|content|ai-tech|casual|idiom|general"}`;
+}
+function generateImage(word, meaningEn, grokPath, timeoutMs = 2e5) {
+  const fs = nodeRequire("fs");
+  const os = nodeRequire("os");
+  const path = nodeRequire("path");
+  const dir = path.join(os.tmpdir(), `vf-imagine-${Date.now()}`);
+  fs.mkdirSync(dir, { recursive: true });
+  const prompt = `/imagine flat minimal vector illustration, a clear visual metaphor for the English expression "${word}"` + (meaningEn ? ` (meaning: ${meaningEn.slice(0, 140)})` : "") + `, teal and deep navy color palette, clean light background, single focused scene, no text, no letters --out out.png`;
+  const cp = nodeRequire("child_process");
+  const osm = nodeRequire("os");
+  const proc = nodeRequire("process");
+  const bin = resolveGrokPath(grokPath);
+  const env = {
+    ...proc.env,
+    PATH: `${proc.env.PATH ?? ""}:${osm.homedir()}/.local/bin:/usr/local/bin:/opt/homebrew/bin`
+  };
+  return new Promise((resolve) => {
+    cp.execFile(
+      bin,
+      ["--no-auto-update", "--always-approve", "--no-alt-screen", "--cwd", dir, "-p", prompt],
+      { timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024, cwd: dir, env },
+      () => {
+        const out = path.join(dir, "out.png");
+        resolve(fs.existsSync(out) ? out : null);
+      }
+    );
+  });
+}
+function chatStartPrompt(words) {
+  return `Let's roleplay to help a Vietnamese B1 English learner practice speaking. You play a friendly business partner in an online meeting about growing a content/AI business. Rules: use simple B1 English, keep each of your turns to 2-4 sentences, ask questions that naturally invite the learner to use these target expressions: ${words.map((w) => `"${w}"`).join(", ")}. Never explain the rules or mention that this is practice. Stay in character. Start the conversation now with your first message only.`;
+}
+function chatFeedbackPrompt(words) {
+  return `D\u1EEBng roleplay. B\xE2y gi\u1EDD h\xE3y nh\u1EADn x\xE9t b\u1EB1ng TI\u1EBENG VI\u1EC6T v\u1EC1 ph\u1EA7n th\u1EC3 hi\u1EC7n c\u1EE7a ng\u01B0\u1EDDi h\u1ECDc trong h\u1ED9i tho\u1EA1i v\u1EEBa r\u1ED3i: (1) h\u1ECD \u0111\xE3 d\xF9ng \u0111\u01B0\u1EE3c nh\u1EEFng t\u1EEB m\u1EE5c ti\xEAu n\xE0o trong: ${words.join(", ")} \u2014 d\xF9ng \u0111\xFAng hay sai; (2) 2-3 l\u1ED7i ti\u1EBFng Anh \u0111\xE1ng ch\xFA \xFD nh\u1EA5t v\xE0 c\xE1ch s\u1EEDa; (3) m\u1ED9t l\u1EDDi khen c\u1EE5 th\u1EC3. T\u1ED1i \u0111a 130 t\u1EEB, th\xE2n thi\u1EC7n.`;
+}
+function storyPrompt(words, categories) {
+  const topic = categories.includes("business") || categories.includes("content") ? "a creator building an online business" : "everyday work life";
+  return `Write a short story (100-130 words) in simple English (B1 level) about ${topic} that NATURALLY uses ALL of these expressions: ${words.map((w) => `"${w}"`).join(", ")}. Wrap each target expression in **double asterisks**. After the story, write a line with only "---", then a natural Vietnamese translation of the story. Reply with ONLY the story, the --- line, and the translation.`;
+}
+
 // src/addCardModal.ts
 var import_obsidian = require("obsidian");
 
@@ -42,7 +149,8 @@ var DEFAULT_SETTINGS = {
   dailyPracticeGoal: 10,
   highlightEnabled: true,
   grokPath: "grok",
-  reverseEnabled: true
+  reverseEnabled: true,
+  reminderHour: 20
 };
 var DEFAULT_CATEGORIES = [
   "business",
@@ -85,6 +193,10 @@ var AddCardModal = class extends import_obsidian.Modal {
   constructor(app, plugin, prefill) {
     super(app);
     this.plugin = plugin;
+    this.mode = "auto";
+    this.aiFilled = false;
+    this.aiBusy = false;
+    this.makeImage = true;
     this.input = {
       word: "",
       type: "word",
@@ -93,6 +205,7 @@ var AddCardModal = class extends import_obsidian.Modal {
       meaningEn: "",
       meaningVi: "",
       collocations: [],
+      forms: [],
       quote: "",
       source: "",
       sourceUrl: "",
@@ -107,13 +220,101 @@ var AddCardModal = class extends import_obsidian.Modal {
       this.input.sourceUrl = prefill.sourceUrl ?? "";
       if (prefill.type) this.input.type = prefill.type;
       if (prefill.category) this.input.category = prefill.category;
+      if (prefill.word) this.mode = "manual";
     }
   }
   onOpen() {
+    this.display();
+  }
+  display() {
     const { contentEl } = this;
+    contentEl.empty();
     contentEl.addClass("vf-add-modal");
     contentEl.createEl("h3", { text: "\uFF0B Th\xEAm th\u1EBB Vocab Forge" });
-    new import_obsidian.Setting(contentEl).setName("T\u1EEB / c\u1EE5m / c\xE2u / \u0111o\u1EA1n").setDesc("N\u1ED9i dung ti\u1EBFng Anh c\u1EA7n h\u1ECDc \u2014 m\u1EB7t tr\u01B0\u1EDBc c\u1EE7a th\u1EBB").addTextArea((t) => {
+    const seg = contentEl.createDiv({ cls: "vf-mode-seg" });
+    const autoBtn = seg.createEl("button", {
+      text: "\u{1F916} T\u1EF1 \u0111\u1ED9ng (AI)",
+      cls: `vf-seg-btn ${this.mode === "auto" ? "vf-seg-on" : ""}`
+    });
+    const manualBtn = seg.createEl("button", {
+      text: "\u{1F4DD} Th\u1EE7 c\xF4ng",
+      cls: `vf-seg-btn ${this.mode === "manual" ? "vf-seg-on" : ""}`
+    });
+    autoBtn.onclick = () => {
+      this.mode = "auto";
+      this.display();
+    };
+    manualBtn.onclick = () => {
+      this.mode = "manual";
+      this.display();
+    };
+    if (this.mode === "auto" && !this.aiFilled) {
+      this.displayAutoEntry(contentEl);
+      return;
+    }
+    this.displayForm(contentEl);
+  }
+  // --- chế độ tự động: chỉ nhập từ, AI điền hết
+  displayAutoEntry(contentEl) {
+    contentEl.createDiv({
+      text: "Nh\u1EADp t\u1EEB / c\u1EE5m t\u1EEB \u2014 Grok s\u1EBD t\u1EF1 \u0111i\u1EC1n IPA, ngh\u0129a Anh\u2013Vi\u1EC7t, v\xED d\u1EE5, collocations, word family, ch\u1EE7 \u0111\u1EC1 v\xE0 (tu\u1EF3 ch\u1ECDn) sinh \u1EA3nh minh ho\u1EA1.",
+      cls: "vf-muted vf-auto-desc"
+    });
+    const input = contentEl.createEl("input", {
+      cls: "vf-practice-input vf-auto-input",
+      attr: { type: "text", placeholder: 'vd: "double down", "move the needle"\u2026', spellcheck: "false" }
+    });
+    input.value = this.input.word;
+    input.oninput = () => this.input.word = input.value;
+    input.onkeydown = (e) => {
+      if (e.key === "Enter") void this.aiFill();
+    };
+    new import_obsidian.Setting(contentEl).setName("\u{1F5BC} Sinh \u1EA3nh minh ho\u1EA1 sau khi t\u1EA1o th\u1EBB").setDesc("Grok Imagine, ch\u1EA1y n\u1EC1n ~1 ph\xFAt").addToggle((t) => t.setValue(this.makeImage).onChange((v) => this.makeImage = v));
+    const btn = contentEl.createEl("button", {
+      text: this.aiBusy ? "\u23F3 AI \u0111ang tra c\u1EE9u\u2026" : "\u2728 AI \u0111i\u1EC1n t\u1EA5t c\u1EA3",
+      cls: "vf-btn-hero vf-btn-hero-small vf-auto-go"
+    });
+    btn.disabled = this.aiBusy;
+    btn.onclick = () => void this.aiFill();
+    window.setTimeout(() => input.focus(), 30);
+  }
+  async aiFill() {
+    const word = this.input.word.trim();
+    if (!word) {
+      new import_obsidian.Notice("Nh\u1EADp t\u1EEB/c\u1EE5m t\u1EEB tr\u01B0\u1EDBc \u0111\xE3");
+      return;
+    }
+    if (this.aiBusy) return;
+    this.aiBusy = true;
+    this.display();
+    try {
+      const raw = await runGrok(cardFillPrompt(word), this.plugin.settings.grokPath, 12e4);
+      const fill = extractJson(raw);
+      if (!fill) throw new Error("bad json");
+      this.input.word = word;
+      this.input.type = ["word", "phrase", "idiom", "collocation"].includes(fill.type) ? fill.type : "phrase";
+      this.input.ipa = fill.ipa ?? "";
+      this.input.meaningEn = fill.meaning_en ?? "";
+      this.input.meaningVi = fill.meaning_vi ?? "";
+      this.input.collocations = Array.isArray(fill.collocations) ? fill.collocations : [];
+      this.input.forms = Array.isArray(fill.forms) ? fill.forms : [];
+      this.input.quote = fill.example ?? "";
+      this.input.category = (fill.category || "general").toLowerCase();
+      this.aiFilled = true;
+      new import_obsidian.Notice("\u2728 AI \u0111\xE3 \u0111i\u1EC1n xong \u2014 ki\u1EC3m tra r\u1ED3i b\u1EA5m T\u1EA1o th\u1EBB");
+    } catch (e) {
+      console.error("Vocab Forge AI fill:", e);
+      new import_obsidian.Notice("AI \u0111i\u1EC1n th\u1EA5t b\u1EA1i \u2014 th\u1EED l\u1EA1i ho\u1EB7c d\xF9ng ch\u1EBF \u0111\u1ED9 th\u1EE7 c\xF4ng");
+    } finally {
+      this.aiBusy = false;
+      this.display();
+    }
+  }
+  // --- form đầy đủ (thủ công, hoặc review sau khi AI điền)
+  displayForm(contentEl) {
+    if (this.aiFilled)
+      contentEl.createDiv({ text: "\u2728 AI \u0111\xE3 \u0111i\u1EC1n \u2014 ki\u1EC3m tra v\xE0 ch\u1EC9nh n\u1EBFu c\u1EA7n:", cls: "vf-muted vf-auto-desc" });
+    new import_obsidian.Setting(contentEl).setName("T\u1EEB / c\u1EE5m / c\xE2u / \u0111o\u1EA1n").addTextArea((t) => {
       t.setValue(this.input.word).onChange((v) => this.input.word = v);
       t.inputEl.rows = 2;
       t.inputEl.addClass("vf-input-wide");
@@ -121,19 +322,19 @@ var AddCardModal = class extends import_obsidian.Modal {
     new import_obsidian.Setting(contentEl).setName("Lo\u1EA1i th\u1EBB").addDropdown((d) => {
       d.addOption("word", "T\u1EEB (word)").addOption("phrase", "C\u1EE5m t\u1EEB (phrase)").addOption("idiom", "Th\xE0nh ng\u1EEF (idiom)").addOption("collocation", "Collocation").addOption("sentence", "C\xE2u (sentence)").addOption("passage", "\u0110o\u1EA1n ng\u1EAFn (passage)").addOption("grammar", "Ng\u1EEF ph\xE1p (grammar)").setValue(this.input.type).onChange((v) => this.input.type = v);
     });
-    new import_obsidian.Setting(contentEl).setName("Ch\u1EE7 \u0111\u1EC1 (deck)").setDesc("Th\u1EBB \u0111\u01B0\u1EE3c nh\xF3m theo ch\u1EE7 \u0111\u1EC1 tr\xEAn trang B\u1ED9 th\u1EBB \u2014 ch\u1ECDn c\xF3 s\u1EB5n ho\u1EB7c g\xF5 m\u1EDBi").addDropdown((d) => {
+    new import_obsidian.Setting(contentEl).setName("Ch\u1EE7 \u0111\u1EC1 (deck)").addDropdown((d) => {
       const cats = new Set(DEFAULT_CATEGORIES);
       for (const c of this.plugin.store.getAllCards()) cats.add(c.category);
+      cats.add(this.input.category);
       for (const c of [...cats].sort()) d.addOption(c, c);
-      if (!cats.has(this.input.category)) d.addOption(this.input.category, this.input.category);
       d.setValue(this.input.category).onChange((v) => this.input.category = v);
     }).addText(
       (t) => t.setPlaceholder("ho\u1EB7c g\xF5 ch\u1EE7 \u0111\u1EC1 m\u1EDBi\u2026").onChange((v) => {
         if (v.trim()) this.input.category = v.trim().toLowerCase();
       })
     );
-    new import_obsidian.Setting(contentEl).setName("IPA").setDesc("Phi\xEAn \xE2m, v\xED d\u1EE5 /\u02C8d\u028Cb\u0259l da\u028An/ \u2014 b\u1ECF tr\u1ED1ng n\u1EBFu l\xE0 c\xE2u/\u0111o\u1EA1n").addText((t) => t.setValue(this.input.ipa).onChange((v) => this.input.ipa = v));
-    new import_obsidian.Setting(contentEl).setName("Ngh\u0129a Anh\u2013Anh").setDesc("\u0110\u1ECBnh ngh\u0129a b\u1EB1ng ti\u1EBFng Anh \u0111\u01A1n gi\u1EA3n").addTextArea((t) => {
+    new import_obsidian.Setting(contentEl).setName("IPA").addText((t) => t.setValue(this.input.ipa).onChange((v) => this.input.ipa = v));
+    new import_obsidian.Setting(contentEl).setName("Ngh\u0129a Anh\u2013Anh").addTextArea((t) => {
       t.setValue(this.input.meaningEn).onChange((v) => this.input.meaningEn = v);
       t.inputEl.rows = 2;
       t.inputEl.addClass("vf-input-wide");
@@ -143,14 +344,19 @@ var AddCardModal = class extends import_obsidian.Modal {
       t.inputEl.rows = 2;
       t.inputEl.addClass("vf-input-wide");
     });
-    new import_obsidian.Setting(contentEl).setName("Quote \u2014 c\xE2u ng\u1EEF c\u1EA3nh th\u1EADt").setDesc("C\xE2u ch\u1EE9a t\u1EEB n\xE0y, tr\xEDch t\u1EEB video/b\xE0i g\u1ED1c").addTextArea((t) => {
+    new import_obsidian.Setting(contentEl).setName("Quote \u2014 c\xE2u v\xED d\u1EE5 / ng\u1EEF c\u1EA3nh").addTextArea((t) => {
       t.setValue(this.input.quote).onChange((v) => this.input.quote = v);
       t.inputEl.rows = 2;
       t.inputEl.addClass("vf-input-wide");
     });
-    new import_obsidian.Setting(contentEl).setName("Collocations").setDesc("C\xE1c c\u1EE5m \u0111i k\xE8m, c\xE1ch nhau d\u1EA5u ph\u1EA9y").addText(
-      (t) => t.onChange((v) => {
+    new import_obsidian.Setting(contentEl).setName("Collocations").setDesc("C\xE1ch nhau d\u1EA5u ph\u1EA9y").addText(
+      (t) => t.setValue(this.input.collocations.join(", ")).onChange((v) => {
         this.input.collocations = v.split(",").map((s) => s.trim()).filter(Boolean);
+      })
+    );
+    new import_obsidian.Setting(contentEl).setName("Word family (forms)").setDesc("C\xE1c d\u1EA1ng bi\u1EBFn th\u1EC3, c\xE1ch nhau d\u1EA5u ph\u1EA9y").addText(
+      (t) => t.setValue(this.input.forms.join(", ")).onChange((v) => {
+        this.input.forms = v.split(",").map((s) => s.trim()).filter(Boolean);
       })
     );
     const sourceSetting = new import_obsidian.Setting(contentEl).setName("Ngu\u1ED3n").setDesc("Wikilink note g\u1ED1c, vd [[T\xEAn clip]]").addText((t) => {
@@ -167,11 +373,11 @@ var AddCardModal = class extends import_obsidian.Modal {
         this.fillFromFile(f);
       })
     );
-    new import_obsidian.Setting(contentEl).setName("Link video (k\xE8m timestamp n\u1EBFu c\xF3)").addText((t) => {
+    new import_obsidian.Setting(contentEl).setName("Link video").addText((t) => {
       t.setValue(this.input.sourceUrl).onChange((v) => this.input.sourceUrl = v);
       this.urlText = t.inputEl;
     });
-    new import_obsidian.Setting(contentEl).setName("\u1EA2nh minh ho\u1EA1").setDesc("URL ho\u1EB7c \u0111\u01B0\u1EDDng d\u1EABn/wikilink \u1EA3nh trong vault").addText((t) => t.setValue(this.input.image).onChange((v) => this.input.image = v));
+    new import_obsidian.Setting(contentEl).setName("\u{1F5BC} Sinh \u1EA3nh minh ho\u1EA1 (AI, ch\u1EA1y n\u1EC1n)").addToggle((t) => t.setValue(this.makeImage).onChange((v) => this.makeImage = v));
     new import_obsidian.Setting(contentEl).addButton(
       (b) => b.setButtonText("T\u1EA1o th\u1EBB").setCta().onClick(() => void this.submit())
     );
@@ -196,6 +402,12 @@ var AddCardModal = class extends import_obsidian.Modal {
       const file = await this.plugin.store.createCard(this.input);
       new import_obsidian.Notice(`\u2705 \u0110\xE3 t\u1EA1o th\u1EBB: ${file.basename}`);
       this.plugin.refreshStatusBar();
+      if (this.makeImage) {
+        new import_obsidian.Notice("\u{1F5BC} \u0110ang sinh \u1EA3nh minh ho\u1EA1 n\u1EC1n (~1 ph\xFAt)\u2026");
+        void this.plugin.generateCardImage(file, this.input.word, this.input.meaningEn).then(
+          (ok) => new import_obsidian.Notice(ok ? `\u{1F5BC} \u1EA2nh cho "${file.basename}" \u0111\xE3 xong!` : `\u1EA2nh cho "${file.basename}" th\u1EA5t b\u1EA1i`)
+        );
+      }
       this.close();
     } catch (e) {
       console.error("Vocab Forge: l\u1ED7i t\u1EA1o th\u1EBB", e);
@@ -2110,6 +2322,11 @@ var MODE_INFO = {
     icon: "\u{1F3B4}",
     name: "N\u1ED1i c\u1EB7p (Match)",
     desc: "N\u1ED1i t\u1EEB v\u1EDBi ngh\u0129a \u2014 6 c\u1EB7p m\u1ED7i v\xF2ng, ki\u1EC3u Quizlet"
+  },
+  error: {
+    icon: "\u{1F575}\uFE0F",
+    name: "T\xECm l\u1ED7i (Spot the error)",
+    desc: "C\xE2u quote b\u1ECB c\xE0i 1 l\u1ED7i ng\u1EEF ph\xE1p \u2014 b\u1EA5m v\xE0o t\u1EEB sai"
   }
 };
 var normalize = (s) => s.toLowerCase().replace(/[’']/g, "'").replace(/[^a-z0-9' ]/g, " ").replace(/\s+/g, " ").trim();
@@ -2212,6 +2429,58 @@ function makeChoice(card, pool) {
   const options = shuffle([answer, ...distractors]);
   return { mode: "choice", card, options, correctIndex: options.indexOf(answer) };
 }
+var CORRUPTION_PAIRS = [
+  ["is", "are"],
+  ["are", "is"],
+  ["was", "were"],
+  ["were", "was"],
+  ["has", "have"],
+  ["have", "has"],
+  ["does", "do"],
+  ["do", "does"],
+  ["a", "an"],
+  ["an", "a"],
+  ["this", "these"],
+  ["these", "this"],
+  ["in", "on"],
+  ["on", "in"],
+  ["at", "on"],
+  ["for", "to"],
+  ["to", "for"],
+  ["of", "off"],
+  ["from", "of"],
+  ["with", "by"],
+  ["by", "with"],
+  ["your", "you're"],
+  ["their", "there"],
+  ["its", "it's"],
+  ["it's", "its"],
+  ["than", "then"],
+  ["then", "than"],
+  ["much", "many"],
+  ["many", "much"]
+];
+var CORRUPTION_MAP = new Map(CORRUPTION_PAIRS);
+function makeError(card) {
+  if (!card.quote) return null;
+  const tokens = card.quote.split(/\s+/).filter(Boolean);
+  if (tokens.length < 5 || tokens.length > 40) return null;
+  const candidates = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const bare2 = tokens[i].toLowerCase().replace(/[^a-z']/g, "");
+    if (CORRUPTION_MAP.has(bare2)) candidates.push(i);
+  }
+  if (!candidates.length) return null;
+  const idx = candidates[Math.floor(Math.random() * candidates.length)];
+  const original = tokens[idx];
+  const bare = original.toLowerCase().replace(/[^a-z']/g, "");
+  let wrong = CORRUPTION_MAP.get(bare);
+  if (/^[A-Z]/.test(original)) wrong = wrong[0].toUpperCase() + wrong.slice(1);
+  const trailing = original.match(/[^a-zA-Z']+$/)?.[0] ?? "";
+  const corrupted = [...tokens];
+  corrupted[idx] = wrong + trailing;
+  return { mode: "error", card, tokens: corrupted, wrongIndex: idx, correctToken: original };
+}
 var MATCH_PAIRS_PER_ROUND = 6;
 function makeMatchRounds(cards, size) {
   const eligible = cards.filter(
@@ -2238,15 +2507,16 @@ function makeMatchRounds(cards, size) {
 }
 function buildPracticeQueue(mode, cards, size) {
   if (mode === "match") return makeMatchRounds(cards, size);
-  const learned = cards.filter((c) => c.fsrs.state !== State.New);
+  const learned2 = cards.filter((c) => c.fsrs.state !== State.New);
   const fresh = cards.filter((c) => c.fsrs.state === State.New);
-  const ordered = [...shuffle(learned), ...shuffle(fresh)];
+  const ordered = [...shuffle(learned2), ...shuffle(fresh)];
   const items = [];
   for (const card of ordered) {
     let item = null;
     if (mode === "cloze") item = makeCloze(card);
     else if (mode === "typing") item = makeTyping(card);
     else if (mode === "builder") item = makeBuilder(card);
+    else if (mode === "error") item = makeError(card);
     else item = makeChoice(card, cards);
     if (item) items.push(item);
     if (items.length === size) break;
@@ -2254,72 +2524,42 @@ function buildPracticeQueue(mode, cards, size) {
   return items;
 }
 
-// src/ai.ts
-function nodeRequire(mod) {
-  const req = window.require;
-  if (!req) throw new Error("AI features ch\u1EC9 ch\u1EA1y tr\xEAn Obsidian desktop");
-  return req(mod);
-}
-function resolveGrokPath(custom) {
-  const fs = nodeRequire("fs");
-  const os = nodeRequire("os");
-  const candidates = [
-    custom,
-    `${os.homedir()}/.local/bin/grok`,
-    "/usr/local/bin/grok",
-    "/opt/homebrew/bin/grok"
-  ].filter(Boolean);
-  for (const c of candidates) {
-    if (c !== "grok" && fs.existsSync(c)) return c;
-  }
-  return "grok";
-}
-function runGrok(prompt, grokPath, timeoutMs = 9e4) {
-  const cp = nodeRequire("child_process");
-  const os = nodeRequire("os");
-  const proc = nodeRequire("process");
-  const bin = resolveGrokPath(grokPath);
-  const env = {
-    ...proc.env,
-    PATH: `${proc.env.PATH ?? ""}:${os.homedir()}/.local/bin:/usr/local/bin:/opt/homebrew/bin`
-  };
-  return new Promise((resolve, reject) => {
-    cp.execFile(
-      bin,
-      ["--no-auto-update", "--no-alt-screen", "--disable-web-search", "-p", prompt],
-      { timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024, env },
-      (err, stdout) => {
-        if (err) reject(err);
-        else resolve(String(stdout).trim());
-      }
-    );
-  });
-}
-function extractJson(raw) {
-  const start = raw.indexOf("{");
-  if (start === -1) return null;
-  for (let end = raw.length; end > start; end--) {
-    const slice = raw.slice(start, end);
-    if (!slice.endsWith("}")) continue;
+// src/badges.ts
+var totalReviews = (d) => Object.values(d.stats).reduce((s, x) => s + x.reviews, 0);
+var totalPractice = (d) => Object.values(d.stats).reduce((s, x) => s + (x.practice ?? 0), 0);
+var learned = (cards) => cards.filter((c) => c.fsrs.state !== State.New).length;
+var level = (d) => Math.floor(d.xp / XP_PER_LEVEL) + 1;
+var BADGES = [
+  { id: "first-review", icon: "\u{1F331}", name: "Kh\u1EDFi \u0111\u1EA7u", desc: "L\u01B0\u1EE3t \xF4n \u0111\u1EA7u ti\xEAn", check: (c) => totalReviews(c.data) >= 1 },
+  { id: "reviews-100", icon: "\u{1F4AF}", name: "Tr\u0103m tr\u1EADn", desc: "100 l\u01B0\u1EE3t \xF4n", check: (c) => totalReviews(c.data) >= 100 },
+  { id: "reviews-1000", icon: "\u{1F3DB}\uFE0F", name: "Ngh\xECn tr\u1EADn", desc: "1.000 l\u01B0\u1EE3t \xF4n", check: (c) => totalReviews(c.data) >= 1e3 },
+  { id: "streak-7", icon: "\u{1F525}", name: "Tu\u1EA7n l\u1EEDa", desc: "Chu\u1ED7i 7 ng\xE0y li\xEAn t\u1EE5c", check: (c) => c.streak >= 7 },
+  { id: "streak-30", icon: "\u26A1", name: "Th\xE1ng th\xE9p", desc: "Chu\u1ED7i 30 ng\xE0y li\xEAn t\u1EE5c", check: (c) => c.streak >= 30 },
+  { id: "learned-50", icon: "\u{1F4D6}", name: "Ng\u0169 th\u1EADp", desc: "\u0110\xE3 h\u1ECDc 50 th\u1EBB", check: (c) => learned(c.cards) >= 50 },
+  { id: "learned-200", icon: "\u{1F393}", name: "H\u1ECDc gi\u1EA3", desc: "\u0110\xE3 h\u1ECDc 200 th\u1EBB", check: (c) => learned(c.cards) >= 200 },
+  { id: "level-5", icon: "\u2B50", name: "Level 5", desc: "\u0110\u1EA1t level 5", check: (c) => level(c.data) >= 5 },
+  { id: "level-10", icon: "\u{1F31F}", name: "Level 10", desc: "\u0110\u1EA1t level 10", check: (c) => level(c.data) >= 10 },
+  { id: "quests-7", icon: "\u{1F3C6}", name: "Chi\u1EBFn binh nhi\u1EC7m v\u1EE5", desc: "Ho\xE0n th\xE0nh nhi\u1EC7m v\u1EE5 ng\xE0y 7 l\u1EA7n", check: (c) => c.data.questRewardDates.length >= 7 },
+  { id: "practice-500", icon: "\u{1F3AF}", name: "Thi\u1EC7n x\u1EA1", desc: "500 c\xE2u luy\u1EC7n t\u1EADp", check: (c) => totalPractice(c.data) >= 500 },
+  { id: "decks-5", icon: "\u{1F5C2}\uFE0F", name: "Nh\xE0 s\u01B0u t\u1EA7m", desc: "5 deck c\xF3 \u2265 5 th\u1EBB", check: (c) => {
+    const m = /* @__PURE__ */ new Map();
+    for (const card of c.cards) m.set(card.category, (m.get(card.category) ?? 0) + 1);
+    return [...m.values()].filter((n) => n >= 5).length >= 5;
+  } }
+];
+function checkBadges(ctx, todayKey2) {
+  const fresh = [];
+  for (const b of BADGES) {
+    if (ctx.data.badges[b.id]) continue;
     try {
-      return JSON.parse(slice);
+      if (b.check(ctx)) {
+        ctx.data.badges[b.id] = todayKey2;
+        fresh.push(b);
+      }
     } catch {
     }
   }
-  return null;
-}
-function sentenceCheckPrompt(word, meaningEn, sentence) {
-  return `You are an English teacher for a Vietnamese B1 learner. The learner must write a sentence using the expression "${word}"` + (meaningEn ? ` (meaning: ${meaningEn})` : "") + `. Their sentence: "${sentence}". Evaluate correctness and naturalness. Reply with ONLY minified JSON, no markdown: {"ok":true|false,"score":0-10,"corrected":"improved or corrected sentence","explain_vi":"nh\u1EADn x\xE9t ng\u1EAFn g\u1ECDn b\u1EB1ng ti\u1EBFng Vi\u1EC7t"}`;
-}
-function mnemonicPrompt(word, meaningVi) {
-  return `T\u1EA1o m\u1ED9t m\u1EB9o nh\u1EDB (mnemonic) NG\u1EAEN b\u1EB1ng ti\u1EBFng Vi\u1EC7t cho c\u1EE5m ti\u1EBFng Anh "${word}" ngh\u0129a l\xE0 "${meaningVi}". T\u1ED1i \u0111a 2 c\xE2u, h\xECnh \u1EA3nh s\u1ED1ng \u0111\u1ED9ng, c\xF3 th\u1EC3 ch\u01A1i ch\u1EEF v\u1EDBi ti\u1EBFng Vi\u1EC7t. Ch\u1EC9 tr\u1EA3 v\u1EC1 \u0111\xFAng n\u1ED9i dung m\u1EB9o nh\u1EDB, kh\xF4ng gi\u1EA3i th\xEDch th\xEAm.`;
-}
-function grammarPrompt(quote) {
-  return `Gi\u1EA3i th\xEDch b\u1EB1ng ti\u1EBFng Vi\u1EC7t (cho ng\u01B0\u1EDDi h\u1ECDc B1) c\u1EA5u tr\xFAc ng\u1EEF ph\xE1p \u0111\xE1ng ch\xFA \xFD nh\u1EA5t trong c\xE2u ti\u1EBFng Anh sau, k\xE8m 1 v\xED d\u1EE5 kh\xE1c d\xF9ng c\xF9ng c\u1EA5u tr\xFAc: "${quote}". T\u1ED1i \u0111a 90 t\u1EEB. Ch\u1EC9 tr\u1EA3 v\u1EC1 ph\u1EA7n gi\u1EA3i th\xEDch.`;
-}
-function storyPrompt(words, categories) {
-  const topic = categories.includes("business") || categories.includes("content") ? "a creator building an online business" : "everyday work life";
-  return `Write a short story (100-130 words) in simple English (B1 level) about ${topic} that NATURALLY uses ALL of these expressions: ${words.map((w) => `"${w}"`).join(", ")}. Wrap each target expression in **double asterisks**. After the story, write a line with only "---", then a natural Vietnamese translation of the story. Reply with ONLY the story, the --- line, and the translation.`;
+  return fresh;
 }
 
 // src/reviewView.ts
@@ -2371,6 +2611,12 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     this.aiResult = null;
     this.aiBusy = false;
     this.storyBusy = false;
+    // --- hội thoại roleplay
+    this.chatMsgs = [];
+    this.chatWords = [];
+    this.chatSession = "";
+    this.chatBusy = false;
+    this.chatInput = "";
     // --- nối cặp (match)
     this.matchSel = null;
     this.matchDone = /* @__PURE__ */ new Set();
@@ -2431,6 +2677,9 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
       case "story":
         this.renderStory(main);
         break;
+      case "chat":
+        this.renderChat(main);
+        break;
       case "settings":
         this.renderSettings(main);
         break;
@@ -2445,6 +2694,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
       { id: "dashboard", icon: "\u{1F3E0}", label: "Dashboard" },
       { id: "study", icon: "\u25B6\uFE0F", label: "H\u1ECDc ngay" },
       { id: "practice", icon: "\u{1F3AF}", label: "Luy\u1EC7n t\u1EADp" },
+      { id: "chat", icon: "\u{1F4AC}", label: "H\u1ED9i tho\u1EA1i" },
       { id: "decks", icon: "\u{1F5C2}\uFE0F", label: "B\u1ED9 th\u1EBB" },
       { id: "add", icon: "\u2795", label: "Th\xEAm th\u1EBB" },
       { id: "settings", icon: "\u2699\uFE0F", label: "C\xE0i \u0111\u1EB7t" }
@@ -2465,9 +2715,9 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     }
     const foot = nav.createDiv({ cls: "vf-nav-foot" });
     const xp = this.plugin.data.xp;
-    const level = Math.floor(xp / XP_PER_LEVEL) + 1;
+    const level2 = Math.floor(xp / XP_PER_LEVEL) + 1;
     const lvlBox = foot.createDiv({ cls: "vf-nav-level" });
-    lvlBox.createDiv({ text: `\u2B50 Level ${level}`, cls: "vf-nav-level-name" });
+    lvlBox.createDiv({ text: `\u2B50 Level ${level2}`, cls: "vf-nav-level-name" });
     const lvlBar = lvlBox.createDiv({ cls: "vf-nav-level-bar" });
     lvlBar.createDiv({ cls: "vf-nav-level-fill" }).style.width = `${Math.round(xp % XP_PER_LEVEL / XP_PER_LEVEL * 100)}%`;
     lvlBox.createDiv({ text: `${xp} XP`, cls: "vf-nav-xp" });
@@ -2482,7 +2732,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     const revNews = this.plugin.settings.reverseEnabled ? this.plugin.store.getRevNewCards() : [];
     const newAvailable = Math.min(news.length + revNews.length, this.plugin.newRemainingToday());
     const all = this.plugin.store.getAllCards();
-    const learned = all.filter((c) => c.fsrs.state !== State.New).length;
+    const learned2 = all.filter((c) => c.fsrs.state !== State.New).length;
     const today = this.plugin.data.stats[todayKey()];
     const total = due.length + newAvailable;
     const hero = main.createDiv({ cls: "vf-hero" });
@@ -2517,7 +2767,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     this.tile(tiles, "\u23F0", String(due.length), "\u0110\u1EBFn h\u1EA1n", "vf-tile-due");
     this.tile(tiles, "\u2728", String(newAvailable), "Th\u1EBB m\u1EDBi", "vf-tile-new");
     this.tile(tiles, "\u{1F4D6}", String(today?.reviews ?? 0), "L\u01B0\u1EE3t \xF4n h\xF4m nay", "");
-    this.tile(tiles, "\u{1F3C6}", `${learned}/${all.length}`, "\u0110\xE3 h\u1ECDc / t\u1ED5ng", "");
+    this.tile(tiles, "\u{1F3C6}", `${learned2}/${all.length}`, "\u0110\xE3 h\u1ECDc / t\u1ED5ng", "");
     const decks = this.groupByCategory(all);
     if (decks.size) {
       const head = main.createDiv({ cls: "vf-section-head" });
@@ -2562,6 +2812,8 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     this.renderHeatmap(main.createDiv({ cls: "vf-heatmap" }));
     main.createEl("h4", { text: "D\u1EF1 b\xE1o th\u1EBB \u0111\u1EBFn h\u1EA1n \u2014 30 ng\xE0y t\u1EDBi" });
     this.renderForecast(main.createDiv({ cls: "vf-forecast" }), all);
+    this.renderRetention(main);
+    this.renderBadges(main);
     const hard = all.filter((c) => c.fsrs.lapses >= 2).sort((a, b) => b.fsrs.lapses - a.fsrs.lapses).slice(0, 6);
     if (hard.length) {
       main.createEl("h4", { text: "\u{1F624} T\u1EEB kh\xF3 nh\u1EB1n" });
@@ -3066,9 +3318,10 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     try {
       const fsrs2 = entry.dir === "fwd" ? card.fsrs : card.fsrsRev;
       const wasNew = fsrs2.state === State.New;
+      const retention = fsrs2.state === State.Review || fsrs2.state === State.Relearning ? grade !== Rating.Again : null;
       const next = this.plugin.scheduler.repeat(fsrs2, /* @__PURE__ */ new Date())[grade].card;
       await this.plugin.store.saveFsrs(card, next, entry.dir);
-      this.plugin.recordReview(wasNew);
+      this.plugin.recordReview(wasNew, retention);
       this.sessionDone++;
       if (next.due.getTime() <= endOfToday().getTime()) {
         this.queue.push(entry);
@@ -3194,6 +3447,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     else if (item.mode === "typing") this.renderTypingQ(cardEl, item);
     else if (item.mode === "builder") this.renderBuilderQ(cardEl, item);
     else if (item.mode === "match") this.renderMatchQ(cardEl, item);
+    else if (item.mode === "error") this.renderErrorQ(cardEl, item);
     else this.renderChoiceQ(cardEl, item);
     if (this.practicePhase === "feedback") {
       const fb = main.createDiv({
@@ -3217,7 +3471,34 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     if (item.mode === "cloze") return item.surface;
     if (item.mode === "builder") return item.tokens.join(" ");
     if (item.mode === "choice") return item.options[item.correctIndex];
+    if (item.mode === "error")
+      return `t\u1EEB sai l\xE0 "${item.tokens[item.wrongIndex]}" \u2192 \u0111\xFAng: "${item.correctToken}"`;
     return item.card.word;
+  }
+  // --- tìm lỗi sai (error spotting)
+  renderErrorQ(cardEl, item) {
+    const c = item.card;
+    cardEl.addClass("vf-practice-card");
+    cardEl.createDiv({ text: `${categoryEmoji(c.category)} ${c.category}`, cls: "vf-chip-cat" });
+    cardEl.createDiv({ text: "\u{1F575}\uFE0F C\xE2u d\u01B0\u1EDBi \u0111\xE2y c\xF3 \u0110\xDANG 1 t\u1EEB sai \u2014 b\u1EA5m v\xE0o n\xF3:", cls: "vf-hint" });
+    const line = cardEl.createDiv({ cls: "vf-error-line" });
+    item.tokens.forEach((tok, i) => {
+      let cls = "vf-token vf-error-token";
+      if (this.practicePhase === "feedback" && i === item.wrongIndex)
+        cls += this.practiceCorrect ? " vf-error-found" : " vf-error-reveal";
+      const b = line.createEl("button", { text: tok, cls });
+      b.onclick = () => {
+        if (this.practicePhase !== "question") return;
+        this.practiceResolve(i === item.wrongIndex);
+      };
+    });
+    if (this.practicePhase === "feedback") {
+      const fixed = [...item.tokens];
+      fixed[item.wrongIndex] = item.correctToken;
+      const ok = cardEl.createDiv({ cls: "vf-quote" });
+      ok.createSpan({ text: "\u2713 C\xE2u \u0111\xFAng: ", cls: "vf-lang-tag" });
+      ok.createSpan({ text: `\u201C${fixed.join(" ")}\u201D` });
+    }
   }
   // --- nối cặp (match)
   renderMatchQ(cardEl, item) {
@@ -3582,6 +3863,16 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
         await this.plugin.saveAll();
       };
     }
+    const cr = group("Gi\u1EDD nh\u1EAFc h\u1ECDc h\u1EB1ng ng\xE0y", "Th\xF4ng b\xE1o khi c\xF2n th\u1EBB due \u2014 h\u1EC7 th\u1ED1ng + trong Obsidian");
+    const sel2 = cr.createEl("select", { cls: "dropdown" });
+    sel2.createEl("option", { text: "T\u1EAFt", attr: { value: "-1" } });
+    for (let h = 6; h <= 23; h++)
+      sel2.createEl("option", { text: `${h}:00`, attr: { value: String(h) } });
+    sel2.value = String(s.reminderHour);
+    sel2.onchange = async () => {
+      s.reminderHour = Number(sel2.value);
+      await this.plugin.saveAll();
+    };
     main.createEl("h4", { text: "AI (Grok CLI)" });
     const c7 = group("\u0110\u01B0\u1EDDng d\u1EABn l\u1EC7nh grok", "D\xF9ng cho m\u1EB9o nh\u1EDB, ch\u1EA5m c\xE2u, gi\u1EA3i th\xEDch ng\u1EEF ph\xE1p, story");
     const gp = c7.createEl("input", { attr: { type: "text", value: s.grokPath }, cls: "vf-input" });
@@ -3592,16 +3883,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
   }
   // ================================================================ MISC
   computeStreak() {
-    const stats = this.plugin.data.stats;
-    const active = (k) => (stats[k]?.reviews ?? 0) > 0 || this.plugin.isFrozen(k);
-    let streak = 0;
-    const d = /* @__PURE__ */ new Date();
-    if (!active(todayKey(d))) d.setDate(d.getDate() - 1);
-    while (active(todayKey(d))) {
-      streak++;
-      d.setDate(d.getDate() - 1);
-    }
-    return streak;
+    return this.plugin.computeStreak();
   }
   /** Biểu đồ cột: số thẻ đến hạn trong 30 ngày tới (quá hạn dồn vào hôm nay) */
   renderForecast(el, all) {
@@ -3624,6 +3906,214 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
       bar.style.height = `${Math.max(3, Math.round(counts[i] / max * 60))}px`;
       bar.setAttr("aria-label", `+${i} ng\xE0y: ${counts[i]} th\u1EBB`);
       if (i % 5 === 0) col.createDiv({ text: i === 0 ? "nay" : `+${i}`, cls: "vf-fc-label" });
+    }
+  }
+  /** Biểu đồ retention: % trả lời đúng (không Quên) trên thẻ đang ôn, 30 ngày gần nhất */
+  renderRetention(main) {
+    const stats = this.plugin.data.stats;
+    const days = [];
+    const d = /* @__PURE__ */ new Date();
+    d.setDate(d.getDate() - 29);
+    let sumPass = 0, sumTotal = 0;
+    for (let i = 0; i < 30; i++) {
+      const key = todayKey(d);
+      const s = stats[key];
+      const total = (s?.pass ?? 0) + (s?.fail ?? 0);
+      days.push({ key, pct: total ? Math.round((s?.pass ?? 0) / total * 100) : null });
+      sumPass += s?.pass ?? 0;
+      sumTotal += total;
+      d.setDate(d.getDate() + 1);
+    }
+    const head = main.createDiv({ cls: "vf-section-head" });
+    head.createEl("h4", { text: "T\u1EF7 l\u1EC7 nh\u1EDB (retention) \u2014 30 ng\xE0y" });
+    if (sumTotal)
+      head.createSpan({
+        text: `TB ${Math.round(sumPass / sumTotal * 100)}% \xB7 m\u1EE5c ti\xEAu ${Math.round(this.plugin.settings.requestRetention * 100)}%`,
+        cls: "vf-muted"
+      });
+    const chart = main.createDiv({ cls: "vf-forecast vf-retention" });
+    if (!sumTotal) {
+      chart.createDiv({ text: "Ch\u01B0a c\xF3 d\u1EEF li\u1EC7u \u2014 s\u1EBD t\u1EF1 t\xEDch lu\u1EF9 t\u1EEB c\xE1c phi\xEAn \xF4n t\u1EDBi.", cls: "vf-empty" });
+      return;
+    }
+    days.forEach((day, i) => {
+      const col = chart.createDiv({ cls: "vf-fc-col" });
+      const bar = col.createDiv({ cls: "vf-fc-bar vf-ret-bar" });
+      if (day.pct == null) {
+        bar.style.height = "3px";
+        bar.addClass("vf-ret-empty");
+      } else {
+        bar.style.height = `${Math.max(4, Math.round(day.pct / 100 * 60))}px`;
+        if (day.pct < this.plugin.settings.requestRetention * 100 - 10) bar.addClass("vf-ret-low");
+      }
+      bar.setAttr("aria-label", `${day.key}: ${day.pct == null ? "\u2014" : day.pct + "%"}`);
+      if (i % 5 === 0) col.createDiv({ text: day.key.slice(8), cls: "vf-fc-label" });
+    });
+  }
+  /** Lưới huy hiệu thành tích */
+  renderBadges(main) {
+    const earned = this.plugin.data.badges;
+    const head = main.createDiv({ cls: "vf-section-head" });
+    head.createEl("h4", { text: "Huy hi\u1EC7u" });
+    head.createSpan({ text: `${Object.keys(earned).length}/${BADGES.length}`, cls: "vf-muted" });
+    const grid = main.createDiv({ cls: "vf-badge-grid" });
+    for (const b of BADGES) {
+      const got = earned[b.id];
+      const el = grid.createDiv({ cls: `vf-badge-tile ${got ? "vf-badge-got" : "vf-badge-locked"}` });
+      el.createDiv({ text: b.icon, cls: "vf-badge-icon" });
+      el.createDiv({ text: b.name, cls: "vf-badge-name" });
+      el.createDiv({ text: got ? `\u2713 ${got}` : b.desc, cls: "vf-badge-desc" });
+    }
+  }
+  // ================================================================= CHAT
+  renderChat(main) {
+    main.createEl("h3", { text: "\u{1F4AC} H\u1ED9i tho\u1EA1i (Roleplay)" });
+    main.createDiv({
+      text: "N\xF3i chuy\u1EC7n v\u1EDBi AI \u0111\xF3ng vai \u0111\u1ED1i t\xE1c \u2014 nhi\u1EC7m v\u1EE5 c\u1EE7a b\u1EA1n: d\xF9ng \u0111\u01B0\u1EE3c c\xE1c t\u1EEB m\u1EE5c ti\xEAu trong h\u1ED9i tho\u1EA1i.",
+      cls: "vf-muted"
+    });
+    if (!this.chatMsgs.length && !this.chatBusy) {
+      const empty = main.createDiv({ cls: "vf-story-wait" });
+      empty.createDiv({ text: "\u{1F4AC}", cls: "vf-done-emoji" });
+      const start = empty.createEl("button", {
+        text: "\u2728 B\u1EAFt \u0111\u1EA7u h\u1ED9i tho\u1EA1i m\u1EDBi",
+        cls: "vf-btn-hero vf-btn-hero-small"
+      });
+      start.onclick = () => void this.startChat();
+      return;
+    }
+    if (this.chatWords.length) {
+      const chips = main.createDiv({ cls: "vf-chips vf-chat-targets" });
+      chips.createSpan({ text: "\u{1F3AF} D\xF9ng \u0111\u01B0\u1EE3c:", cls: "vf-muted" });
+      for (const w of this.chatWords) {
+        const used = this.chatMsgs.some(
+          (m) => m.role === "me" && m.text.toLowerCase().includes(w.toLowerCase())
+        );
+        chips.createSpan({ text: used ? `\u2713 ${w}` : w, cls: `vf-chip ${used ? "vf-chip-used" : ""}` });
+      }
+    }
+    const box = main.createDiv({ cls: "vf-chat-box" });
+    for (const m of this.chatMsgs) {
+      const b = box.createDiv({
+        cls: m.role === "me" ? "vf-msg vf-msg-me" : m.role === "feedback" ? "vf-msg vf-msg-feedback" : "vf-msg vf-msg-ai"
+      });
+      if (m.role === "feedback") b.createDiv({ text: "\u{1F4CB} Nh\u1EADn x\xE9t", cls: "vf-msg-tag" });
+      b.createDiv({ text: m.text });
+      if (m.role === "ai") {
+        const sp = b.createEl("button", { text: "\u{1F50A}", cls: "vf-btn-tiny" });
+        sp.onclick = () => this.plugin.speak(m.text);
+      }
+    }
+    if (this.chatBusy) box.createDiv({ text: "\u23F3 \u2026", cls: "vf-msg vf-msg-ai vf-msg-wait" });
+    window.setTimeout(() => box.scrollTop = box.scrollHeight, 20);
+    const row = main.createDiv({ cls: "vf-chat-input-row" });
+    const input = row.createEl("input", {
+      cls: "vf-practice-input",
+      attr: { type: "text", placeholder: "Tr\u1EA3 l\u1EDDi b\u1EB1ng ti\u1EBFng Anh\u2026", spellcheck: "false" }
+    });
+    input.value = this.chatInput;
+    input.oninput = () => this.chatInput = input.value;
+    input.onkeydown = (e) => {
+      e.stopPropagation();
+      if (e.key === "Enter") void this.sendChat();
+    };
+    input.disabled = this.chatBusy;
+    const send = row.createEl("button", { text: "G\u1EEDi \u27A4", cls: "vf-btn-hero vf-btn-hero-small" });
+    send.disabled = this.chatBusy;
+    send.onclick = () => void this.sendChat();
+    const foot = main.createDiv({ cls: "vf-actions" });
+    const end = foot.createEl("button", { text: "\u{1F3C1} K\u1EBFt th\xFAc & nh\u1EADn x\xE9t", cls: "vf-btn-icon" });
+    end.disabled = this.chatBusy || this.chatMsgs.filter((m) => m.role === "me").length === 0;
+    end.onclick = () => void this.endChat();
+    const reset = foot.createEl("button", { text: "\u{1F504} H\u1ED9i tho\u1EA1i m\u1EDBi", cls: "vf-btn-icon" });
+    reset.disabled = this.chatBusy;
+    reset.onclick = () => void this.startChat();
+    if (!this.flippedFocusGuard()) window.setTimeout(() => input.focus(), 30);
+  }
+  flippedFocusGuard() {
+    return this.chatBusy;
+  }
+  pickChatWords() {
+    const all = this.plugin.store.getAllCards().filter((c) => c.type !== "sentence" && c.type !== "passage" && c.type !== "grammar");
+    const hard = all.filter((c) => c.fsrs.lapses >= 2);
+    const due = this.plugin.store.getDueCards();
+    const learned2 = all.filter((c) => c.fsrs.state !== State.New);
+    const pool = [...hard, ...due, ...learned2, ...all];
+    const words = [];
+    for (const c of pool) {
+      if (!words.includes(c.word)) words.push(c.word);
+      if (words.length === 5) break;
+    }
+    return words;
+  }
+  async startChat() {
+    this.chatWords = this.pickChatWords();
+    if (this.chatWords.length < 2) {
+      new import_obsidian2.Notice("Ch\u01B0a \u0111\u1EE7 th\u1EBB \u0111\u1EC3 t\u1EA1o h\u1ED9i tho\u1EA1i");
+      return;
+    }
+    this.chatMsgs = [];
+    this.chatInput = "";
+    this.chatSession = `vf-chat-${Date.now()}`;
+    this.chatBusy = true;
+    this.render();
+    try {
+      const first = await runGrok(
+        chatStartPrompt(this.chatWords),
+        this.plugin.settings.grokPath,
+        12e4,
+        this.chatSession
+      );
+      this.chatMsgs.push({ role: "ai", text: first.trim() });
+      this.plugin.speak(first.trim());
+    } catch (e) {
+      console.error("Vocab Forge chat:", e);
+      new import_obsidian2.Notice("Kh\xF4ng b\u1EAFt \u0111\u1EA7u \u0111\u01B0\u1EE3c h\u1ED9i tho\u1EA1i \u2014 ki\u1EC3m tra Grok CLI");
+    } finally {
+      this.chatBusy = false;
+      this.render();
+    }
+  }
+  async sendChat() {
+    const text = this.chatInput.trim();
+    if (!text || this.chatBusy || !this.chatSession) return;
+    this.chatMsgs.push({ role: "me", text });
+    this.chatInput = "";
+    this.chatBusy = true;
+    this.render();
+    try {
+      const reply = await runGrok(text, this.plugin.settings.grokPath, 12e4, this.chatSession);
+      this.chatMsgs.push({ role: "ai", text: reply.trim() });
+      this.plugin.speak(reply.trim());
+    } catch (e) {
+      console.error("Vocab Forge chat:", e);
+      new import_obsidian2.Notice("L\u1ED7i g\u1EEDi tin \u2014 th\u1EED l\u1EA1i");
+      this.chatMsgs.pop();
+      this.chatInput = text;
+    } finally {
+      this.chatBusy = false;
+      this.render();
+    }
+  }
+  async endChat() {
+    if (this.chatBusy || !this.chatSession) return;
+    this.chatBusy = true;
+    this.render();
+    try {
+      const fb = await runGrok(
+        chatFeedbackPrompt(this.chatWords),
+        this.plugin.settings.grokPath,
+        12e4,
+        this.chatSession
+      );
+      this.chatMsgs.push({ role: "feedback", text: fb.trim() });
+      this.chatSession = "";
+    } catch (e) {
+      console.error("Vocab Forge chat:", e);
+      new import_obsidian2.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c nh\u1EADn x\xE9t");
+    } finally {
+      this.chatBusy = false;
+      this.render();
     }
   }
   // ================================================================ STORY
@@ -3723,8 +4213,8 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
         date.setDate(start.getDate() + w * 7 + d);
         if (date > /* @__PURE__ */ new Date()) break;
         const count = stats[todayKey(date)]?.reviews ?? 0;
-        const level = count === 0 ? 0 : count <= 2 ? 1 : count <= 5 ? 2 : count <= 10 ? 3 : 4;
-        const cell = col.createDiv({ cls: `vf-heat-cell vf-heat-${level}` });
+        const level2 = count === 0 ? 0 : count <= 2 ? 1 : count <= 5 ? 2 : count <= 10 ? 3 : 4;
+        const cell = col.createDiv({ cls: `vf-heat-cell vf-heat-${level2}` });
         cell.setAttr("aria-label", `${todayKey(date)}: ${count} l\u01B0\u1EE3t \xF4n`);
       }
     }
@@ -3916,6 +4406,7 @@ function yamlStr(s) {
 }
 function buildCardYaml(input, fsrsCard) {
   const collo = input.collocations.length ? `[${input.collocations.map((c) => yamlStr(c)).join(", ")}]` : "[]";
+  const forms = input.forms.length ? `[${input.forms.map((f) => yamlStr(f)).join(", ")}]` : "[]";
   return [
     "---",
     "tags: [vocab-card]",
@@ -3926,6 +4417,7 @@ function buildCardYaml(input, fsrsCard) {
     `meaning_en: ${yamlStr(input.meaningEn)}`,
     `meaning_vi: ${yamlStr(input.meaningVi)}`,
     `collocations: ${collo}`,
+    `forms: ${forms}`,
     `quote: ${yamlStr(input.quote)}`,
     `source: ${yamlStr(input.source)}`,
     `source_url: ${yamlStr(input.sourceUrl)}`,
@@ -4010,7 +4502,9 @@ var VocabForgePlugin = class extends import_obsidian5.Plugin {
       freezes: raw?.freezes ?? 1,
       frozenDays: raw?.frozenDays ?? [],
       questRewardDates: raw?.questRewardDates ?? [],
-      story: raw?.story ?? null
+      story: raw?.story ?? null,
+      badges: raw?.badges ?? {},
+      lastReminder: raw?.lastReminder ?? ""
     };
     this.settings = this.data.settings;
     this.autoFreeze();
@@ -4061,6 +4555,7 @@ var VocabForgePlugin = class extends import_obsidian5.Plugin {
     this.registerEvent(this.app.metadataCache.on("resolved", refresh));
     this.registerEvent(this.app.vault.on("modify", refresh));
     this.registerInterval(window.setInterval(() => this.refreshStatusBar(), 6e4));
+    this.registerInterval(window.setInterval(() => this.maybeRemind(), 6e4));
     this.app.workspace.onLayoutReady(() => this.refreshStatusBar());
     this.addSettingTab(new VocabForgeSettingTab(this.app, this));
   }
@@ -4109,14 +4604,18 @@ var VocabForgePlugin = class extends import_obsidian5.Plugin {
     const used = this.data.stats[todayKey()]?.newCards ?? 0;
     return Math.max(0, this.settings.newPerDay - used);
   }
-  recordReview(wasNew) {
+  /** passed: true/false nếu thẻ đang ở trạng thái Review/Relearning (tính retention); null nếu thẻ mới/learning */
+  recordReview(wasNew, passed = null) {
     var _a;
     const key = todayKey();
     const stat = (_a = this.data.stats)[key] ?? (_a[key] = { reviews: 0, newCards: 0 });
     stat.reviews++;
     if (wasNew) stat.newCards++;
+    if (passed === true) stat.pass = (stat.pass ?? 0) + 1;
+    else if (passed === false) stat.fail = (stat.fail ?? 0) + 1;
     this.data.xp += 10;
     this.maybeGrantQuestReward();
+    this.checkBadges();
     void this.saveAll();
   }
   recordPractice(correct) {
@@ -4126,7 +4625,56 @@ var VocabForgePlugin = class extends import_obsidian5.Plugin {
     stat.practice = (stat.practice ?? 0) + 1;
     this.data.xp += correct ? 5 : 2;
     this.maybeGrantQuestReward();
+    this.checkBadges();
     void this.saveAll();
+  }
+  computeStreak() {
+    const stats = this.data.stats;
+    const active = (k) => (stats[k]?.reviews ?? 0) > 0 || this.isFrozen(k);
+    let streak = 0;
+    const d = /* @__PURE__ */ new Date();
+    if (!active(todayKey(d))) d.setDate(d.getDate() - 1);
+    while (active(todayKey(d))) {
+      streak++;
+      d.setDate(d.getDate() - 1);
+    }
+    return streak;
+  }
+  checkBadges() {
+    try {
+      const fresh = checkBadges(
+        { data: this.data, cards: this.store.getAllCards(), streak: this.computeStreak() },
+        todayKey()
+      );
+      for (const b of fresh) new import_obsidian5.Notice(`${b.icon} Huy hi\u1EC7u m\u1EDBi: ${b.name} \u2014 ${b.desc}!`, 7e3);
+    } catch (e) {
+      console.error("Vocab Forge badges:", e);
+    }
+  }
+  /** Nhắc học hằng ngày: đúng giờ đã đặt, còn thẻ due, chưa nhắc hôm nay */
+  maybeRemind() {
+    const hour = this.settings.reminderHour;
+    if (hour < 0) return;
+    const now = /* @__PURE__ */ new Date();
+    if (now.getHours() !== hour) return;
+    const key = todayKey();
+    if (this.data.lastReminder === key) return;
+    try {
+      const due = this.store.getDueEntries(this.settings.reverseEnabled).length;
+      if (due === 0) return;
+      this.data.lastReminder = key;
+      void this.saveAll();
+      new import_obsidian5.Notice(`\u{1F4DA} Vocab Forge: ${due} th\u1EBB \u0111ang ch\u1EDD \xF4n \u2014 gi\u1EEF chu\u1ED7i ${this.computeStreak()} ng\xE0y \u{1F525}`, 1e4);
+      if (typeof Notification !== "undefined" && Notification.permission !== "denied") {
+        const fire = () => new Notification("Vocab Forge \u{1F393}", {
+          body: `${due} th\u1EBB \u0111ang ch\u1EDD \xF4n h\xF4m nay \u2014 v\xE0o h\u1ECDc th\xF4i!`
+        });
+        if (Notification.permission === "granted") fire();
+        else void Notification.requestPermission().then((p) => p === "granted" && fire());
+      }
+    } catch (e) {
+      console.error("Vocab Forge reminder:", e);
+    }
   }
   // ------------------------------------------------------- QUEST & STREAK
   /** 3 nhiệm vụ mỗi ngày: [tên, tiến độ, mục tiêu] */
@@ -4260,6 +4808,36 @@ var VocabForgePlugin = class extends import_obsidian5.Plugin {
       const newAvail = Math.min(this.store.getNewCards().length + revNew, this.newRemainingToday());
       this.statusEl.setText(due + newAvail > 0 ? `\u{1F4DA} ${due} due \xB7 ${newAvail} m\u1EDBi` : "\u{1F4DA} xong \u2713");
     } catch {
+    }
+  }
+  // --------------------------------------------------------------- IMAGES
+  /** Sinh ảnh minh hoạ bằng grok /imagine rồi gắn vào frontmatter thẻ. Chạy nền, trả true nếu thành công. */
+  async generateCardImage(file, word, meaningEn) {
+    try {
+      const tmp = await generateImage(word, meaningEn, this.settings.grokPath);
+      if (!tmp) return false;
+      const req = window.require;
+      const fs = req("fs");
+      const data = fs.readFileSync(tmp);
+      const folder = "5. Toolbox/Attachments/Vocab";
+      if (!this.app.vault.getAbstractFileByPath((0, import_obsidian5.normalizePath)(folder))) {
+        try {
+          await this.app.vault.createFolder((0, import_obsidian5.normalizePath)(folder));
+        } catch {
+        }
+      }
+      const imgName = `${file.basename}.png`;
+      await this.app.vault.adapter.writeBinary(
+        (0, import_obsidian5.normalizePath)(`${folder}/${imgName}`),
+        data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
+      );
+      await this.app.fileManager.processFrontMatter(file, (fm) => {
+        fm.image = `[[${imgName}]]`;
+      });
+      return true;
+    } catch (e) {
+      console.error("Vocab Forge image:", e);
+      return false;
     }
   }
   // ------------------------------------------------------------------- TTS

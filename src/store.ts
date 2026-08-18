@@ -18,6 +18,7 @@ export interface NewCardInput {
 	meaningEn: string;
 	meaningVi: string;
 	collocations: string[];
+	forms: string[];
 	quote: string;
 	source: string;
 	sourceUrl: string;
@@ -202,6 +203,9 @@ function buildCardYaml(input: NewCardInput, fsrsCard: FsrsCard): string {
 	const collo = input.collocations.length
 		? `[${input.collocations.map((c) => yamlStr(c)).join(", ")}]`
 		: "[]";
+	const forms = input.forms.length
+		? `[${input.forms.map((f) => yamlStr(f)).join(", ")}]`
+		: "[]";
 	return [
 		"---",
 		"tags: [vocab-card]",
@@ -212,6 +216,7 @@ function buildCardYaml(input: NewCardInput, fsrsCard: FsrsCard): string {
 		`meaning_en: ${yamlStr(input.meaningEn)}`,
 		`meaning_vi: ${yamlStr(input.meaningVi)}`,
 		`collocations: ${collo}`,
+		`forms: ${forms}`,
 		`quote: ${yamlStr(input.quote)}`,
 		`source: ${yamlStr(input.source)}`,
 		`source_url: ${yamlStr(input.sourceUrl)}`,

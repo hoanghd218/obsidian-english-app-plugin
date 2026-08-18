@@ -13,6 +13,8 @@ export interface VocabForgeSettings {
 	highlightEnabled: boolean;
 	grokPath: string;
 	reverseEnabled: boolean;
+	/** Giờ nhắc học hằng ngày (0-23), -1 = tắt */
+	reminderHour: number;
 }
 
 export const DEFAULT_SETTINGS: VocabForgeSettings = {
@@ -27,6 +29,7 @@ export const DEFAULT_SETTINGS: VocabForgeSettings = {
 	highlightEnabled: true,
 	grokPath: "grok",
 	reverseEnabled: true,
+	reminderHour: 20,
 };
 
 export type CardType =
@@ -97,6 +100,10 @@ export interface DailyStat {
 	reviews: number;
 	newCards: number;
 	practice?: number;
+	/** Lượt ôn thẻ Review/Relearning trả lời KHÔNG phải "Quên" (để tính retention) */
+	pass?: number;
+	/** Lượt ôn thẻ Review/Relearning trả lời "Quên" */
+	fail?: number;
 }
 
 export interface StoryCache {
@@ -114,6 +121,10 @@ export interface VocabForgeData {
 	frozenDays: string[];
 	questRewardDates: string[];
 	story: StoryCache | null;
+	/** badge id → ngày đạt (YYYY-MM-DD) */
+	badges: Record<string, string>;
+	/** ngày cuối đã bắn reminder */
+	lastReminder: string;
 }
 
 /** Mỗi level cần 300 XP */

@@ -20,6 +20,8 @@ import {
 	type PracticeMode,
 } from "./practice";
 import {
+	chatFeedbackPrompt,
+	chatStartPrompt,
 	extractJson,
 	grammarPrompt,
 	mnemonicPrompt,
@@ -29,6 +31,8 @@ import {
 	type SentenceCheck,
 } from "./ai";
 import { XP_PER_LEVEL } from "./types";
+import { BADGES } from "./badges";
+import type { ErrorItem } from "./practice";
 
 export const VIEW_TYPE_VOCAB = "vocab-forge-review";
 
@@ -42,6 +46,7 @@ type Section =
 	| "practice-run"
 	| "practice-done"
 	| "story"
+	| "chat"
 	| "settings";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -94,6 +99,13 @@ export class VocabReviewView extends ItemView {
 	private aiBusy = false;
 	private storyBusy = false;
 
+	// --- hội thoại roleplay
+	private chatMsgs: Array<{ role: "ai" | "me" | "feedback"; text: string }> = [];
+	private chatWords: string[] = [];
+	private chatSession = "";
+	private chatBusy = false;
+	private chatInput = "";
+
 	// --- nối cặp (match)
 	private matchSel: { kind: "w" | "m"; idx: number } | null = null;
 	private matchDone = new Set<number>();
@@ -144,6 +156,7 @@ export class VocabReviewView extends ItemView {
 			case "practice-run": this.renderPracticeRun(main); break;
 			case "practice-done": this.renderPracticeDone(main); break;
 			case "story": this.renderStory(main); break;
+			case "chat": this.renderChat(main); break;
 			case "settings": this.renderSettings(main); break;
 		}
 	}
@@ -158,6 +171,7 @@ export class VocabReviewView extends ItemView {
 			{ id: "dashboard", icon: "🏠", label: "Dashboard" },
 			{ id: "study", icon: "▶️", label: "Học ngay" },
 			{ id: "practice", icon: "🎯", label: "Luyện tập" },
+			{ id: "chat", icon: "💬", label: "Hội thoại" },
 			{ id: "decks", icon: "🗂️", label: "Bộ thẻ" },
 			{ id: "add", icon: "➕", label: "Thêm thẻ" },
 			{ id: "settings", icon: "⚙️", label: "Cài đặt" },
@@ -292,6 +306,12 @@ export class VocabReviewView extends ItemView {
 		// --- Dự báo 30 ngày
 		main.createEl("h4", { text: "Dự báo thẻ đến hạn — 30 ngày tới" });
 		this.renderForecast(main.createDiv({ cls: "vf-forecast" }), all);
+
+		// --- Retention 30 ngày
+		this.renderRetention(main);
+
+		// --- Huy hiệu
+		this.renderBadges(main);
 
 		// --- Từ khó
 		const hard = all
@@ -830,9 +850,13 @@ export class VocabReviewView extends ItemView {
 		try {
 			const fsrs = entry.dir === "fwd" ? card.fsrs : card.fsrsRev;
 			const wasNew = fsrs.state === State.New;
+			const retention =
+				fsrs.state === State.Review || fsrs.state === State.Relearning
+					? grade !== Rating.Again
+					: null;
 			const next = this.plugin.scheduler.repeat(fsrs, new Date())[grade].card;
 			await this.plugin.store.saveFsrs(card, next, entry.dir);
-			this.plugin.recordReview(wasNew);
+			this.plugin.recordReview(wasNew, retention);
 			this.sessionDone++;
 			if (next.due.getTime() <= endOfToday().getTime()) {
 				this.queue.push(entry);
@@ -970,6 +994,7 @@ export class VocabReviewView extends ItemView {
 		else if (item.mode === "typing") this.renderTypingQ(cardEl, item);
 		else if (item.mode === "builder") this.renderBuilderQ(cardEl, item);
 		else if (item.mode === "match") this.renderMatchQ(cardEl, item);
+		else if (item.mode === "error") this.renderErrorQ(cardEl, item);
 		else this.renderChoiceQ(cardEl, item);
 
 		// feedback + nút
@@ -996,7 +1021,36 @@ export class VocabReviewView extends ItemView {
 		if (item.mode === "cloze") return item.surface;
 		if (item.mode === "builder") return item.tokens.join(" ");
 		if (item.mode === "choice") return item.options[item.correctIndex];
+		if (item.mode === "error")
+			return `từ sai là "${item.tokens[item.wrongIndex]}" → đúng: "${item.correctToken}"`;
 		return item.card.word;
+	}
+
+	// --- tìm lỗi sai (error spotting)
+
+	private renderErrorQ(cardEl: HTMLElement, item: ErrorItem): void {
+		const c = item.card;
+		cardEl.addClass("vf-practice-card");
+		cardEl.createDiv({ text: `${categoryEmoji(c.category)} ${c.category}`, cls: "vf-chip-cat" });
+		cardEl.createDiv({ text: "🕵️ Câu dưới đây có ĐÚNG 1 từ sai — bấm vào nó:", cls: "vf-hint" });
+		const line = cardEl.createDiv({ cls: "vf-error-line" });
+		item.tokens.forEach((tok, i) => {
+			let cls = "vf-token vf-error-token";
+			if (this.practicePhase === "feedback" && i === item.wrongIndex)
+				cls += this.practiceCorrect ? " vf-error-found" : " vf-error-reveal";
+			const b = line.createEl("button", { text: tok, cls });
+			b.onclick = () => {
+				if (this.practicePhase !== "question") return;
+				this.practiceResolve(i === item.wrongIndex);
+			};
+		});
+		if (this.practicePhase === "feedback") {
+			const fixed = [...item.tokens];
+			fixed[item.wrongIndex] = item.correctToken;
+			const ok = cardEl.createDiv({ cls: "vf-quote" });
+			ok.createSpan({ text: "✓ Câu đúng: ", cls: "vf-lang-tag" });
+			ok.createSpan({ text: `“${fixed.join(" ")}”` });
+		}
 	}
 
 	// --- nối cặp (match)
@@ -1377,6 +1431,15 @@ export class VocabReviewView extends ItemView {
 			rg.onchange = async () => { s[key] = Number(rg.value); await this.plugin.saveAll(); };
 		}
 
+		// giờ nhắc học
+		const cr = group("Giờ nhắc học hằng ngày", "Thông báo khi còn thẻ due — hệ thống + trong Obsidian");
+		const sel2 = cr.createEl("select", { cls: "dropdown" });
+		sel2.createEl("option", { text: "Tắt", attr: { value: "-1" } });
+		for (let h = 6; h <= 23; h++)
+			sel2.createEl("option", { text: `${h}:00`, attr: { value: String(h) } });
+		sel2.value = String(s.reminderHour);
+		sel2.onchange = async () => { s.reminderHour = Number(sel2.value); await this.plugin.saveAll(); };
+
 		// grok path
 		main.createEl("h4", { text: "AI (Grok CLI)" });
 		const c7 = group("Đường dẫn lệnh grok", "Dùng cho mẹo nhớ, chấm câu, giải thích ngữ pháp, story");
@@ -1387,16 +1450,7 @@ export class VocabReviewView extends ItemView {
 	// ================================================================ MISC
 
 	private computeStreak(): number {
-		const stats = this.plugin.data.stats;
-		const active = (k: string) => (stats[k]?.reviews ?? 0) > 0 || this.plugin.isFrozen(k);
-		let streak = 0;
-		const d = new Date();
-		if (!active(todayKey(d))) d.setDate(d.getDate() - 1);
-		while (active(todayKey(d))) {
-			streak++;
-			d.setDate(d.getDate() - 1);
-		}
-		return streak;
+		return this.plugin.computeStreak();
 	}
 
 	/** Biểu đồ cột: số thẻ đến hạn trong 30 ngày tới (quá hạn dồn vào hôm nay) */
@@ -1420,6 +1474,235 @@ export class VocabReviewView extends ItemView {
 			bar.style.height = `${Math.max(3, Math.round((counts[i] / max) * 60))}px`;
 			bar.setAttr("aria-label", `+${i} ngày: ${counts[i]} thẻ`);
 			if (i % 5 === 0) col.createDiv({ text: i === 0 ? "nay" : `+${i}`, cls: "vf-fc-label" });
+		}
+	}
+
+	/** Biểu đồ retention: % trả lời đúng (không Quên) trên thẻ đang ôn, 30 ngày gần nhất */
+	private renderRetention(main: HTMLElement): void {
+		const stats = this.plugin.data.stats;
+		const days: Array<{ key: string; pct: number | null }> = [];
+		const d = new Date();
+		d.setDate(d.getDate() - 29);
+		let sumPass = 0, sumTotal = 0;
+		for (let i = 0; i < 30; i++) {
+			const key = todayKey(d);
+			const s = stats[key];
+			const total = (s?.pass ?? 0) + (s?.fail ?? 0);
+			days.push({ key, pct: total ? Math.round(((s?.pass ?? 0) / total) * 100) : null });
+			sumPass += s?.pass ?? 0;
+			sumTotal += total;
+			d.setDate(d.getDate() + 1);
+		}
+		const head = main.createDiv({ cls: "vf-section-head" });
+		head.createEl("h4", { text: "Tỷ lệ nhớ (retention) — 30 ngày" });
+		if (sumTotal)
+			head.createSpan({
+				text: `TB ${Math.round((sumPass / sumTotal) * 100)}% · mục tiêu ${Math.round(this.plugin.settings.requestRetention * 100)}%`,
+				cls: "vf-muted",
+			});
+		const chart = main.createDiv({ cls: "vf-forecast vf-retention" });
+		if (!sumTotal) {
+			chart.createDiv({ text: "Chưa có dữ liệu — sẽ tự tích luỹ từ các phiên ôn tới.", cls: "vf-empty" });
+			return;
+		}
+		days.forEach((day, i) => {
+			const col = chart.createDiv({ cls: "vf-fc-col" });
+			const bar = col.createDiv({ cls: "vf-fc-bar vf-ret-bar" });
+			if (day.pct == null) {
+				bar.style.height = "3px";
+				bar.addClass("vf-ret-empty");
+			} else {
+				bar.style.height = `${Math.max(4, Math.round((day.pct / 100) * 60))}px`;
+				if (day.pct < this.plugin.settings.requestRetention * 100 - 10) bar.addClass("vf-ret-low");
+			}
+			bar.setAttr("aria-label", `${day.key}: ${day.pct == null ? "—" : day.pct + "%"}`);
+			if (i % 5 === 0) col.createDiv({ text: day.key.slice(8), cls: "vf-fc-label" });
+		});
+	}
+
+	/** Lưới huy hiệu thành tích */
+	private renderBadges(main: HTMLElement): void {
+		const earned = this.plugin.data.badges;
+		const head = main.createDiv({ cls: "vf-section-head" });
+		head.createEl("h4", { text: "Huy hiệu" });
+		head.createSpan({ text: `${Object.keys(earned).length}/${BADGES.length}`, cls: "vf-muted" });
+		const grid = main.createDiv({ cls: "vf-badge-grid" });
+		for (const b of BADGES) {
+			const got = earned[b.id];
+			const el = grid.createDiv({ cls: `vf-badge-tile ${got ? "vf-badge-got" : "vf-badge-locked"}` });
+			el.createDiv({ text: b.icon, cls: "vf-badge-icon" });
+			el.createDiv({ text: b.name, cls: "vf-badge-name" });
+			el.createDiv({ text: got ? `✓ ${got}` : b.desc, cls: "vf-badge-desc" });
+		}
+	}
+
+	// ================================================================= CHAT
+
+	private renderChat(main: HTMLElement): void {
+		main.createEl("h3", { text: "💬 Hội thoại (Roleplay)" });
+		main.createDiv({
+			text: "Nói chuyện với AI đóng vai đối tác — nhiệm vụ của bạn: dùng được các từ mục tiêu trong hội thoại.",
+			cls: "vf-muted",
+		});
+
+		if (!this.chatMsgs.length && !this.chatBusy) {
+			const empty = main.createDiv({ cls: "vf-story-wait" });
+			empty.createDiv({ text: "💬", cls: "vf-done-emoji" });
+			const start = empty.createEl("button", {
+				text: "✨ Bắt đầu hội thoại mới",
+				cls: "vf-btn-hero vf-btn-hero-small",
+			});
+			start.onclick = () => void this.startChat();
+			return;
+		}
+
+		if (this.chatWords.length) {
+			const chips = main.createDiv({ cls: "vf-chips vf-chat-targets" });
+			chips.createSpan({ text: "🎯 Dùng được:", cls: "vf-muted" });
+			for (const w of this.chatWords) {
+				const used = this.chatMsgs.some(
+					(m) => m.role === "me" && m.text.toLowerCase().includes(w.toLowerCase())
+				);
+				chips.createSpan({ text: used ? `✓ ${w}` : w, cls: `vf-chip ${used ? "vf-chip-used" : ""}` });
+			}
+		}
+
+		const box = main.createDiv({ cls: "vf-chat-box" });
+		for (const m of this.chatMsgs) {
+			const b = box.createDiv({
+				cls:
+					m.role === "me"
+						? "vf-msg vf-msg-me"
+						: m.role === "feedback"
+							? "vf-msg vf-msg-feedback"
+							: "vf-msg vf-msg-ai",
+			});
+			if (m.role === "feedback") b.createDiv({ text: "📋 Nhận xét", cls: "vf-msg-tag" });
+			b.createDiv({ text: m.text });
+			if (m.role === "ai") {
+				const sp = b.createEl("button", { text: "🔊", cls: "vf-btn-tiny" });
+				sp.onclick = () => this.plugin.speak(m.text);
+			}
+		}
+		if (this.chatBusy) box.createDiv({ text: "⏳ …", cls: "vf-msg vf-msg-ai vf-msg-wait" });
+		window.setTimeout(() => (box.scrollTop = box.scrollHeight), 20);
+
+		const row = main.createDiv({ cls: "vf-chat-input-row" });
+		const input = row.createEl("input", {
+			cls: "vf-practice-input",
+			attr: { type: "text", placeholder: "Trả lời bằng tiếng Anh…", spellcheck: "false" },
+		});
+		input.value = this.chatInput;
+		input.oninput = () => (this.chatInput = input.value);
+		input.onkeydown = (e) => {
+			e.stopPropagation();
+			if (e.key === "Enter") void this.sendChat();
+		};
+		input.disabled = this.chatBusy;
+		const send = row.createEl("button", { text: "Gửi ➤", cls: "vf-btn-hero vf-btn-hero-small" });
+		send.disabled = this.chatBusy;
+		send.onclick = () => void this.sendChat();
+
+		const foot = main.createDiv({ cls: "vf-actions" });
+		const end = foot.createEl("button", { text: "🏁 Kết thúc & nhận xét", cls: "vf-btn-icon" });
+		end.disabled = this.chatBusy || this.chatMsgs.filter((m) => m.role === "me").length === 0;
+		end.onclick = () => void this.endChat();
+		const reset = foot.createEl("button", { text: "🔄 Hội thoại mới", cls: "vf-btn-icon" });
+		reset.disabled = this.chatBusy;
+		reset.onclick = () => void this.startChat();
+		if (!this.flippedFocusGuard()) window.setTimeout(() => input.focus(), 30);
+	}
+
+	private flippedFocusGuard(): boolean {
+		return this.chatBusy;
+	}
+
+	private pickChatWords(): string[] {
+		const all = this.plugin.store
+			.getAllCards()
+			.filter((c) => c.type !== "sentence" && c.type !== "passage" && c.type !== "grammar");
+		const hard = all.filter((c) => c.fsrs.lapses >= 2);
+		const due = this.plugin.store.getDueCards();
+		const learned = all.filter((c) => c.fsrs.state !== State.New);
+		const pool = [...hard, ...due, ...learned, ...all];
+		const words: string[] = [];
+		for (const c of pool) {
+			if (!words.includes(c.word)) words.push(c.word);
+			if (words.length === 5) break;
+		}
+		return words;
+	}
+
+	private async startChat(): Promise<void> {
+		this.chatWords = this.pickChatWords();
+		if (this.chatWords.length < 2) {
+			new Notice("Chưa đủ thẻ để tạo hội thoại");
+			return;
+		}
+		this.chatMsgs = [];
+		this.chatInput = "";
+		this.chatSession = `vf-chat-${Date.now()}`;
+		this.chatBusy = true;
+		this.render();
+		try {
+			const first = await runGrok(
+				chatStartPrompt(this.chatWords),
+				this.plugin.settings.grokPath,
+				120_000,
+				this.chatSession
+			);
+			this.chatMsgs.push({ role: "ai", text: first.trim() });
+			this.plugin.speak(first.trim());
+		} catch (e) {
+			console.error("Vocab Forge chat:", e);
+			new Notice("Không bắt đầu được hội thoại — kiểm tra Grok CLI");
+		} finally {
+			this.chatBusy = false;
+			this.render();
+		}
+	}
+
+	private async sendChat(): Promise<void> {
+		const text = this.chatInput.trim();
+		if (!text || this.chatBusy || !this.chatSession) return;
+		this.chatMsgs.push({ role: "me", text });
+		this.chatInput = "";
+		this.chatBusy = true;
+		this.render();
+		try {
+			const reply = await runGrok(text, this.plugin.settings.grokPath, 120_000, this.chatSession);
+			this.chatMsgs.push({ role: "ai", text: reply.trim() });
+			this.plugin.speak(reply.trim());
+		} catch (e) {
+			console.error("Vocab Forge chat:", e);
+			new Notice("Lỗi gửi tin — thử lại");
+			this.chatMsgs.pop();
+			this.chatInput = text;
+		} finally {
+			this.chatBusy = false;
+			this.render();
+		}
+	}
+
+	private async endChat(): Promise<void> {
+		if (this.chatBusy || !this.chatSession) return;
+		this.chatBusy = true;
+		this.render();
+		try {
+			const fb = await runGrok(
+				chatFeedbackPrompt(this.chatWords),
+				this.plugin.settings.grokPath,
+				120_000,
+				this.chatSession
+			);
+			this.chatMsgs.push({ role: "feedback", text: fb.trim() });
+			this.chatSession = "";
+		} catch (e) {
+			console.error("Vocab Forge chat:", e);
+			new Notice("Không lấy được nhận xét");
+		} finally {
+			this.chatBusy = false;
+			this.render();
 		}
 	}
 

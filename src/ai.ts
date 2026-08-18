@@ -31,7 +31,12 @@ function resolveGrokPath(custom: string): string {
 	return "grok"; // hy vọng có trong PATH
 }
 
-export function runGrok(prompt: string, grokPath: string, timeoutMs = 90_000): Promise<string> {
+export function runGrok(
+	prompt: string,
+	grokPath: string,
+	timeoutMs = 90_000,
+	sessionId?: string
+): Promise<string> {
 	type CP = {
 		execFile(
 			cmd: string,
@@ -48,10 +53,13 @@ export function runGrok(prompt: string, grokPath: string, timeoutMs = 90_000): P
 		...proc.env,
 		PATH: `${proc.env.PATH ?? ""}:${os.homedir()}/.local/bin:/usr/local/bin:/opt/homebrew/bin`,
 	};
+	const args = ["--no-auto-update", "--no-alt-screen", "--disable-web-search"];
+	if (sessionId) args.push("-s", sessionId);
+	args.push("-p", prompt);
 	return new Promise((resolve, reject) => {
 		cp.execFile(
 			bin,
-			["--no-auto-update", "--no-alt-screen", "--disable-web-search", "-p", prompt],
+			args,
 			{ timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024, env },
 			(err, stdout) => {
 				if (err) reject(err);
@@ -101,6 +109,93 @@ export function grammarPrompt(quote: string): string {
 	return (
 		`Giải thích bằng tiếng Việt (cho người học B1) cấu trúc ngữ pháp đáng chú ý nhất trong câu tiếng Anh sau, ` +
 		`kèm 1 ví dụ khác dùng cùng cấu trúc: "${quote}". Tối đa 90 từ. Chỉ trả về phần giải thích.`
+	);
+}
+
+export interface CardFill {
+	type: string;
+	ipa: string;
+	meaning_en: string;
+	meaning_vi: string;
+	collocations: string[];
+	example: string;
+	forms: string[];
+	category: string;
+}
+
+export function cardFillPrompt(word: string): string {
+	return (
+		`You are a lexicographer helping a Vietnamese B1 English learner (works in business/AI/content). ` +
+		`For the English item "${word}", reply with ONLY minified JSON, no markdown fences: ` +
+		`{"type":"word|phrase|idiom|collocation","ipa":"/IPA/","meaning_en":"simple learner's-dictionary definition",` +
+		`"meaning_vi":"nghĩa tiếng Việt tự nhiên","collocations":["2-3 common collocations"],` +
+		`"example":"one natural example sentence using it in a business/content context",` +
+		`"forms":["real inflected forms only, [] if fixed"],` +
+		`"category":"business|startup|content|ai-tech|casual|idiom|general"}`
+	);
+}
+
+/** Sinh ảnh minh hoạ qua grok /imagine, trả về đường dẫn file PNG tạm (hoặc null nếu fail) */
+export function generateImage(
+	word: string,
+	meaningEn: string,
+	grokPath: string,
+	timeoutMs = 200_000
+): Promise<string | null> {
+	type FS = { existsSync(p: string): boolean; mkdirSync(p: string, o?: object): void };
+	const fs = nodeRequire("fs") as FS;
+	const os = nodeRequire("os") as { tmpdir(): string };
+	const path = nodeRequire("path") as { join(...p: string[]): string };
+	const dir = path.join(os.tmpdir(), `vf-imagine-${Date.now()}`);
+	fs.mkdirSync(dir, { recursive: true });
+	const prompt =
+		`/imagine flat minimal vector illustration, a clear visual metaphor for the English expression "${word}"` +
+		(meaningEn ? ` (meaning: ${meaningEn.slice(0, 140)})` : "") +
+		`, teal and deep navy color palette, clean light background, single focused scene, no text, no letters --out out.png`;
+	type CP = {
+		execFile(
+			cmd: string,
+			args: string[],
+			opts: { timeout: number; maxBuffer: number; cwd: string; env: Record<string, string | undefined> },
+			cb: (err: Error | null) => void
+		): void;
+	};
+	const cp = nodeRequire("child_process") as CP;
+	const osm = nodeRequire("os") as { homedir(): string };
+	const proc = nodeRequire("process") as { env: Record<string, string | undefined> };
+	const bin = resolveGrokPath(grokPath);
+	const env = {
+		...proc.env,
+		PATH: `${proc.env.PATH ?? ""}:${osm.homedir()}/.local/bin:/usr/local/bin:/opt/homebrew/bin`,
+	};
+	return new Promise((resolve) => {
+		cp.execFile(
+			bin,
+			["--no-auto-update", "--always-approve", "--no-alt-screen", "--cwd", dir, "-p", prompt],
+			{ timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024, cwd: dir, env },
+			() => {
+				const out = path.join(dir, "out.png");
+				resolve(fs.existsSync(out) ? out : null);
+			}
+		);
+	});
+}
+
+export function chatStartPrompt(words: string[]): string {
+	return (
+		`Let's roleplay to help a Vietnamese B1 English learner practice speaking. ` +
+		`You play a friendly business partner in an online meeting about growing a content/AI business. ` +
+		`Rules: use simple B1 English, keep each of your turns to 2-4 sentences, ask questions that naturally invite the learner ` +
+		`to use these target expressions: ${words.map((w) => `"${w}"`).join(", ")}. ` +
+		`Never explain the rules or mention that this is practice. Stay in character. Start the conversation now with your first message only.`
+	);
+}
+
+export function chatFeedbackPrompt(words: string[]): string {
+	return (
+		`Dừng roleplay. Bây giờ hãy nhận xét bằng TIẾNG VIỆT về phần thể hiện của người học trong hội thoại vừa rồi: ` +
+		`(1) họ đã dùng được những từ mục tiêu nào trong: ${words.join(", ")} — dùng đúng hay sai; ` +
+		`(2) 2-3 lỗi tiếng Anh đáng chú ý nhất và cách sửa; (3) một lời khen cụ thể. Tối đa 130 từ, thân thiện.`
 	);
 }
 

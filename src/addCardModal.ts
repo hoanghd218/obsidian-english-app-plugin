@@ -2,6 +2,7 @@ import { App, Modal, Notice, Setting, TFile } from "obsidian";
 import type VocabForgePlugin from "./main";
 import type { NewCardInput } from "./store";
 import { DEFAULT_CATEGORIES, type CardType } from "./types";
+import { cardFillPrompt, extractJson, runGrok, type CardFill } from "./ai";
 
 export interface AddCardPrefill {
 	word?: string;
@@ -12,7 +13,14 @@ export interface AddCardPrefill {
 	category?: string;
 }
 
+type Mode = "auto" | "manual";
+
 export class AddCardModal extends Modal {
+	private mode: Mode = "auto";
+	private aiFilled = false;
+	private aiBusy = false;
+	private makeImage = true;
+
 	private input: NewCardInput = {
 		word: "",
 		type: "word",
@@ -21,6 +29,7 @@ export class AddCardModal extends Modal {
 		meaningEn: "",
 		meaningVi: "",
 		collocations: [],
+		forms: [],
 		quote: "",
 		source: "",
 		sourceUrl: "",
@@ -36,17 +45,112 @@ export class AddCardModal extends Modal {
 			this.input.sourceUrl = prefill.sourceUrl ?? "";
 			if (prefill.type) this.input.type = prefill.type;
 			if (prefill.category) this.input.category = prefill.category;
+			if (prefill.word) this.mode = "manual"; // bôi đen từ note → thường muốn tự điền nguồn thủ công
 		}
 	}
 
 	onOpen(): void {
+		this.display();
+	}
+
+	private display(): void {
 		const { contentEl } = this;
+		contentEl.empty();
 		contentEl.addClass("vf-add-modal");
 		contentEl.createEl("h3", { text: "＋ Thêm thẻ Vocab Forge" });
 
+		// --- chuyển chế độ
+		const seg = contentEl.createDiv({ cls: "vf-mode-seg" });
+		const autoBtn = seg.createEl("button", {
+			text: "🤖 Tự động (AI)",
+			cls: `vf-seg-btn ${this.mode === "auto" ? "vf-seg-on" : ""}`,
+		});
+		const manualBtn = seg.createEl("button", {
+			text: "📝 Thủ công",
+			cls: `vf-seg-btn ${this.mode === "manual" ? "vf-seg-on" : ""}`,
+		});
+		autoBtn.onclick = () => { this.mode = "auto"; this.display(); };
+		manualBtn.onclick = () => { this.mode = "manual"; this.display(); };
+
+		if (this.mode === "auto" && !this.aiFilled) {
+			this.displayAutoEntry(contentEl);
+			return;
+		}
+		this.displayForm(contentEl);
+	}
+
+	// --- chế độ tự động: chỉ nhập từ, AI điền hết
+	private displayAutoEntry(contentEl: HTMLElement): void {
+		contentEl.createDiv({
+			text: "Nhập từ / cụm từ — Grok sẽ tự điền IPA, nghĩa Anh–Việt, ví dụ, collocations, word family, chủ đề và (tuỳ chọn) sinh ảnh minh hoạ.",
+			cls: "vf-muted vf-auto-desc",
+		});
+		const input = contentEl.createEl("input", {
+			cls: "vf-practice-input vf-auto-input",
+			attr: { type: "text", placeholder: 'vd: "double down", "move the needle"…', spellcheck: "false" },
+		});
+		input.value = this.input.word;
+		input.oninput = () => (this.input.word = input.value);
+		input.onkeydown = (e) => {
+			if (e.key === "Enter") void this.aiFill();
+		};
+
+		new Setting(contentEl)
+			.setName("🖼 Sinh ảnh minh hoạ sau khi tạo thẻ")
+			.setDesc("Grok Imagine, chạy nền ~1 phút")
+			.addToggle((t) => t.setValue(this.makeImage).onChange((v) => (this.makeImage = v)));
+
+		const btn = contentEl.createEl("button", {
+			text: this.aiBusy ? "⏳ AI đang tra cứu…" : "✨ AI điền tất cả",
+			cls: "vf-btn-hero vf-btn-hero-small vf-auto-go",
+		});
+		btn.disabled = this.aiBusy;
+		btn.onclick = () => void this.aiFill();
+		window.setTimeout(() => input.focus(), 30);
+	}
+
+	private async aiFill(): Promise<void> {
+		const word = this.input.word.trim();
+		if (!word) {
+			new Notice("Nhập từ/cụm từ trước đã");
+			return;
+		}
+		if (this.aiBusy) return;
+		this.aiBusy = true;
+		this.display();
+		try {
+			const raw = await runGrok(cardFillPrompt(word), this.plugin.settings.grokPath, 120_000);
+			const fill = extractJson<CardFill>(raw);
+			if (!fill) throw new Error("bad json");
+			this.input.word = word;
+			this.input.type = (["word", "phrase", "idiom", "collocation"].includes(fill.type)
+				? fill.type
+				: "phrase") as CardType;
+			this.input.ipa = fill.ipa ?? "";
+			this.input.meaningEn = fill.meaning_en ?? "";
+			this.input.meaningVi = fill.meaning_vi ?? "";
+			this.input.collocations = Array.isArray(fill.collocations) ? fill.collocations : [];
+			this.input.forms = Array.isArray(fill.forms) ? fill.forms : [];
+			this.input.quote = fill.example ?? "";
+			this.input.category = (fill.category || "general").toLowerCase();
+			this.aiFilled = true;
+			new Notice("✨ AI đã điền xong — kiểm tra rồi bấm Tạo thẻ");
+		} catch (e) {
+			console.error("Vocab Forge AI fill:", e);
+			new Notice("AI điền thất bại — thử lại hoặc dùng chế độ thủ công");
+		} finally {
+			this.aiBusy = false;
+			this.display();
+		}
+	}
+
+	// --- form đầy đủ (thủ công, hoặc review sau khi AI điền)
+	private displayForm(contentEl: HTMLElement): void {
+		if (this.aiFilled)
+			contentEl.createDiv({ text: "✨ AI đã điền — kiểm tra và chỉnh nếu cần:", cls: "vf-muted vf-auto-desc" });
+
 		new Setting(contentEl)
 			.setName("Từ / cụm / câu / đoạn")
-			.setDesc("Nội dung tiếng Anh cần học — mặt trước của thẻ")
 			.addTextArea((t) => {
 				t.setValue(this.input.word).onChange((v) => (this.input.word = v));
 				t.inputEl.rows = 2;
@@ -67,12 +171,11 @@ export class AddCardModal extends Modal {
 
 		new Setting(contentEl)
 			.setName("Chủ đề (deck)")
-			.setDesc("Thẻ được nhóm theo chủ đề trên trang Bộ thẻ — chọn có sẵn hoặc gõ mới")
 			.addDropdown((d) => {
 				const cats = new Set<string>(DEFAULT_CATEGORIES);
 				for (const c of this.plugin.store.getAllCards()) cats.add(c.category);
+				cats.add(this.input.category);
 				for (const c of [...cats].sort()) d.addOption(c, c);
-				if (!cats.has(this.input.category)) d.addOption(this.input.category, this.input.category);
 				d.setValue(this.input.category).onChange((v) => (this.input.category = v));
 			})
 			.addText((t) =>
@@ -83,29 +186,22 @@ export class AddCardModal extends Modal {
 
 		new Setting(contentEl)
 			.setName("IPA")
-			.setDesc("Phiên âm, ví dụ /ˈdʌbəl daʊn/ — bỏ trống nếu là câu/đoạn")
 			.addText((t) => t.setValue(this.input.ipa).onChange((v) => (this.input.ipa = v)));
 
-		new Setting(contentEl)
-			.setName("Nghĩa Anh–Anh")
-			.setDesc("Định nghĩa bằng tiếng Anh đơn giản")
-			.addTextArea((t) => {
-				t.setValue(this.input.meaningEn).onChange((v) => (this.input.meaningEn = v));
-				t.inputEl.rows = 2;
-				t.inputEl.addClass("vf-input-wide");
-			});
+		new Setting(contentEl).setName("Nghĩa Anh–Anh").addTextArea((t) => {
+			t.setValue(this.input.meaningEn).onChange((v) => (this.input.meaningEn = v));
+			t.inputEl.rows = 2;
+			t.inputEl.addClass("vf-input-wide");
+		});
+
+		new Setting(contentEl).setName("Nghĩa tiếng Việt").addTextArea((t) => {
+			t.setValue(this.input.meaningVi).onChange((v) => (this.input.meaningVi = v));
+			t.inputEl.rows = 2;
+			t.inputEl.addClass("vf-input-wide");
+		});
 
 		new Setting(contentEl)
-			.setName("Nghĩa tiếng Việt")
-			.addTextArea((t) => {
-				t.setValue(this.input.meaningVi).onChange((v) => (this.input.meaningVi = v));
-				t.inputEl.rows = 2;
-				t.inputEl.addClass("vf-input-wide");
-			});
-
-		new Setting(contentEl)
-			.setName("Quote — câu ngữ cảnh thật")
-			.setDesc("Câu chứa từ này, trích từ video/bài gốc")
+			.setName("Quote — câu ví dụ / ngữ cảnh")
 			.addTextArea((t) => {
 				t.setValue(this.input.quote).onChange((v) => (this.input.quote = v));
 				t.inputEl.rows = 2;
@@ -114,10 +210,19 @@ export class AddCardModal extends Modal {
 
 		new Setting(contentEl)
 			.setName("Collocations")
-			.setDesc("Các cụm đi kèm, cách nhau dấu phẩy")
+			.setDesc("Cách nhau dấu phẩy")
 			.addText((t) =>
-				t.onChange((v) => {
+				t.setValue(this.input.collocations.join(", ")).onChange((v) => {
 					this.input.collocations = v.split(",").map((s) => s.trim()).filter(Boolean);
+				})
+			);
+
+		new Setting(contentEl)
+			.setName("Word family (forms)")
+			.setDesc("Các dạng biến thể, cách nhau dấu phẩy")
+			.addText((t) =>
+				t.setValue(this.input.forms.join(", ")).onChange((v) => {
+					this.input.forms = v.split(",").map((s) => s.trim()).filter(Boolean);
 				})
 			);
 
@@ -140,22 +245,18 @@ export class AddCardModal extends Modal {
 		);
 
 		new Setting(contentEl)
-			.setName("Link video (kèm timestamp nếu có)")
+			.setName("Link video")
 			.addText((t) => {
 				t.setValue(this.input.sourceUrl).onChange((v) => (this.input.sourceUrl = v));
 				this.urlText = t.inputEl;
 			});
 
 		new Setting(contentEl)
-			.setName("Ảnh minh hoạ")
-			.setDesc("URL hoặc đường dẫn/wikilink ảnh trong vault")
-			.addText((t) => t.setValue(this.input.image).onChange((v) => (this.input.image = v)));
+			.setName("🖼 Sinh ảnh minh hoạ (AI, chạy nền)")
+			.addToggle((t) => t.setValue(this.makeImage).onChange((v) => (this.makeImage = v)));
 
 		new Setting(contentEl).addButton((b) =>
-			b
-				.setButtonText("Tạo thẻ")
-				.setCta()
-				.onClick(() => void this.submit())
+			b.setButtonText("Tạo thẻ").setCta().onClick(() => void this.submit())
 		);
 	}
 
@@ -183,6 +284,14 @@ export class AddCardModal extends Modal {
 			const file = await this.plugin.store.createCard(this.input);
 			new Notice(`✅ Đã tạo thẻ: ${file.basename}`);
 			this.plugin.refreshStatusBar();
+			if (this.makeImage) {
+				new Notice("🖼 Đang sinh ảnh minh hoạ nền (~1 phút)…");
+				void this.plugin
+					.generateCardImage(file, this.input.word, this.input.meaningEn)
+					.then((ok) =>
+						new Notice(ok ? `🖼 Ảnh cho "${file.basename}" đã xong!` : `Ảnh cho "${file.basename}" thất bại`)
+					);
+			}
 			this.close();
 		} catch (e) {
 			console.error("Vocab Forge: lỗi tạo thẻ", e);

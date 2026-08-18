@@ -1,4 +1,14 @@
-import { Editor, MarkdownView, Notice, Plugin, WorkspaceLeaf, debounce } from "obsidian";
+import {
+	Editor,
+	MarkdownView,
+	Notice,
+	Plugin,
+	TFile,
+	WorkspaceLeaf,
+	debounce,
+	normalizePath,
+} from "obsidian";
+import { generateImage } from "./ai";
 import { AddCardModal, type AddCardPrefill } from "./addCardModal";
 import { VocabReviewView, VIEW_TYPE_VOCAB } from "./reviewView";
 import { makeScheduler } from "./srs";
@@ -13,6 +23,7 @@ import {
 	type VocabForgeSettings,
 } from "./types";
 import { State } from "./srs";
+import { checkBadges } from "./badges";
 import { VocabForgeSettingTab } from "./settingsTab";
 
 export default class VocabForgePlugin extends Plugin {
@@ -32,6 +43,8 @@ export default class VocabForgePlugin extends Plugin {
 			frozenDays: raw?.frozenDays ?? [],
 			questRewardDates: raw?.questRewardDates ?? [],
 			story: raw?.story ?? null,
+			badges: raw?.badges ?? {},
+			lastReminder: raw?.lastReminder ?? "",
 		};
 		this.settings = this.data.settings;
 		this.autoFreeze();
@@ -93,6 +106,7 @@ export default class VocabForgePlugin extends Plugin {
 		this.registerEvent(this.app.metadataCache.on("resolved", refresh));
 		this.registerEvent(this.app.vault.on("modify", refresh));
 		this.registerInterval(window.setInterval(() => this.refreshStatusBar(), 60_000));
+		this.registerInterval(window.setInterval(() => this.maybeRemind(), 60_000));
 		this.app.workspace.onLayoutReady(() => this.refreshStatusBar());
 
 		this.addSettingTab(new VocabForgeSettingTab(this.app, this));
@@ -152,13 +166,17 @@ export default class VocabForgePlugin extends Plugin {
 		return Math.max(0, this.settings.newPerDay - used);
 	}
 
-	recordReview(wasNew: boolean): void {
+	/** passed: true/false nếu thẻ đang ở trạng thái Review/Relearning (tính retention); null nếu thẻ mới/learning */
+	recordReview(wasNew: boolean, passed: boolean | null = null): void {
 		const key = todayKey();
 		const stat = (this.data.stats[key] ??= { reviews: 0, newCards: 0 });
 		stat.reviews++;
 		if (wasNew) stat.newCards++;
+		if (passed === true) stat.pass = (stat.pass ?? 0) + 1;
+		else if (passed === false) stat.fail = (stat.fail ?? 0) + 1;
 		this.data.xp += 10;
 		this.maybeGrantQuestReward();
+		this.checkBadges();
 		void this.saveAll();
 	}
 
@@ -168,7 +186,60 @@ export default class VocabForgePlugin extends Plugin {
 		stat.practice = (stat.practice ?? 0) + 1;
 		this.data.xp += correct ? 5 : 2;
 		this.maybeGrantQuestReward();
+		this.checkBadges();
 		void this.saveAll();
+	}
+
+	computeStreak(): number {
+		const stats = this.data.stats;
+		const active = (k: string) => (stats[k]?.reviews ?? 0) > 0 || this.isFrozen(k);
+		let streak = 0;
+		const d = new Date();
+		if (!active(todayKey(d))) d.setDate(d.getDate() - 1);
+		while (active(todayKey(d))) {
+			streak++;
+			d.setDate(d.getDate() - 1);
+		}
+		return streak;
+	}
+
+	private checkBadges(): void {
+		try {
+			const fresh = checkBadges(
+				{ data: this.data, cards: this.store.getAllCards(), streak: this.computeStreak() },
+				todayKey()
+			);
+			for (const b of fresh) new Notice(`${b.icon} Huy hiệu mới: ${b.name} — ${b.desc}!`, 7000);
+		} catch (e) {
+			console.error("Vocab Forge badges:", e);
+		}
+	}
+
+	/** Nhắc học hằng ngày: đúng giờ đã đặt, còn thẻ due, chưa nhắc hôm nay */
+	private maybeRemind(): void {
+		const hour = this.settings.reminderHour;
+		if (hour < 0) return;
+		const now = new Date();
+		if (now.getHours() !== hour) return;
+		const key = todayKey();
+		if (this.data.lastReminder === key) return;
+		try {
+			const due = this.store.getDueEntries(this.settings.reverseEnabled).length;
+			if (due === 0) return;
+			this.data.lastReminder = key;
+			void this.saveAll();
+			new Notice(`📚 Vocab Forge: ${due} thẻ đang chờ ôn — giữ chuỗi ${this.computeStreak()} ngày 🔥`, 10000);
+			if (typeof Notification !== "undefined" && Notification.permission !== "denied") {
+				const fire = () =>
+					new Notification("Vocab Forge 🎓", {
+						body: `${due} thẻ đang chờ ôn hôm nay — vào học thôi!`,
+					});
+				if (Notification.permission === "granted") fire();
+				else void Notification.requestPermission().then((p) => p === "granted" && fire());
+			}
+		} catch (e) {
+			console.error("Vocab Forge reminder:", e);
+		}
 	}
 
 	// ------------------------------------------------------- QUEST & STREAK
@@ -331,6 +402,39 @@ export default class VocabForgePlugin extends Plugin {
 			this.statusEl.setText(due + newAvail > 0 ? `📚 ${due} due · ${newAvail} mới` : "📚 xong ✓");
 		} catch {
 			// vault chưa sẵn sàng — bỏ qua
+		}
+	}
+
+	// --------------------------------------------------------------- IMAGES
+
+	/** Sinh ảnh minh hoạ bằng grok /imagine rồi gắn vào frontmatter thẻ. Chạy nền, trả true nếu thành công. */
+	async generateCardImage(file: TFile, word: string, meaningEn: string): Promise<boolean> {
+		try {
+			const tmp = await generateImage(word, meaningEn, this.settings.grokPath);
+			if (!tmp) return false;
+			const req = (window as unknown as { require: (m: string) => unknown }).require;
+			const fs = req("fs") as { readFileSync(p: string): { buffer: ArrayBuffer; byteOffset: number; byteLength: number } };
+			const data = fs.readFileSync(tmp);
+			const folder = "5. Toolbox/Attachments/Vocab";
+			if (!this.app.vault.getAbstractFileByPath(normalizePath(folder))) {
+				try {
+					await this.app.vault.createFolder(normalizePath(folder));
+				} catch {
+					// đã tồn tại
+				}
+			}
+			const imgName = `${file.basename}.png`;
+			await this.app.vault.adapter.writeBinary(
+				normalizePath(`${folder}/${imgName}`),
+				data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
+			);
+			await this.app.fileManager.processFrontMatter(file, (fm) => {
+				fm.image = `[[${imgName}]]`;
+			});
+			return true;
+		} catch (e) {
+			console.error("Vocab Forge image:", e);
+			return false;
 		}
 	}
 

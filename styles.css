@@ -124,6 +124,8 @@
 	color: rgba(232, 239, 242, 0.8);
 	font-size: 0.95em;
 }
+button.vf-btn-hero { color: #061a2b !important; }
+button.vf-btn-hero-ghost { color: #e8eff2 !important; }
 .vf-btn-hero {
 	background: #57d6c6;
 	color: #061a2b;
@@ -465,20 +467,25 @@
 }
 .vf-btn-speak:hover { transform: scale(1.1); }
 
-.vf-btn-flip {
+button.vf-btn-flip {
 	margin-top: 18px;
-	background: linear-gradient(120deg, #0c3358, #0e7c8b);
-	color: #e8eff2;
+	background: linear-gradient(120deg, #0e7c8b, #57d6c6) !important;
+	color: #04222b !important;
+	text-shadow: none;
 	border: none;
 	border-radius: 16px;
 	padding: 16px;
-	font-size: 1.05em;
-	font-weight: 700;
+	font-size: 1.08em;
+	font-weight: 800;
+	letter-spacing: 0.01em;
 	cursor: pointer;
-	box-shadow: 0 8px 22px rgba(12, 51, 88, 0.3);
-	transition: transform 0.12s ease;
+	box-shadow: 0 8px 22px rgba(14, 124, 139, 0.35);
+	transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
-.vf-btn-flip:hover { transform: translateY(-2px); }
+button.vf-btn-flip:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 12px 28px rgba(14, 124, 139, 0.45);
+}
 
 .vf-card-back {
 	border-top: 1px dashed var(--background-modifier-border);
@@ -558,10 +565,14 @@
 .vf-rate:hover { transform: translateY(-2px); filter: brightness(1.08); }
 .vf-rate-label { font-weight: 800; font-size: 1em; }
 .vf-rate-interval { font-size: 0.72em; opacity: 0.85; }
-.vf-rate-again { background: #da3c0c; color: #fff; }
-.vf-rate-hard { background: #ffb43d; color: #4a2c00; }
-.vf-rate-good { background: #0e7c8b; color: #fff; }
-.vf-rate-easy { background: #57d6c6; color: #062b26; }
+button.vf-rate.vf-rate-again { background: #da3c0c; }
+button.vf-rate.vf-rate-again, button.vf-rate.vf-rate-again * { color: #ffffff !important; }
+button.vf-rate.vf-rate-hard { background: #ffb43d; }
+button.vf-rate.vf-rate-hard, button.vf-rate.vf-rate-hard * { color: #4a2c00 !important; }
+button.vf-rate.vf-rate-good { background: #0e7c8b; }
+button.vf-rate.vf-rate-good, button.vf-rate.vf-rate-good * { color: #ffffff !important; }
+button.vf-rate.vf-rate-easy { background: #57d6c6; }
+button.vf-rate.vf-rate-easy, button.vf-rate.vf-rate-easy * { color: #04222b !important; }
 .vf-kbd-hint {
 	text-align: center;
 	margin-top: 12px;
@@ -1067,9 +1078,137 @@
 }
 .vf-known:hover { background: rgba(87, 214, 198, 0.16); }
 
+/* ---------------- ERROR SPOTTING ---------------- */
+.vf-error-line {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	line-height: 1.6;
+}
+.vf-error-token { padding: 6px 10px; font-size: 0.95em; }
+.vf-error-found {
+	background: rgba(87, 214, 198, 0.2) !important;
+	border-color: #0e7c8b !important;
+	color: #0e7c8b;
+	font-weight: 800;
+}
+.vf-error-reveal {
+	background: rgba(218, 60, 12, 0.12) !important;
+	border-color: #da3c0c !important;
+	color: #da3c0c;
+	font-weight: 800;
+	text-decoration: line-through;
+}
+
+/* ---------------- RETENTION ---------------- */
+.vf-ret-bar { background: rgba(87, 214, 198, 0.7); }
+.vf-ret-low { background: #ffb43d; }
+.vf-ret-empty { background: var(--background-modifier-border); }
+
+/* ---------------- BADGES ---------------- */
+.vf-badge-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+	gap: 10px;
+	margin-top: 8px;
+}
+.vf-badge-tile {
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 14px;
+	padding: 12px 10px;
+	text-align: center;
+	transition: transform 0.12s ease;
+}
+.vf-badge-got {
+	border-color: #ffb43d;
+	box-shadow: 0 4px 14px rgba(255, 180, 61, 0.18);
+}
+.vf-badge-got:hover { transform: translateY(-2px); }
+.vf-badge-locked { opacity: 0.45; filter: grayscale(1); }
+.vf-badge-icon { font-size: 1.7em; }
+.vf-badge-name { font-weight: 800; font-size: 0.82em; margin-top: 4px; }
+.vf-badge-desc { font-size: 0.68em; color: var(--text-muted); margin-top: 2px; }
+
+/* ---------------- CHAT ---------------- */
+.vf-chat-targets { margin: 12px 0; align-items: center; }
+.vf-chip-used {
+	background: rgba(87, 214, 198, 0.2);
+	color: #0e7c8b;
+	font-weight: 700;
+}
+.vf-chat-box {
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 18px;
+	padding: 16px;
+	max-height: 420px;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-bottom: 12px;
+}
+.vf-msg {
+	max-width: 82%;
+	padding: 10px 14px;
+	border-radius: 16px;
+	line-height: 1.5;
+	font-size: 0.95em;
+	animation: vf-pop 0.2s ease;
+}
+.vf-msg-ai {
+	align-self: flex-start;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-bottom-left-radius: 4px;
+}
+.vf-msg-me {
+	align-self: flex-end;
+	background: linear-gradient(120deg, #0c3358, #0e7c8b);
+	color: #e8eff2;
+	border-bottom-right-radius: 4px;
+}
+.vf-msg-feedback {
+	align-self: stretch;
+	max-width: 100%;
+	background: rgba(255, 180, 61, 0.12);
+	border: 1px solid rgba(255, 180, 61, 0.4);
+}
+.vf-msg-tag { font-weight: 800; font-size: 0.8em; color: #b97b17; margin-bottom: 4px; }
+.vf-msg-wait { opacity: 0.6; }
+.vf-chat-input-row { display: flex; gap: 8px; align-items: center; }
+.vf-chat-input-row .vf-practice-input { flex: 1; }
+
 /* ---------------- MODAL ---------------- */
 .vf-add-modal .vf-input-wide { width: 100%; }
 .vf-add-modal { max-height: 75vh; overflow-y: auto; }
+.vf-mode-seg {
+	display: flex;
+	gap: 6px;
+	background: var(--background-modifier-border);
+	border-radius: 12px;
+	padding: 4px;
+	margin-bottom: 16px;
+}
+button.vf-seg-btn {
+	flex: 1;
+	border: none;
+	background: transparent;
+	border-radius: 9px;
+	padding: 9px;
+	font-weight: 700;
+	cursor: pointer;
+	color: var(--text-muted);
+}
+button.vf-seg-btn.vf-seg-on {
+	background: var(--background-primary);
+	color: #0e7c8b !important;
+	box-shadow: 0 2px 8px rgba(6, 26, 43, 0.12);
+}
+.vf-auto-desc { margin-bottom: 14px; line-height: 1.5; }
+.vf-auto-input { width: 100%; font-size: 1.1em; margin-bottom: 8px; }
+.vf-auto-go { width: 100%; margin-top: 10px; }
 
 /* ---------------- STATUS BAR ---------------- */
 .vf-statusbar { cursor: pointer; }

@@ -1,7 +1,7 @@
 import { State } from "./srs";
 import type { VocabCard } from "./types";
 
-export type PracticeMode = "cloze" | "typing" | "builder" | "choice" | "match";
+export type PracticeMode = "cloze" | "typing" | "builder" | "choice" | "match" | "error";
 
 export const MODE_INFO: Record<PracticeMode, { icon: string; name: string; desc: string }> = {
 	cloze: {
@@ -29,6 +29,11 @@ export const MODE_INFO: Record<PracticeMode, { icon: string; name: string; desc:
 		name: "Nối cặp (Match)",
 		desc: "Nối từ với nghĩa — 6 cặp mỗi vòng, kiểu Quizlet",
 	},
+	error: {
+		icon: "🕵️",
+		name: "Tìm lỗi (Spot the error)",
+		desc: "Câu quote bị cài 1 lỗi ngữ pháp — bấm vào từ sai",
+	},
 };
 
 export interface ClozeItem {
@@ -54,12 +59,19 @@ export interface ChoiceItem {
 	options: string[]; // 4 nghĩa, có 1 đúng
 	correctIndex: number;
 }
+export interface ErrorItem {
+	mode: "error";
+	card: VocabCard;
+	tokens: string[]; // câu ĐÃ cài lỗi, tách theo khoảng trắng
+	wrongIndex: number; // vị trí token sai
+	correctToken: string; // token đúng ban đầu
+}
 export interface MatchItem {
 	mode: "match";
 	card: VocabCard; // thẻ đại diện của vòng (để hiện trong danh sách sai)
 	pairs: Array<{ card: VocabCard; word: string; meaning: string }>;
 }
-export type PracticeItem = ClozeItem | TypingItem | BuilderItem | ChoiceItem | MatchItem;
+export type PracticeItem = ClozeItem | TypingItem | BuilderItem | ChoiceItem | MatchItem | ErrorItem;
 
 // ---------------------------------------------------------------- helpers
 
@@ -183,6 +195,41 @@ export function makeChoice(card: VocabCard, pool: VocabCard[]): ChoiceItem | nul
 	return { mode: "choice", card, options, correctIndex: options.indexOf(answer) };
 }
 
+// Các cặp từ chức năng dùng để cài lỗi (đổi từ đúng thành từ sai cùng loại)
+const CORRUPTION_PAIRS: Array<[string, string]> = [
+	["is", "are"], ["are", "is"], ["was", "were"], ["were", "was"],
+	["has", "have"], ["have", "has"], ["does", "do"], ["do", "does"],
+	["a", "an"], ["an", "a"], ["this", "these"], ["these", "this"],
+	["in", "on"], ["on", "in"], ["at", "on"], ["for", "to"], ["to", "for"],
+	["of", "off"], ["from", "of"], ["with", "by"], ["by", "with"],
+	["your", "you're"], ["their", "there"], ["its", "it's"], ["it's", "its"],
+	["than", "then"], ["then", "than"], ["much", "many"], ["many", "much"],
+];
+const CORRUPTION_MAP = new Map(CORRUPTION_PAIRS);
+
+/** Cài đúng 1 lỗi vào câu quote bằng cách thay một từ chức năng. Trả null nếu câu không có từ nào cài được. */
+export function makeError(card: VocabCard): ErrorItem | null {
+	if (!card.quote) return null;
+	const tokens = card.quote.split(/\s+/).filter(Boolean);
+	if (tokens.length < 5 || tokens.length > 40) return null;
+	const candidates: number[] = [];
+	for (let i = 0; i < tokens.length; i++) {
+		const bare = tokens[i].toLowerCase().replace(/[^a-z']/g, "");
+		if (CORRUPTION_MAP.has(bare)) candidates.push(i);
+	}
+	if (!candidates.length) return null;
+	const idx = candidates[Math.floor(Math.random() * candidates.length)];
+	const original = tokens[idx];
+	const bare = original.toLowerCase().replace(/[^a-z']/g, "");
+	let wrong = CORRUPTION_MAP.get(bare)!;
+	// giữ hoa/thường + dấu câu bám sau
+	if (/^[A-Z]/.test(original)) wrong = wrong[0].toUpperCase() + wrong.slice(1);
+	const trailing = original.match(/[^a-zA-Z']+$/)?.[0] ?? "";
+	const corrupted = [...tokens];
+	corrupted[idx] = wrong + trailing;
+	return { mode: "error", card, tokens: corrupted, wrongIndex: idx, correctToken: original };
+}
+
 const MATCH_PAIRS_PER_ROUND = 6;
 
 /** Vòng nối cặp: mỗi item = 1 bảng 6 cặp từ–nghĩa */
@@ -230,6 +277,7 @@ export function buildPracticeQueue(
 		if (mode === "cloze") item = makeCloze(card);
 		else if (mode === "typing") item = makeTyping(card);
 		else if (mode === "builder") item = makeBuilder(card);
+		else if (mode === "error") item = makeError(card);
 		else item = makeChoice(card, cards);
 		if (item) items.push(item);
 		if (items.length === size) break;
