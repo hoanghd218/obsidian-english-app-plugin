@@ -64,6 +64,7 @@ export interface VocabCard {
 export interface DailyStat {
 	reviews: number;
 	newCards: number;
+	practice?: number;
 }
 
 export interface VocabForgeData {

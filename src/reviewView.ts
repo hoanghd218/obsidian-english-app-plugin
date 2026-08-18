@@ -2,10 +2,27 @@ import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
 import type VocabForgePlugin from "./main";
 import { formatInterval, Rating, State, type Grade } from "./srs";
 import { categoryEmoji, endOfToday, todayKey, type VocabCard } from "./types";
+import {
+	buildPracticeQueue,
+	fuzzyEqual,
+	MODE_INFO,
+	shuffle,
+	type PracticeItem,
+	type PracticeMode,
+} from "./practice";
 
 export const VIEW_TYPE_VOCAB = "vocab-forge-review";
 
-type Section = "dashboard" | "decks" | "deck-detail" | "review" | "done" | "settings";
+type Section =
+	| "dashboard"
+	| "decks"
+	| "deck-detail"
+	| "review"
+	| "done"
+	| "practice"
+	| "practice-run"
+	| "practice-done"
+	| "settings";
 
 const TYPE_LABELS: Record<string, string> = {
 	word: "Từ",
@@ -36,6 +53,19 @@ export class VocabReviewView extends ItemView {
 	private sessionTotal = 0;
 	private sessionCategory: string | null = null;
 	private rating = false;
+
+	// --- luyện tập
+	private practiceDeck: string | null = null;
+	private practiceSize = 10;
+	private practiceQueue: PracticeItem[] = [];
+	private practiceIdx = 0;
+	private practiceScore = 0;
+	private practiceWrong: PracticeItem[] = [];
+	private practiceMode: PracticeMode = "cloze";
+	private practicePhase: "question" | "feedback" = "question";
+	private practiceCorrect = false;
+	private builderPicked: number[] = [];
+	private practiceInput: HTMLInputElement | null = null;
 
 	constructor(leaf: WorkspaceLeaf, private plugin: VocabForgePlugin) {
 		super(leaf);
@@ -76,6 +106,9 @@ export class VocabReviewView extends ItemView {
 			case "deck-detail": this.renderDeckDetail(main); break;
 			case "review": this.renderCard(main); break;
 			case "done": this.renderDone(main); break;
+			case "practice": this.renderPracticeHub(main); break;
+			case "practice-run": this.renderPracticeRun(main); break;
+			case "practice-done": this.renderPracticeDone(main); break;
 			case "settings": this.renderSettings(main); break;
 		}
 	}
@@ -89,6 +122,7 @@ export class VocabReviewView extends ItemView {
 		const items: Array<{ id: Section | "study" | "add"; icon: string; label: string }> = [
 			{ id: "dashboard", icon: "🏠", label: "Dashboard" },
 			{ id: "study", icon: "▶️", label: "Học ngay" },
+			{ id: "practice", icon: "🎯", label: "Luyện tập" },
 			{ id: "decks", icon: "🗂️", label: "Bộ thẻ" },
 			{ id: "add", icon: "➕", label: "Thêm thẻ" },
 			{ id: "settings", icon: "⚙️", label: "Cài đặt" },
@@ -97,6 +131,7 @@ export class VocabReviewView extends ItemView {
 			const active =
 				it.id === this.section ||
 				(it.id === "study" && (this.section === "review" || this.section === "done")) ||
+				(it.id === "practice" && (this.section === "practice-run" || this.section === "practice-done")) ||
 				(it.id === "decks" && this.section === "deck-detail");
 			const el = nav.createDiv({ cls: `vf-nav-item ${active ? "vf-nav-active" : ""}` });
 			el.createSpan({ text: it.icon, cls: "vf-nav-icon" });
@@ -137,12 +172,15 @@ export class VocabReviewView extends ItemView {
 					: "Bạn đã hoàn thành mục tiêu hôm nay. Tuyệt vời! 🎉",
 			cls: "vf-hero-sub",
 		});
-		const startBtn = heroLeft.createEl("button", {
+		const heroBtns = heroLeft.createDiv({ cls: "vf-hero-btns" });
+		const startBtn = heroBtns.createEl("button", {
 			text: total > 0 ? `▶  Học ngay · ${total} thẻ` : "✓ Đã xong hôm nay",
 			cls: "vf-btn-hero",
 		});
 		startBtn.disabled = total === 0;
 		startBtn.onclick = () => this.startSession(null);
+		const practiceBtn = heroBtns.createEl("button", { text: "🎯 Luyện tập", cls: "vf-btn-hero-ghost" });
+		practiceBtn.onclick = () => { this.section = "practice"; this.render(); };
 		const ring = hero.createDiv({ cls: "vf-hero-ring" });
 		const pct = today ? Math.min(100, Math.round((today.reviews / Math.max(1, today.reviews + total)) * 100)) : total > 0 ? 0 : 100;
 		ring.style.setProperty("--vf-pct", String(pct));
@@ -599,6 +637,337 @@ export class VocabReviewView extends ItemView {
 		btn.onclick = () => { this.section = "dashboard"; this.render(); };
 	}
 
+	// ============================================================= PRACTICE
+
+	private renderPracticeHub(main: HTMLElement): void {
+		main.createEl("h3", { text: "🎯 Luyện tập" });
+		main.createDiv({
+			text: "Luyện sâu ngoài giờ ôn — không ảnh hưởng lịch FSRS của thẻ.",
+			cls: "vf-muted",
+		});
+
+		// chọn deck
+		main.createEl("h4", { text: "Chọn bộ thẻ" });
+		const deckRow = main.createDiv({ cls: "vf-chip-select" });
+		const cats = [...this.groupByCategory(this.plugin.store.getAllCards()).keys()].sort();
+		const mkDeckChip = (label: string, value: string | null) => {
+			const chip = deckRow.createEl("button", {
+				text: value ? `${categoryEmoji(value)} ${label}` : label,
+				cls: `vf-select-chip ${this.practiceDeck === value ? "vf-select-chip-on" : ""}`,
+			});
+			chip.onclick = () => {
+				this.practiceDeck = value;
+				this.render();
+			};
+		};
+		mkDeckChip("🌐 Tất cả", null);
+		for (const c of cats) mkDeckChip(c, c);
+
+		// số câu
+		main.createEl("h4", { text: "Số câu mỗi phiên" });
+		const sizeRow = main.createDiv({ cls: "vf-chip-select" });
+		for (const n of [10, 20]) {
+			const chip = sizeRow.createEl("button", {
+				text: `${n} câu`,
+				cls: `vf-select-chip ${this.practiceSize === n ? "vf-select-chip-on" : ""}`,
+			});
+			chip.onclick = () => {
+				this.practiceSize = n;
+				this.render();
+			};
+		}
+
+		// 4 chế độ
+		main.createEl("h4", { text: "Chọn chế độ để bắt đầu" });
+		const grid = main.createDiv({ cls: "vf-mode-grid" });
+		(Object.keys(MODE_INFO) as PracticeMode[]).forEach((mode, i) => {
+			const info = MODE_INFO[mode];
+			const tile = grid.createDiv({ cls: `vf-mode-tile vf-mode-${mode}` });
+			tile.createDiv({ text: info.icon, cls: "vf-mode-icon" });
+			tile.createDiv({ text: info.name, cls: "vf-mode-name" });
+			tile.createDiv({ text: info.desc, cls: "vf-mode-desc" });
+			tile.onclick = () => this.startPractice(mode);
+		});
+	}
+
+	private startPractice(mode: PracticeMode): void {
+		let cards = this.plugin.store.getAllCards();
+		if (this.practiceDeck) cards = cards.filter((c) => c.category === this.practiceDeck);
+		const queue = buildPracticeQueue(mode, cards, this.practiceSize);
+		if (queue.length < 3) {
+			new Notice("Deck này chưa đủ thẻ phù hợp cho chế độ đó (cần ≥ 3)");
+			return;
+		}
+		this.practiceMode = mode;
+		this.practiceQueue = queue;
+		this.practiceIdx = 0;
+		this.practiceScore = 0;
+		this.practiceWrong = [];
+		this.practicePhase = "question";
+		this.section = "practice-run";
+		this.render();
+	}
+
+	private currentPractice(): PracticeItem | null {
+		return this.practiceQueue[this.practiceIdx] ?? null;
+	}
+
+	private renderPracticeRun(main: HTMLElement): void {
+		const item = this.currentPractice();
+		if (!item) {
+			this.section = "practice-done";
+			this.render();
+			return;
+		}
+		main.addClass("vf-main-review");
+		const info = MODE_INFO[item.mode];
+
+		// topbar
+		const top = main.createDiv({ cls: "vf-topbar" });
+		const backBtn = top.createEl("button", { text: "✕", cls: "vf-btn-icon" });
+		backBtn.onclick = () => { this.section = "practice"; this.render(); };
+		const mid = top.createDiv({ cls: "vf-topbar-mid" });
+		const bar = mid.createDiv({ cls: "vf-progress-bar" });
+		bar.createDiv({ cls: "vf-progress-fill" }).style.width =
+			`${Math.round((this.practiceIdx / this.practiceQueue.length) * 100)}%`;
+		mid.createDiv({
+			text: `${info.icon} ${info.name} · ${this.practiceIdx + 1}/${this.practiceQueue.length}`,
+			cls: "vf-progress-text",
+		});
+		top.createSpan({ text: `⭐ ${this.practiceScore}`, cls: "vf-score" });
+
+		const cardEl = main.createDiv({ cls: "vf-card vf-anim-pop vf-practice-card" });
+		this.practiceInput = null;
+
+		if (item.mode === "cloze") this.renderClozeQ(cardEl, item);
+		else if (item.mode === "typing") this.renderTypingQ(cardEl, item);
+		else if (item.mode === "builder") this.renderBuilderQ(cardEl, item);
+		else this.renderChoiceQ(cardEl, item);
+
+		// feedback + nút
+		if (this.practicePhase === "feedback") {
+			const fb = main.createDiv({
+				cls: `vf-feedback ${this.practiceCorrect ? "vf-feedback-ok" : "vf-feedback-no"}`,
+			});
+			fb.createSpan({
+				text: this.practiceCorrect ? "🎉 Chính xác!" : `😅 Đáp án: ${this.practiceAnswerText(item)}`,
+				cls: "vf-feedback-text",
+			});
+			const meaning = item.card.meaningVi || item.card.meaningEn;
+			if (meaning) fb.createDiv({ text: meaning, cls: "vf-feedback-meaning" });
+			const btn = main.createEl("button", { text: "Tiếp tục  ·  Enter", cls: "vf-btn-flip" });
+			btn.onclick = () => this.practiceNext();
+			window.setTimeout(() => btn.focus(), 30);
+		} else if (item.mode === "cloze" || item.mode === "typing") {
+			const btn = main.createEl("button", { text: "Kiểm tra  ·  Enter", cls: "vf-btn-flip" });
+			btn.onclick = () => this.practiceCheck();
+		}
+	}
+
+	private practiceAnswerText(item: PracticeItem): string {
+		if (item.mode === "cloze") return item.surface;
+		if (item.mode === "builder") return item.tokens.join(" ");
+		if (item.mode === "choice") return item.options[item.correctIndex];
+		return item.card.word;
+	}
+
+	private renderClozeQ(cardEl: HTMLElement, item: PracticeItem & { mode: "cloze" }): void {
+		const c = item.card;
+		cardEl.createDiv({ text: `${categoryEmoji(c.category)} ${c.category}`, cls: "vf-chip-cat" });
+		const q = cardEl.createDiv({ cls: "vf-cloze-quote" });
+		q.appendText("“" + item.pre);
+		if (this.practicePhase === "feedback") {
+			q.createSpan({
+				text: item.surface,
+				cls: this.practiceCorrect ? "vf-cloze-hit-ok" : "vf-cloze-hit-no",
+			});
+		} else {
+			q.createSpan({ text: "＿".repeat(Math.max(4, Math.min(10, item.surface.length))), cls: "vf-cloze-blank" });
+		}
+		q.appendText(item.post + "”");
+		if (c.meaningVi) cardEl.createDiv({ text: `💡 ${c.meaningVi}`, cls: "vf-hint" });
+		if (this.practicePhase === "question") this.makePracticeInput(cardEl, "Gõ từ còn thiếu…");
+	}
+
+	private renderTypingQ(cardEl: HTMLElement, item: PracticeItem & { mode: "typing" }): void {
+		const c = item.card;
+		cardEl.createDiv({ text: `${categoryEmoji(c.category)} ${c.category}`, cls: "vf-chip-cat" });
+		if (c.meaningVi) {
+			const vi = cardEl.createDiv({ cls: "vf-meaning-vi vf-typing-meaning" });
+			vi.createSpan({ text: "VI", cls: "vf-lang-tag vf-lang-vi" });
+			vi.createSpan({ text: c.meaningVi });
+		}
+		if (c.meaningEn) {
+			const en = cardEl.createDiv({ cls: "vf-meaning-en" });
+			en.createSpan({ text: "EN", cls: "vf-lang-tag" });
+			en.createSpan({ text: c.meaningEn });
+		}
+		const hint = c.word.trim();
+		cardEl.createDiv({
+			text: `Gợi ý: ${hint.split(/\s+/).length} từ · bắt đầu bằng "${hint[0].toUpperCase()}"`,
+			cls: "vf-hint",
+		});
+		if (this.practicePhase === "question") this.makePracticeInput(cardEl, "Gõ từ tiếng Anh…");
+		else {
+			cardEl.createDiv({
+				text: c.word,
+				cls: this.practiceCorrect ? "vf-cloze-hit-ok vf-typing-answer" : "vf-cloze-hit-no vf-typing-answer",
+			});
+			if (c.ipa) cardEl.createDiv({ text: c.ipa, cls: "vf-ipa" });
+		}
+	}
+
+	private renderBuilderQ(cardEl: HTMLElement, item: PracticeItem & { mode: "builder" }): void {
+		const c = item.card;
+		cardEl.createDiv({ text: `${categoryEmoji(c.category)} ${c.category}`, cls: "vf-chip-cat" });
+		cardEl.createDiv({ text: "Bấm các từ theo đúng thứ tự:", cls: "vf-hint" });
+
+		// dòng đã xếp
+		const built = cardEl.createDiv({ cls: "vf-builder-line" });
+		for (let k = 0; k < this.builderPicked.length; k++) {
+			const idx = this.builderPicked[k];
+			const chip = built.createEl("button", { text: item.shuffled[idx], cls: "vf-token vf-token-placed" });
+			chip.onclick = () => {
+				if (this.practicePhase !== "question") return;
+				this.builderPicked.splice(k, 1);
+				this.render();
+			};
+		}
+		if (!this.builderPicked.length) built.createSpan({ text: "…", cls: "vf-muted" });
+
+		// kho chip
+		if (this.practicePhase === "question") {
+			const bank = cardEl.createDiv({ cls: "vf-builder-bank" });
+			item.shuffled.forEach((tok, idx) => {
+				if (this.builderPicked.includes(idx)) return;
+				const chip = bank.createEl("button", { text: tok, cls: "vf-token" });
+				chip.onclick = () => {
+					this.builderPicked.push(idx);
+					if (this.builderPicked.length === item.shuffled.length) {
+						const attempt = this.builderPicked.map((i) => item.shuffled[i]).join(" ");
+						this.practiceResolve(attempt === item.tokens.join(" "));
+					} else this.render();
+				};
+			});
+		} else {
+			cardEl.createDiv({
+				text: `“${item.tokens.join(" ")}”`,
+				cls: this.practiceCorrect ? "vf-cloze-hit-ok vf-builder-answer" : "vf-cloze-hit-no vf-builder-answer",
+			});
+		}
+		if (c.meaningVi) cardEl.createDiv({ text: `💡 ${c.meaningVi}`, cls: "vf-hint" });
+	}
+
+	private renderChoiceQ(cardEl: HTMLElement, item: PracticeItem & { mode: "choice" }): void {
+		const c = item.card;
+		cardEl.createDiv({ text: `${categoryEmoji(c.category)} ${c.category}`, cls: "vf-chip-cat" });
+		cardEl.createDiv({ text: c.word, cls: "vf-word vf-choice-word" });
+		if (c.ipa) cardEl.createDiv({ text: c.ipa, cls: "vf-ipa" });
+		const opts = cardEl.createDiv({ cls: "vf-choice-opts" });
+		item.options.forEach((opt, idx) => {
+			let cls = "vf-choice-opt";
+			if (this.practicePhase === "feedback") {
+				if (idx === item.correctIndex) cls += " vf-choice-right";
+				else cls += " vf-choice-dim";
+			}
+			const b = opts.createEl("button", { cls });
+			b.createSpan({ text: `${idx + 1}`, cls: "vf-choice-num" });
+			b.createSpan({ text: opt });
+			b.onclick = () => {
+				if (this.practicePhase !== "question") return;
+				this.practiceResolve(idx === item.correctIndex);
+			};
+		});
+	}
+
+	private makePracticeInput(cardEl: HTMLElement, placeholder: string): void {
+		const input = cardEl.createEl("input", {
+			cls: "vf-practice-input",
+			attr: { type: "text", placeholder, spellcheck: "false", autocapitalize: "off" },
+		});
+		input.onkeydown = (e) => {
+			if (e.key === "Enter") {
+				e.preventDefault();
+				this.practiceCheck();
+			}
+		};
+		this.practiceInput = input;
+		window.setTimeout(() => input.focus(), 30);
+	}
+
+	private practiceCheck(): void {
+		const item = this.currentPractice();
+		if (!item || this.practicePhase !== "question") return;
+		if (item.mode === "cloze") {
+			const val = this.practiceInput?.value ?? "";
+			this.practiceResolve(fuzzyEqual(val, [item.surface, item.card.word]));
+		} else if (item.mode === "typing") {
+			const val = this.practiceInput?.value ?? "";
+			this.practiceResolve(fuzzyEqual(val, [item.card.word]));
+		}
+	}
+
+	private practiceResolve(correct: boolean): void {
+		const item = this.currentPractice();
+		if (!item) return;
+		this.practicePhase = "feedback";
+		this.practiceCorrect = correct;
+		if (correct) this.practiceScore++;
+		else this.practiceWrong.push(item);
+		this.plugin.recordPractice();
+		this.plugin.speak(item.mode === "builder" ? item.tokens.join(" ") : item.card.word);
+		this.render();
+	}
+
+	private practiceNext(): void {
+		this.practiceIdx++;
+		this.practicePhase = "question";
+		this.builderPicked = [];
+		if (this.practiceIdx >= this.practiceQueue.length) this.section = "practice-done";
+		this.render();
+	}
+
+	private renderPracticeDone(main: HTMLElement): void {
+		const total = this.practiceQueue.length;
+		const pct = total ? Math.round((this.practiceScore / total) * 100) : 0;
+		const done = main.createDiv({ cls: "vf-done" });
+		done.createEl("div", { text: pct >= 80 ? "🏆" : pct >= 50 ? "💪" : "🌱", cls: "vf-done-emoji" });
+		done.createEl("h2", { text: `${this.practiceScore}/${total} câu đúng` });
+		const ring = done.createDiv({ cls: "vf-hero-ring vf-ring-dark" });
+		ring.style.setProperty("--vf-pct", String(pct));
+		ring.createDiv({ text: `${pct}%`, cls: "vf-hero-ring-text" });
+
+		if (this.practiceWrong.length) {
+			done.createEl("h4", { text: "Các câu sai" });
+			const list = done.createDiv({ cls: "vf-hard-list vf-wrong-list" });
+			for (const w of this.practiceWrong) {
+				const row = list.createDiv({ cls: "vf-hard-item" });
+				row.createSpan({ text: w.card.word, cls: "vf-hard-word" });
+				row.createSpan({ text: w.card.meaningVi || w.card.meaningEn, cls: "vf-hard-count" });
+				row.onclick = () => this.app.workspace.openLinkText(w.card.file.path, "", true);
+			}
+		}
+		const btns = done.createDiv({ cls: "vf-actions" });
+		if (this.practiceWrong.length) {
+			const retry = btns.createEl("button", {
+				text: `🔁 Luyện lại ${this.practiceWrong.length} câu sai`,
+				cls: "vf-btn-hero vf-btn-hero-small",
+			});
+			retry.onclick = () => {
+				this.practiceQueue = shuffle(this.practiceWrong);
+				this.practiceWrong = [];
+				this.practiceIdx = 0;
+				this.practiceScore = 0;
+				this.practicePhase = "question";
+				this.builderPicked = [];
+				this.section = "practice-run";
+				this.render();
+			};
+		}
+		const back = btns.createEl("button", { text: "← Về Luyện tập", cls: "vf-btn-icon" });
+		back.onclick = () => { this.section = "practice"; this.render(); };
+	}
+
 	// ============================================================= SETTINGS
 
 	private renderSettings(main: HTMLElement): void {
@@ -687,10 +1056,30 @@ export class VocabReviewView extends ItemView {
 	}
 
 	private onKey(evt: KeyboardEvent): void {
-		if (this.section !== "review") return;
 		if (this.app.workspace.getActiveViewOfType(VocabReviewView) !== this) return;
 		const target = evt.target as HTMLElement;
 		if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+		// --- phím tắt trong luyện tập
+		if (this.section === "practice-run") {
+			const item = this.currentPractice();
+			if (evt.key === "Enter") {
+				evt.preventDefault();
+				if (this.practicePhase === "feedback") this.practiceNext();
+				else this.practiceCheck();
+				return;
+			}
+			if (
+				this.practicePhase === "question" &&
+				item?.mode === "choice" &&
+				["1", "2", "3", "4"].includes(evt.key)
+			) {
+				evt.preventDefault();
+				const idx = Number(evt.key) - 1;
+				this.practiceResolve(idx === item.correctIndex);
+			}
+			return;
+		}
+		if (this.section !== "review") return;
 		if (evt.key === " " || evt.key === "Enter") {
 			evt.preventDefault();
 			if (!this.flipped) this.flip();

@@ -2076,6 +2076,143 @@ function formatInterval(from, due) {
   return `${(days / 365.25).toFixed(1)} n\u0103m`;
 }
 
+// src/practice.ts
+var MODE_INFO = {
+  cloze: {
+    icon: "\u{1F9E9}",
+    name: "\u0110i\u1EC1n khuy\u1EBFt (Cloze)",
+    desc: "C\xE2u th\u1EADt t\u1EEB video b\u1ECB che t\u1EEB \u2014 \u0111i\u1EC1n l\u1EA1i t\u1EEB c\xF2n thi\u1EBFu"
+  },
+  typing: {
+    icon: "\u2328\uFE0F",
+    name: "G\xF5 t\u1EEB (Recall)",
+    desc: "Nh\xECn ngh\u0129a Vi\u1EC7t + g\u1EE3i \xFD \u2192 g\xF5 \u0111\xFAng t\u1EEB ti\u1EBFng Anh"
+  },
+  builder: {
+    icon: "\u{1F500}",
+    name: "X\u1EBFp c\xE2u (Builder)",
+    desc: "X\xE1o tr\u1ED9n c\xE2u quote \u2014 b\u1EA5m x\u1EBFp l\u1EA1i \u0111\xFAng th\u1EE9 t\u1EF1"
+  },
+  choice: {
+    icon: "\u2705",
+    name: "Tr\u1EAFc nghi\u1EC7m (Choice)",
+    desc: "Ch\u1ECDn ngh\u0129a \u0111\xFAng trong 4 \u0111\xE1p \xE1n"
+  }
+};
+var normalize = (s) => s.toLowerCase().replace(/[’']/g, "'").replace(/[^a-z0-9' ]/g, " ").replace(/\s+/g, " ").trim();
+function editDistance(a, b) {
+  const dp = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = dp[0];
+    dp[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const tmp = dp[j];
+      dp[j] = a[i - 1] === b[j - 1] ? prev : Math.min(prev, dp[j], dp[j - 1]) + 1;
+      prev = tmp;
+    }
+  }
+  return dp[b.length];
+}
+function fuzzyEqual(input, answers) {
+  const inp = normalize(input);
+  if (!inp) return false;
+  for (const ans of answers) {
+    const a = normalize(ans);
+    if (!a) continue;
+    if (inp === a) return true;
+    if (a.length > 4 && editDistance(inp, a) <= 1) return true;
+  }
+  return false;
+}
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function findSurface(quote, word) {
+  const tokens = word.trim().split(/\s+/);
+  const tryPatterns = [];
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  if (tokens.length <= 6) {
+    const flexLast = tokens.map((t, i) => i === tokens.length - 1 ? `${esc(t)}(?:s|es|ed|d|ing)?` : esc(t)).join("\\s+");
+    tryPatterns.push(flexLast);
+  }
+  const longest = [...tokens].sort((a, b) => b.length - a.length)[0];
+  if (longest && longest.length > 3) tryPatterns.push(`${esc(longest)}(?:s|es|ed|d|ing)?`);
+  for (const p of tryPatterns) {
+    const m = quote.match(new RegExp(`(^|[^A-Za-z])(${p})($|[^A-Za-z])`, "i"));
+    if (m && m.index != null) {
+      const start = m.index + m[1].length;
+      const surface = m[2];
+      return { pre: quote.slice(0, start), surface, post: quote.slice(start + surface.length) };
+    }
+  }
+  return null;
+}
+function makeCloze(card) {
+  if (!card.quote) return null;
+  const hit = findSurface(card.quote, card.word);
+  if (!hit) return null;
+  return { mode: "cloze", card, ...hit };
+}
+function makeTyping(card) {
+  if (card.type === "sentence" || card.type === "passage") return null;
+  if (!card.meaningVi && !card.meaningEn) return null;
+  return { mode: "typing", card };
+}
+var MAX_BUILDER_TOKENS = 14;
+function makeBuilder(card) {
+  const text = card.quote || card.word;
+  let tokens = text.split(/\s+/).filter(Boolean);
+  if (tokens.length < 4) return null;
+  if (tokens.length > MAX_BUILDER_TOKENS) {
+    const firstWord = normalize(card.word).split(" ")[0];
+    let center = tokens.findIndex((t) => normalize(t).includes(firstWord));
+    if (center === -1) center = Math.floor(tokens.length / 2);
+    const start = Math.max(0, Math.min(center - Math.floor(MAX_BUILDER_TOKENS / 2), tokens.length - MAX_BUILDER_TOKENS));
+    tokens = tokens.slice(start, start + MAX_BUILDER_TOKENS);
+  }
+  let shuffled = shuffle(tokens);
+  let guard = 0;
+  while (shuffled.join(" ") === tokens.join(" ") && guard++ < 5) shuffled = shuffle(tokens);
+  return { mode: "builder", card, tokens, shuffled };
+}
+function makeChoice(card, pool) {
+  if (card.type === "sentence" || card.type === "passage") return null;
+  const answer = card.meaningVi || card.meaningEn;
+  if (!answer) return null;
+  const sameCat = pool.filter((c) => c !== card && c.category === card.category);
+  const others = pool.filter((c) => c !== card && c.category !== card.category);
+  const distractors = [];
+  for (const c of [...shuffle(sameCat), ...shuffle(others)]) {
+    const m = c.meaningVi || c.meaningEn;
+    if (m && m !== answer && !distractors.includes(m)) distractors.push(m);
+    if (distractors.length === 3) break;
+  }
+  if (distractors.length < 3) return null;
+  const options = shuffle([answer, ...distractors]);
+  return { mode: "choice", card, options, correctIndex: options.indexOf(answer) };
+}
+function buildPracticeQueue(mode, cards, size) {
+  const learned = cards.filter((c) => c.fsrs.state !== State.New);
+  const fresh = cards.filter((c) => c.fsrs.state === State.New);
+  const ordered = [...shuffle(learned), ...shuffle(fresh)];
+  const items = [];
+  for (const card of ordered) {
+    let item = null;
+    if (mode === "cloze") item = makeCloze(card);
+    else if (mode === "typing") item = makeTyping(card);
+    else if (mode === "builder") item = makeBuilder(card);
+    else item = makeChoice(card, cards);
+    if (item) items.push(item);
+    if (items.length === size) break;
+  }
+  return items;
+}
+
 // src/reviewView.ts
 var VIEW_TYPE_VOCAB = "vocab-forge-review";
 var TYPE_LABELS = {
@@ -2107,6 +2244,18 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     this.sessionTotal = 0;
     this.sessionCategory = null;
     this.rating = false;
+    // --- luyện tập
+    this.practiceDeck = null;
+    this.practiceSize = 10;
+    this.practiceQueue = [];
+    this.practiceIdx = 0;
+    this.practiceScore = 0;
+    this.practiceWrong = [];
+    this.practiceMode = "cloze";
+    this.practicePhase = "question";
+    this.practiceCorrect = false;
+    this.builderPicked = [];
+    this.practiceInput = null;
   }
   getViewType() {
     return VIEW_TYPE_VOCAB;
@@ -2149,6 +2298,15 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
       case "done":
         this.renderDone(main);
         break;
+      case "practice":
+        this.renderPracticeHub(main);
+        break;
+      case "practice-run":
+        this.renderPracticeRun(main);
+        break;
+      case "practice-done":
+        this.renderPracticeDone(main);
+        break;
       case "settings":
         this.renderSettings(main);
         break;
@@ -2162,12 +2320,13 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     const items = [
       { id: "dashboard", icon: "\u{1F3E0}", label: "Dashboard" },
       { id: "study", icon: "\u25B6\uFE0F", label: "H\u1ECDc ngay" },
+      { id: "practice", icon: "\u{1F3AF}", label: "Luy\u1EC7n t\u1EADp" },
       { id: "decks", icon: "\u{1F5C2}\uFE0F", label: "B\u1ED9 th\u1EBB" },
       { id: "add", icon: "\u2795", label: "Th\xEAm th\u1EBB" },
       { id: "settings", icon: "\u2699\uFE0F", label: "C\xE0i \u0111\u1EB7t" }
     ];
     for (const it of items) {
-      const active = it.id === this.section || it.id === "study" && (this.section === "review" || this.section === "done") || it.id === "decks" && this.section === "deck-detail";
+      const active = it.id === this.section || it.id === "study" && (this.section === "review" || this.section === "done") || it.id === "practice" && (this.section === "practice-run" || this.section === "practice-done") || it.id === "decks" && this.section === "deck-detail";
       const el = nav.createDiv({ cls: `vf-nav-item ${active ? "vf-nav-active" : ""}` });
       el.createSpan({ text: it.icon, cls: "vf-nav-icon" });
       el.createSpan({ text: it.label, cls: "vf-nav-label" });
@@ -2199,12 +2358,18 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
       text: total > 0 ? `H\xF4m nay c\xF3 ${due.length} th\u1EBB \u0111\u1EBFn h\u1EA1n v\xE0 ${newAvailable} th\u1EBB m\u1EDBi \u0111ang ch\u1EDD b\u1EA1n.` : "B\u1EA1n \u0111\xE3 ho\xE0n th\xE0nh m\u1EE5c ti\xEAu h\xF4m nay. Tuy\u1EC7t v\u1EDDi! \u{1F389}",
       cls: "vf-hero-sub"
     });
-    const startBtn = heroLeft.createEl("button", {
+    const heroBtns = heroLeft.createDiv({ cls: "vf-hero-btns" });
+    const startBtn = heroBtns.createEl("button", {
       text: total > 0 ? `\u25B6  H\u1ECDc ngay \xB7 ${total} th\u1EBB` : "\u2713 \u0110\xE3 xong h\xF4m nay",
       cls: "vf-btn-hero"
     });
     startBtn.disabled = total === 0;
     startBtn.onclick = () => this.startSession(null);
+    const practiceBtn = heroBtns.createEl("button", { text: "\u{1F3AF} Luy\u1EC7n t\u1EADp", cls: "vf-btn-hero-ghost" });
+    practiceBtn.onclick = () => {
+      this.section = "practice";
+      this.render();
+    };
     const ring = hero.createDiv({ cls: "vf-hero-ring" });
     const pct = today ? Math.min(100, Math.round(today.reviews / Math.max(1, today.reviews + total) * 100)) : total > 0 ? 0 : 100;
     ring.style.setProperty("--vf-pct", String(pct));
@@ -2638,6 +2803,310 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
       this.render();
     };
   }
+  // ============================================================= PRACTICE
+  renderPracticeHub(main) {
+    main.createEl("h3", { text: "\u{1F3AF} Luy\u1EC7n t\u1EADp" });
+    main.createDiv({
+      text: "Luy\u1EC7n s\xE2u ngo\xE0i gi\u1EDD \xF4n \u2014 kh\xF4ng \u1EA3nh h\u01B0\u1EDFng l\u1ECBch FSRS c\u1EE7a th\u1EBB.",
+      cls: "vf-muted"
+    });
+    main.createEl("h4", { text: "Ch\u1ECDn b\u1ED9 th\u1EBB" });
+    const deckRow = main.createDiv({ cls: "vf-chip-select" });
+    const cats = [...this.groupByCategory(this.plugin.store.getAllCards()).keys()].sort();
+    const mkDeckChip = (label, value) => {
+      const chip = deckRow.createEl("button", {
+        text: value ? `${categoryEmoji(value)} ${label}` : label,
+        cls: `vf-select-chip ${this.practiceDeck === value ? "vf-select-chip-on" : ""}`
+      });
+      chip.onclick = () => {
+        this.practiceDeck = value;
+        this.render();
+      };
+    };
+    mkDeckChip("\u{1F310} T\u1EA5t c\u1EA3", null);
+    for (const c of cats) mkDeckChip(c, c);
+    main.createEl("h4", { text: "S\u1ED1 c\xE2u m\u1ED7i phi\xEAn" });
+    const sizeRow = main.createDiv({ cls: "vf-chip-select" });
+    for (const n of [10, 20]) {
+      const chip = sizeRow.createEl("button", {
+        text: `${n} c\xE2u`,
+        cls: `vf-select-chip ${this.practiceSize === n ? "vf-select-chip-on" : ""}`
+      });
+      chip.onclick = () => {
+        this.practiceSize = n;
+        this.render();
+      };
+    }
+    main.createEl("h4", { text: "Ch\u1ECDn ch\u1EBF \u0111\u1ED9 \u0111\u1EC3 b\u1EAFt \u0111\u1EA7u" });
+    const grid = main.createDiv({ cls: "vf-mode-grid" });
+    Object.keys(MODE_INFO).forEach((mode, i) => {
+      const info = MODE_INFO[mode];
+      const tile = grid.createDiv({ cls: `vf-mode-tile vf-mode-${mode}` });
+      tile.createDiv({ text: info.icon, cls: "vf-mode-icon" });
+      tile.createDiv({ text: info.name, cls: "vf-mode-name" });
+      tile.createDiv({ text: info.desc, cls: "vf-mode-desc" });
+      tile.onclick = () => this.startPractice(mode);
+    });
+  }
+  startPractice(mode) {
+    let cards = this.plugin.store.getAllCards();
+    if (this.practiceDeck) cards = cards.filter((c) => c.category === this.practiceDeck);
+    const queue = buildPracticeQueue(mode, cards, this.practiceSize);
+    if (queue.length < 3) {
+      new import_obsidian2.Notice("Deck n\xE0y ch\u01B0a \u0111\u1EE7 th\u1EBB ph\xF9 h\u1EE3p cho ch\u1EBF \u0111\u1ED9 \u0111\xF3 (c\u1EA7n \u2265 3)");
+      return;
+    }
+    this.practiceMode = mode;
+    this.practiceQueue = queue;
+    this.practiceIdx = 0;
+    this.practiceScore = 0;
+    this.practiceWrong = [];
+    this.practicePhase = "question";
+    this.section = "practice-run";
+    this.render();
+  }
+  currentPractice() {
+    return this.practiceQueue[this.practiceIdx] ?? null;
+  }
+  renderPracticeRun(main) {
+    const item = this.currentPractice();
+    if (!item) {
+      this.section = "practice-done";
+      this.render();
+      return;
+    }
+    main.addClass("vf-main-review");
+    const info = MODE_INFO[item.mode];
+    const top = main.createDiv({ cls: "vf-topbar" });
+    const backBtn = top.createEl("button", { text: "\u2715", cls: "vf-btn-icon" });
+    backBtn.onclick = () => {
+      this.section = "practice";
+      this.render();
+    };
+    const mid = top.createDiv({ cls: "vf-topbar-mid" });
+    const bar = mid.createDiv({ cls: "vf-progress-bar" });
+    bar.createDiv({ cls: "vf-progress-fill" }).style.width = `${Math.round(this.practiceIdx / this.practiceQueue.length * 100)}%`;
+    mid.createDiv({
+      text: `${info.icon} ${info.name} \xB7 ${this.practiceIdx + 1}/${this.practiceQueue.length}`,
+      cls: "vf-progress-text"
+    });
+    top.createSpan({ text: `\u2B50 ${this.practiceScore}`, cls: "vf-score" });
+    const cardEl = main.createDiv({ cls: "vf-card vf-anim-pop vf-practice-card" });
+    this.practiceInput = null;
+    if (item.mode === "cloze") this.renderClozeQ(cardEl, item);
+    else if (item.mode === "typing") this.renderTypingQ(cardEl, item);
+    else if (item.mode === "builder") this.renderBuilderQ(cardEl, item);
+    else this.renderChoiceQ(cardEl, item);
+    if (this.practicePhase === "feedback") {
+      const fb = main.createDiv({
+        cls: `vf-feedback ${this.practiceCorrect ? "vf-feedback-ok" : "vf-feedback-no"}`
+      });
+      fb.createSpan({
+        text: this.practiceCorrect ? "\u{1F389} Ch\xEDnh x\xE1c!" : `\u{1F605} \u0110\xE1p \xE1n: ${this.practiceAnswerText(item)}`,
+        cls: "vf-feedback-text"
+      });
+      const meaning = item.card.meaningVi || item.card.meaningEn;
+      if (meaning) fb.createDiv({ text: meaning, cls: "vf-feedback-meaning" });
+      const btn = main.createEl("button", { text: "Ti\u1EBFp t\u1EE5c  \xB7  Enter", cls: "vf-btn-flip" });
+      btn.onclick = () => this.practiceNext();
+      window.setTimeout(() => btn.focus(), 30);
+    } else if (item.mode === "cloze" || item.mode === "typing") {
+      const btn = main.createEl("button", { text: "Ki\u1EC3m tra  \xB7  Enter", cls: "vf-btn-flip" });
+      btn.onclick = () => this.practiceCheck();
+    }
+  }
+  practiceAnswerText(item) {
+    if (item.mode === "cloze") return item.surface;
+    if (item.mode === "builder") return item.tokens.join(" ");
+    if (item.mode === "choice") return item.options[item.correctIndex];
+    return item.card.word;
+  }
+  renderClozeQ(cardEl, item) {
+    const c = item.card;
+    cardEl.createDiv({ text: `${categoryEmoji(c.category)} ${c.category}`, cls: "vf-chip-cat" });
+    const q = cardEl.createDiv({ cls: "vf-cloze-quote" });
+    q.appendText("\u201C" + item.pre);
+    if (this.practicePhase === "feedback") {
+      q.createSpan({
+        text: item.surface,
+        cls: this.practiceCorrect ? "vf-cloze-hit-ok" : "vf-cloze-hit-no"
+      });
+    } else {
+      q.createSpan({ text: "\uFF3F".repeat(Math.max(4, Math.min(10, item.surface.length))), cls: "vf-cloze-blank" });
+    }
+    q.appendText(item.post + "\u201D");
+    if (c.meaningVi) cardEl.createDiv({ text: `\u{1F4A1} ${c.meaningVi}`, cls: "vf-hint" });
+    if (this.practicePhase === "question") this.makePracticeInput(cardEl, "G\xF5 t\u1EEB c\xF2n thi\u1EBFu\u2026");
+  }
+  renderTypingQ(cardEl, item) {
+    const c = item.card;
+    cardEl.createDiv({ text: `${categoryEmoji(c.category)} ${c.category}`, cls: "vf-chip-cat" });
+    if (c.meaningVi) {
+      const vi = cardEl.createDiv({ cls: "vf-meaning-vi vf-typing-meaning" });
+      vi.createSpan({ text: "VI", cls: "vf-lang-tag vf-lang-vi" });
+      vi.createSpan({ text: c.meaningVi });
+    }
+    if (c.meaningEn) {
+      const en = cardEl.createDiv({ cls: "vf-meaning-en" });
+      en.createSpan({ text: "EN", cls: "vf-lang-tag" });
+      en.createSpan({ text: c.meaningEn });
+    }
+    const hint = c.word.trim();
+    cardEl.createDiv({
+      text: `G\u1EE3i \xFD: ${hint.split(/\s+/).length} t\u1EEB \xB7 b\u1EAFt \u0111\u1EA7u b\u1EB1ng "${hint[0].toUpperCase()}"`,
+      cls: "vf-hint"
+    });
+    if (this.practicePhase === "question") this.makePracticeInput(cardEl, "G\xF5 t\u1EEB ti\u1EBFng Anh\u2026");
+    else {
+      cardEl.createDiv({
+        text: c.word,
+        cls: this.practiceCorrect ? "vf-cloze-hit-ok vf-typing-answer" : "vf-cloze-hit-no vf-typing-answer"
+      });
+      if (c.ipa) cardEl.createDiv({ text: c.ipa, cls: "vf-ipa" });
+    }
+  }
+  renderBuilderQ(cardEl, item) {
+    const c = item.card;
+    cardEl.createDiv({ text: `${categoryEmoji(c.category)} ${c.category}`, cls: "vf-chip-cat" });
+    cardEl.createDiv({ text: "B\u1EA5m c\xE1c t\u1EEB theo \u0111\xFAng th\u1EE9 t\u1EF1:", cls: "vf-hint" });
+    const built = cardEl.createDiv({ cls: "vf-builder-line" });
+    for (let k = 0; k < this.builderPicked.length; k++) {
+      const idx = this.builderPicked[k];
+      const chip = built.createEl("button", { text: item.shuffled[idx], cls: "vf-token vf-token-placed" });
+      chip.onclick = () => {
+        if (this.practicePhase !== "question") return;
+        this.builderPicked.splice(k, 1);
+        this.render();
+      };
+    }
+    if (!this.builderPicked.length) built.createSpan({ text: "\u2026", cls: "vf-muted" });
+    if (this.practicePhase === "question") {
+      const bank = cardEl.createDiv({ cls: "vf-builder-bank" });
+      item.shuffled.forEach((tok, idx) => {
+        if (this.builderPicked.includes(idx)) return;
+        const chip = bank.createEl("button", { text: tok, cls: "vf-token" });
+        chip.onclick = () => {
+          this.builderPicked.push(idx);
+          if (this.builderPicked.length === item.shuffled.length) {
+            const attempt = this.builderPicked.map((i) => item.shuffled[i]).join(" ");
+            this.practiceResolve(attempt === item.tokens.join(" "));
+          } else this.render();
+        };
+      });
+    } else {
+      cardEl.createDiv({
+        text: `\u201C${item.tokens.join(" ")}\u201D`,
+        cls: this.practiceCorrect ? "vf-cloze-hit-ok vf-builder-answer" : "vf-cloze-hit-no vf-builder-answer"
+      });
+    }
+    if (c.meaningVi) cardEl.createDiv({ text: `\u{1F4A1} ${c.meaningVi}`, cls: "vf-hint" });
+  }
+  renderChoiceQ(cardEl, item) {
+    const c = item.card;
+    cardEl.createDiv({ text: `${categoryEmoji(c.category)} ${c.category}`, cls: "vf-chip-cat" });
+    cardEl.createDiv({ text: c.word, cls: "vf-word vf-choice-word" });
+    if (c.ipa) cardEl.createDiv({ text: c.ipa, cls: "vf-ipa" });
+    const opts = cardEl.createDiv({ cls: "vf-choice-opts" });
+    item.options.forEach((opt, idx) => {
+      let cls = "vf-choice-opt";
+      if (this.practicePhase === "feedback") {
+        if (idx === item.correctIndex) cls += " vf-choice-right";
+        else cls += " vf-choice-dim";
+      }
+      const b = opts.createEl("button", { cls });
+      b.createSpan({ text: `${idx + 1}`, cls: "vf-choice-num" });
+      b.createSpan({ text: opt });
+      b.onclick = () => {
+        if (this.practicePhase !== "question") return;
+        this.practiceResolve(idx === item.correctIndex);
+      };
+    });
+  }
+  makePracticeInput(cardEl, placeholder) {
+    const input = cardEl.createEl("input", {
+      cls: "vf-practice-input",
+      attr: { type: "text", placeholder, spellcheck: "false", autocapitalize: "off" }
+    });
+    input.onkeydown = (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        this.practiceCheck();
+      }
+    };
+    this.practiceInput = input;
+    window.setTimeout(() => input.focus(), 30);
+  }
+  practiceCheck() {
+    const item = this.currentPractice();
+    if (!item || this.practicePhase !== "question") return;
+    if (item.mode === "cloze") {
+      const val = this.practiceInput?.value ?? "";
+      this.practiceResolve(fuzzyEqual(val, [item.surface, item.card.word]));
+    } else if (item.mode === "typing") {
+      const val = this.practiceInput?.value ?? "";
+      this.practiceResolve(fuzzyEqual(val, [item.card.word]));
+    }
+  }
+  practiceResolve(correct) {
+    const item = this.currentPractice();
+    if (!item) return;
+    this.practicePhase = "feedback";
+    this.practiceCorrect = correct;
+    if (correct) this.practiceScore++;
+    else this.practiceWrong.push(item);
+    this.plugin.recordPractice();
+    this.plugin.speak(item.mode === "builder" ? item.tokens.join(" ") : item.card.word);
+    this.render();
+  }
+  practiceNext() {
+    this.practiceIdx++;
+    this.practicePhase = "question";
+    this.builderPicked = [];
+    if (this.practiceIdx >= this.practiceQueue.length) this.section = "practice-done";
+    this.render();
+  }
+  renderPracticeDone(main) {
+    const total = this.practiceQueue.length;
+    const pct = total ? Math.round(this.practiceScore / total * 100) : 0;
+    const done = main.createDiv({ cls: "vf-done" });
+    done.createEl("div", { text: pct >= 80 ? "\u{1F3C6}" : pct >= 50 ? "\u{1F4AA}" : "\u{1F331}", cls: "vf-done-emoji" });
+    done.createEl("h2", { text: `${this.practiceScore}/${total} c\xE2u \u0111\xFAng` });
+    const ring = done.createDiv({ cls: "vf-hero-ring vf-ring-dark" });
+    ring.style.setProperty("--vf-pct", String(pct));
+    ring.createDiv({ text: `${pct}%`, cls: "vf-hero-ring-text" });
+    if (this.practiceWrong.length) {
+      done.createEl("h4", { text: "C\xE1c c\xE2u sai" });
+      const list = done.createDiv({ cls: "vf-hard-list vf-wrong-list" });
+      for (const w of this.practiceWrong) {
+        const row = list.createDiv({ cls: "vf-hard-item" });
+        row.createSpan({ text: w.card.word, cls: "vf-hard-word" });
+        row.createSpan({ text: w.card.meaningVi || w.card.meaningEn, cls: "vf-hard-count" });
+        row.onclick = () => this.app.workspace.openLinkText(w.card.file.path, "", true);
+      }
+    }
+    const btns = done.createDiv({ cls: "vf-actions" });
+    if (this.practiceWrong.length) {
+      const retry = btns.createEl("button", {
+        text: `\u{1F501} Luy\u1EC7n l\u1EA1i ${this.practiceWrong.length} c\xE2u sai`,
+        cls: "vf-btn-hero vf-btn-hero-small"
+      });
+      retry.onclick = () => {
+        this.practiceQueue = shuffle(this.practiceWrong);
+        this.practiceWrong = [];
+        this.practiceIdx = 0;
+        this.practiceScore = 0;
+        this.practicePhase = "question";
+        this.builderPicked = [];
+        this.section = "practice-run";
+        this.render();
+      };
+    }
+    const back = btns.createEl("button", { text: "\u2190 V\u1EC1 Luy\u1EC7n t\u1EADp", cls: "vf-btn-icon" });
+    back.onclick = () => {
+      this.section = "practice";
+      this.render();
+    };
+  }
   // ============================================================= SETTINGS
   renderSettings(main) {
     main.createEl("h3", { text: "\u2699\uFE0F C\xE0i \u0111\u1EB7t" });
@@ -2733,10 +3202,25 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     }
   }
   onKey(evt) {
-    if (this.section !== "review") return;
     if (this.app.workspace.getActiveViewOfType(_VocabReviewView) !== this) return;
     const target = evt.target;
     if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+    if (this.section === "practice-run") {
+      const item = this.currentPractice();
+      if (evt.key === "Enter") {
+        evt.preventDefault();
+        if (this.practicePhase === "feedback") this.practiceNext();
+        else this.practiceCheck();
+        return;
+      }
+      if (this.practicePhase === "question" && item?.mode === "choice" && ["1", "2", "3", "4"].includes(evt.key)) {
+        evt.preventDefault();
+        const idx = Number(evt.key) - 1;
+        this.practiceResolve(idx === item.correctIndex);
+      }
+      return;
+    }
+    if (this.section !== "review") return;
     if (evt.key === " " || evt.key === "Enter") {
       evt.preventDefault();
       if (!this.flipped) this.flip();
@@ -3044,6 +3528,13 @@ var VocabForgePlugin = class extends import_obsidian5.Plugin {
     const stat = (_a = this.data.stats)[key] ?? (_a[key] = { reviews: 0, newCards: 0 });
     stat.reviews++;
     if (wasNew) stat.newCards++;
+    void this.saveAll();
+  }
+  recordPractice() {
+    var _a;
+    const key = todayKey();
+    const stat = (_a = this.data.stats)[key] ?? (_a[key] = { reviews: 0, newCards: 0 });
+    stat.practice = (stat.practice ?? 0) + 1;
     void this.saveAll();
   }
   refreshStatusBar() {

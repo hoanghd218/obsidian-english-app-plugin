@@ -138,6 +138,13 @@ export default class VocabForgePlugin extends Plugin {
 		void this.saveAll();
 	}
 
+	recordPractice(): void {
+		const key = todayKey();
+		const stat = (this.data.stats[key] ??= { reviews: 0, newCards: 0 });
+		stat.practice = (stat.practice ?? 0) + 1;
+		void this.saveAll();
+	}
+
 	refreshStatusBar(): void {
 		if (!this.statusEl) return;
 		try {
