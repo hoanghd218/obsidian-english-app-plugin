@@ -1,0 +1,31 @@
+---
+tags: [vocab-card]
+word: "legislation"
+type: word
+category: "cambridge-c3"
+ipa: "/ˌledʒ.ɪˈsleɪ.ʃən/"
+meaning_en: "laws considered collectively, or the formal process of making laws"
+meaning_vi: "luật pháp nói chung; quá trình làm luật"
+collocations: ["pass legislation", "draft new legislation"]
+forms: ["legislate (verb)", "legislative (adjective)", "legislator (noun)"]
+quote: "The government introduced new legislation to curb carbon emissions from heavy industry by 2030."
+source: ""
+source_url: ""
+image: ""
+created: 2026-08-18
+srs_due: "2026-08-18T13:55:28.281Z"
+srs_stability: 0
+srs_difficulty: 0
+srs_elapsed_days: 0
+srs_scheduled_days: 0
+srs_reps: 0
+srs_lapses: 0
+srs_learning_steps: 0
+srs_state: 0
+srs_last_review: ""
+---
+
+> [!quote] Ngữ cảnh
+> The government introduced new legislation to curb carbon emissions from heavy industry by 2030.
+
+Nguồn: Cambridge English — Upper Secondary (FCE/CAE)

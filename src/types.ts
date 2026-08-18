@@ -48,6 +48,9 @@ export const DEFAULT_CATEGORIES = [
 	"casual",
 	"ielts",
 	"idiom",
+	"cambridge-c1",
+	"cambridge-c2",
+	"cambridge-c3",
 	"general",
 ] as const;
 
@@ -59,6 +62,9 @@ export const CATEGORY_EMOJI: Record<string, string> = {
 	ielts: "🎓",
 	idiom: "🧩",
 	"ai-tech": "🤖",
+	"cambridge-c1": "🧒",
+	"cambridge-c2": "🧑‍🎓",
+	"cambridge-c3": "🎓",
 	general: "📦",
 };
 

@@ -26,6 +26,23 @@ Learn English vocabulary **from the YouTube videos you actually watch** — righ
 2. Reload Obsidian → **Settings → Community plugins → enable "Vocab Forge"**.
 3. Click the 🎓 ribbon icon.
 
+## 📚 Free vocab packs (`decks/`)
+
+This repo ships **1,381 ready-made cards**, organized one subfolder per deck — every card starts fresh (no review history), so anyone can drop them straight into their own vault:
+
+| Deck | Cards | Content |
+|---|---|---|
+| `decks/cambridge-c1/` | 347 | Cambridge Primary (Starters→Flyers) — core vocab for young learners (6–11) |
+| `decks/cambridge-c2/` | 420 | Cambridge Lower Secondary (KET→PET) — everyday + academic vocab for teens (11–15) |
+| `decks/cambridge-c3/` | 374 | Cambridge Upper Secondary (FCE→CAE) — academic/essay vocab, idioms, phrasal verbs (15–18) |
+| `decks/idiom/` | 88 | Business/content idioms & phrasal verbs, sourced from real YouTube transcripts |
+| `decks/grammar/` | 38 | Grammar patterns (cleft sentences, inversion, conditionals…) with real example quotes |
+| `decks/content/`, `startup/`, `business/`, `ai-tech/` | 114 | Business/marketing/AI vocab, sourced from real YouTube transcripts |
+
+**To import:** copy any `decks/<name>/` subfolder into your vault's configured cards folder (Settings → Vocab Forge → *Folder chứa thẻ*, default `5. Toolbox/English/Cards/`) — subfolders are scanned recursively, so `Cards/cambridge-c1/*.md` works exactly like `Cards/*.md`. Reload Obsidian, the new deck appears immediately in **🗂️ Bộ thẻ**.
+
+Cards have no `image` (kept blank for portability — wikilinks only resolve inside their origin vault). Generate illustrations yourself with any image tool, e.g. headless [Grok CLI](https://docs.x.ai/build/cli/headless-scripting): `grok -p "/imagine <prompt> --out word.png"`.
+
 ## 🃏 Card format
 
 One card = one Markdown file in your cards folder (default `5. Toolbox/English/Cards/`, configurable):

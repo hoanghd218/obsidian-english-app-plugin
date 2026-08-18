@@ -159,6 +159,9 @@ var DEFAULT_CATEGORIES = [
   "casual",
   "ielts",
   "idiom",
+  "cambridge-c1",
+  "cambridge-c2",
+  "cambridge-c3",
   "general"
 ];
 var CATEGORY_EMOJI = {
@@ -169,6 +172,9 @@ var CATEGORY_EMOJI = {
   ielts: "\u{1F393}",
   idiom: "\u{1F9E9}",
   "ai-tech": "\u{1F916}",
+  "cambridge-c1": "\u{1F9D2}",
+  "cambridge-c2": "\u{1F9D1}\u200D\u{1F393}",
+  "cambridge-c3": "\u{1F393}",
   general: "\u{1F4E6}"
 };
 function categoryEmoji(cat) {
@@ -4360,14 +4366,16 @@ var CardStore = class {
       fsrsToFrontmatter(next, fm, dir === "fwd" ? "srs_" : "srs_rev_");
     });
   }
-  /** Tạo file thẻ mới trong folder thẻ. Trả về TFile vừa tạo. */
+  /** Tạo file thẻ mới trong subfolder theo category (vd Cards/business/word.md). Trả về TFile vừa tạo. */
   async createCard(input) {
-    await this.ensureFolder();
+    const category = sanitizeFilename((input.category || "general").toLowerCase().trim()) || "general";
+    const targetFolder = `${this.folder}/${category}`;
+    await this.ensureFolder(targetFolder);
     const base = sanitizeFilename(input.word) || "card";
-    let path = (0, import_obsidian3.normalizePath)(`${this.folder}/${base}.md`);
+    let path = (0, import_obsidian3.normalizePath)(`${targetFolder}/${base}.md`);
     let i = 1;
     while (this.app.vault.getAbstractFileByPath(path)) {
-      path = (0, import_obsidian3.normalizePath)(`${this.folder}/${base} ${++i}.md`);
+      path = (0, import_obsidian3.normalizePath)(`${targetFolder}/${base} ${++i}.md`);
     }
     const empty = createEmptyCard(/* @__PURE__ */ new Date());
     const yaml = buildCardYaml(input, empty);
@@ -4380,8 +4388,8 @@ Ngu\u1ED3n: ${input.source || "_(ch\u01B0a r\xF5)_"}
     const file = await this.app.vault.create(path, yaml + body);
     return file;
   }
-  async ensureFolder() {
-    const parts = this.folder.split("/");
+  async ensureFolder(target = this.folder) {
+    const parts = target.split("/");
     let cur = "";
     for (const p of parts) {
       cur = cur ? `${cur}/${p}` : p;
@@ -4861,7 +4869,11 @@ var VocabForgePlugin = class extends import_obsidian5.Plugin {
 /*! Bundled license information:
 
 ts-fsrs/dist/index.mjs:
+  (* istanbul ignore next -- @preserve *)
+
 ts-fsrs/dist/index.mjs:
+  (* istanbul ignore next -- @preserve *)
+
 ts-fsrs/dist/index.mjs:
   (* istanbul ignore next -- @preserve *)
 */

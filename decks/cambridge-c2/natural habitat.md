@@ -1,0 +1,31 @@
+---
+tags: [vocab-card]
+word: "natural habitat"
+type: collocation
+category: "cambridge-c2"
+ipa: ""
+meaning_en: "the environment where an animal or plant naturally lives"
+meaning_vi: "môi trường sống tự nhiên"
+collocations: ["live in a natural habitat", "return to its natural habitat"]
+forms: ["natural habitats (pl)"]
+quote: "Tigers are best observed in their natural habitat."
+source: ""
+source_url: ""
+image: ""
+created: 2026-08-19
+srs_due: "2026-08-18T13:55:28.233Z"
+srs_stability: 0
+srs_difficulty: 0
+srs_elapsed_days: 0
+srs_scheduled_days: 0
+srs_reps: 0
+srs_lapses: 0
+srs_learning_steps: 0
+srs_state: 0
+srs_last_review: ""
+---
+
+> [!quote] Ngữ cảnh
+> Tigers are best observed in their natural habitat.
+
+Nguồn: Cambridge English — Lower Secondary (KET/PET)

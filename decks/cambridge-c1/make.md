@@ -1,0 +1,31 @@
+---
+tags: [vocab-card]
+word: "make"
+type: word
+category: "cambridge-c1"
+ipa: "/meɪk/"
+meaning_en: "to create or build something"
+meaning_vi: "làm, tạo ra"
+collocations: ["make a cake", "make friends"]
+forms: ["makes", "made", "making"]
+quote: "We make a cake for her birthday."
+source: ""
+source_url: ""
+image: ""
+created: 2026-08-19
+srs_due: "2026-08-18T13:55:28.179Z"
+srs_stability: 0
+srs_difficulty: 0
+srs_elapsed_days: 0
+srs_scheduled_days: 0
+srs_reps: 0
+srs_lapses: 0
+srs_learning_steps: 0
+srs_state: 0
+srs_last_review: ""
+---
+
+> [!quote] Ngữ cảnh
+> We make a cake for her birthday.
+
+Nguồn: Cambridge English — Primary (Starters/Movers/Flyers)

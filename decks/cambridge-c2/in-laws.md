@@ -1,0 +1,31 @@
+---
+tags: [vocab-card]
+word: "in-laws"
+type: word
+category: "cambridge-c2"
+ipa: "/ˈɪn lɔːz/"
+meaning_en: "the family of your husband or wife"
+meaning_vi: "gia đình bên chồng/vợ"
+collocations: ["visit the in-laws", "get on with your in-laws"]
+forms: []
+quote: "We are having dinner with my in-laws tonight."
+source: ""
+source_url: ""
+image: ""
+created: 2026-08-18
+srs_due: "2026-08-18T13:55:28.227Z"
+srs_stability: 0
+srs_difficulty: 0
+srs_elapsed_days: 0
+srs_scheduled_days: 0
+srs_reps: 0
+srs_lapses: 0
+srs_learning_steps: 0
+srs_state: 0
+srs_last_review: ""
+---
+
+> [!quote] Ngữ cảnh
+> We are having dinner with my in-laws tonight.
+
+Nguồn: Cambridge English — Lower Secondary (KET/PET)

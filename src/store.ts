@@ -151,14 +151,16 @@ export class CardStore {
 		});
 	}
 
-	/** Tạo file thẻ mới trong folder thẻ. Trả về TFile vừa tạo. */
+	/** Tạo file thẻ mới trong subfolder theo category (vd Cards/business/word.md). Trả về TFile vừa tạo. */
 	async createCard(input: NewCardInput): Promise<TFile> {
-		await this.ensureFolder();
+		const category = sanitizeFilename((input.category || "general").toLowerCase().trim()) || "general";
+		const targetFolder = `${this.folder}/${category}`;
+		await this.ensureFolder(targetFolder);
 		const base = sanitizeFilename(input.word) || "card";
-		let path = normalizePath(`${this.folder}/${base}.md`);
+		let path = normalizePath(`${targetFolder}/${base}.md`);
 		let i = 1;
 		while (this.app.vault.getAbstractFileByPath(path)) {
-			path = normalizePath(`${this.folder}/${base} ${++i}.md`);
+			path = normalizePath(`${targetFolder}/${base} ${++i}.md`);
 		}
 		const empty = createEmptyCard(new Date());
 		const yaml = buildCardYaml(input, empty);
@@ -167,8 +169,8 @@ export class CardStore {
 		return file;
 	}
 
-	async ensureFolder(): Promise<void> {
-		const parts = this.folder.split("/");
+	async ensureFolder(target: string = this.folder): Promise<void> {
+		const parts = target.split("/");
 		let cur = "";
 		for (const p of parts) {
 			cur = cur ? `${cur}/${p}` : p;

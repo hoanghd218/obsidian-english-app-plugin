@@ -1,0 +1,31 @@
+---
+tags: [vocab-card]
+word: "casual"
+type: word
+category: "cambridge-c2"
+ipa: "/ˈkæʒuəl/"
+meaning_en: "relaxed and not formal, used to describe clothes"
+meaning_vi: "giản dị, thường ngày (trang phục)"
+collocations: ["casual clothes", "dress casually"]
+forms: []
+quote: "You can wear casual clothes to the picnic on Saturday."
+source: ""
+source_url: ""
+image: ""
+created: 2026-08-19
+srs_due: "2026-08-18T13:55:28.211Z"
+srs_stability: 0
+srs_difficulty: 0
+srs_elapsed_days: 0
+srs_scheduled_days: 0
+srs_reps: 0
+srs_lapses: 0
+srs_learning_steps: 0
+srs_state: 0
+srs_last_review: ""
+---
+
+> [!quote] Ngữ cảnh
+> You can wear casual clothes to the picnic on Saturday.
+
+Nguồn: Cambridge English — Lower Secondary (KET/PET)

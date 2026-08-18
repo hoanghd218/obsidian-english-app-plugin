@@ -1,0 +1,31 @@
+---
+tags: [vocab-card]
+word: "metaphor"
+type: word
+category: "cambridge-c3"
+ipa: "/ˈmetəfər/"
+meaning_en: "a figure of speech in which a word or phrase is applied to something it does not literally denote, to suggest a resemblance"
+meaning_vi: "phép ẩn dụ"
+collocations: ["an extended metaphor", "a powerful metaphor for..."]
+forms: ["metaphorical (adj)", "metaphorically (adv)"]
+quote: "The novel uses the crumbling house as a metaphor for the family's slow disintegration."
+source: ""
+source_url: ""
+image: ""
+created: 2026-08-18
+srs_due: "2026-08-18T13:55:28.283Z"
+srs_stability: 0
+srs_difficulty: 0
+srs_elapsed_days: 0
+srs_scheduled_days: 0
+srs_reps: 0
+srs_lapses: 0
+srs_learning_steps: 0
+srs_state: 0
+srs_last_review: ""
+---
+
+> [!quote] Ngữ cảnh
+> The novel uses the crumbling house as a metaphor for the family's slow disintegration.
+
+Nguồn: Cambridge English — Upper Secondary (FCE/CAE)

@@ -1,0 +1,31 @@
+---
+tags: [vocab-card]
+word: "of average build"
+type: collocation
+category: "cambridge-c2"
+ipa: ""
+meaning_en: "having a body size and shape that is neither big nor small"
+meaning_vi: "vóc dáng trung bình"
+collocations: ["a man of average build", "average height and build"]
+forms: []
+quote: "The witness described the man as of average build."
+source: ""
+source_url: ""
+image: ""
+created: 2026-08-19
+srs_due: "2026-08-18T13:55:28.234Z"
+srs_stability: 0
+srs_difficulty: 0
+srs_elapsed_days: 0
+srs_scheduled_days: 0
+srs_reps: 0
+srs_lapses: 0
+srs_learning_steps: 0
+srs_state: 0
+srs_last_review: ""
+---
+
+> [!quote] Ngữ cảnh
+> The witness described the man as of average build.
+
+Nguồn: Cambridge English — Lower Secondary (KET/PET)

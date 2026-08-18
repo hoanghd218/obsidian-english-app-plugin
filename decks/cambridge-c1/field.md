@@ -1,0 +1,31 @@
+---
+tags: [vocab-card]
+word: "field"
+type: word
+category: "cambridge-c1"
+ipa: "/fiːld/"
+meaning_en: "a large area of grass used for sports"
+meaning_vi: "sân cỏ"
+collocations: ["run on the field", "a football field"]
+forms: ["fields"]
+quote: "The players run onto the field."
+source: ""
+source_url: ""
+image: ""
+created: 2026-08-19
+srs_due: "2026-08-18T13:55:28.170Z"
+srs_stability: 0
+srs_difficulty: 0
+srs_elapsed_days: 0
+srs_scheduled_days: 0
+srs_reps: 0
+srs_lapses: 0
+srs_learning_steps: 0
+srs_state: 0
+srs_last_review: ""
+---
+
+> [!quote] Ngữ cảnh
+> The players run onto the field.
+
+Nguồn: Cambridge English — Primary (Starters/Movers/Flyers)

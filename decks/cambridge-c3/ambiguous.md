@@ -1,0 +1,31 @@
+---
+tags: [vocab-card]
+word: "ambiguous"
+type: word
+category: "cambridge-c3"
+ipa: "/æmˈbɪɡjuəs/"
+meaning_en: "open to more than one interpretation; not having one clear meaning"
+meaning_vi: "mơ hồ, có thể hiểu theo nhiều cách"
+collocations: ["ambiguous language", "remain ambiguous"]
+forms: ["ambiguity", "ambiguously"]
+quote: "The wording of the contract was so ambiguous that both parties interpreted it differently."
+source: ""
+source_url: ""
+image: ""
+created: 2026-08-18
+srs_due: "2026-08-18T13:55:28.260Z"
+srs_stability: 0
+srs_difficulty: 0
+srs_elapsed_days: 0
+srs_scheduled_days: 0
+srs_reps: 0
+srs_lapses: 0
+srs_learning_steps: 0
+srs_state: 0
+srs_last_review: ""
+---
+
+> [!quote] Ngữ cảnh
+> The wording of the contract was so ambiguous that both parties interpreted it differently.
+
+Nguồn: Cambridge English — Upper Secondary (FCE/CAE)
