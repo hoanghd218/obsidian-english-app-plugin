@@ -1,0 +1,30 @@
+{
+  "name": "vocab-forge",
+  "version": "1.0.0",
+  "description": "Obsidian plugin: learn English vocabulary from YouTube videos with FSRS spaced repetition — every flashcard is a plain Markdown note in your vault.",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && node esbuild.config.mjs",
+    "check": "tsc --noEmit"
+  },
+  "keywords": [
+    "obsidian",
+    "obsidian-plugin",
+    "flashcards",
+    "spaced-repetition",
+    "fsrs",
+    "english",
+    "vocabulary"
+  ],
+  "author": "Trần Văn Hoàng (hoanghd218)",
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "obsidian": "latest",
+    "typescript": "^5.6.0"
+  },
+  "dependencies": {
+    "ts-fsrs": "^5.4.1"
+  }
+}

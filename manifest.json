@@ -1,0 +1,9 @@
+{
+  "id": "vocab-forge",
+  "name": "Vocab Forge",
+  "version": "1.0.0",
+  "minAppVersion": "1.4.0",
+  "description": "Học từ vựng tiếng Anh từ video YouTube — flashcard 2 mặt với thuật toán FSRS (spaced repetition như Anki). Mỗi thẻ là một note Markdown trong vault.",
+  "author": "Trần Văn Hoàng",
+  "isDesktopOnly": false
+}
