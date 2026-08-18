@@ -691,6 +691,7 @@ button.vf-rate.vf-rate-easy, button.vf-rate.vf-rate-easy * { color: #04222b !imp
 	margin-top: 10px;
 }
 .vf-mode-tile {
+	position: relative;
 	border-radius: 18px;
 	padding: 20px 18px;
 	color: #fff;
@@ -702,10 +703,27 @@ button.vf-rate.vf-rate-easy, button.vf-rate.vf-rate-easy * { color: #04222b !imp
 	transform: translateY(-4px) scale(1.01);
 	box-shadow: 0 14px 30px rgba(6, 26, 43, 0.28);
 }
+.vf-mode-mix {
+	background: linear-gradient(135deg, #da3c0c, #ffb43d);
+	order: -1;
+	box-shadow: 0 8px 24px rgba(218, 60, 12, 0.3);
+}
+.vf-mode-badge {
+	position: absolute;
+	top: 12px;
+	right: 14px;
+	font-size: 0.7em;
+	font-weight: 800;
+	background: rgba(255, 255, 255, 0.22);
+	border-radius: 20px;
+	padding: 3px 10px;
+}
 .vf-mode-cloze { background: linear-gradient(135deg, #0e7c8b, #57d6c6); }
 .vf-mode-typing { background: linear-gradient(135deg, #0c3358, #0e7c8b); }
 .vf-mode-builder { background: linear-gradient(135deg, #3f6470, #0c3358); }
 .vf-mode-choice { background: linear-gradient(135deg, #061a2b, #0e7c8b); }
+.vf-mode-match { background: linear-gradient(135deg, #0e7c8b, #3f6470); }
+.vf-mode-error { background: linear-gradient(135deg, #b23a0e, #3f6470); }
 .vf-mode-icon { font-size: 2em; }
 .vf-mode-name { font-weight: 800; font-size: 1.05em; margin-top: 8px; }
 .vf-mode-desc { font-size: 0.8em; opacity: 0.85; margin-top: 4px; line-height: 1.45; }
