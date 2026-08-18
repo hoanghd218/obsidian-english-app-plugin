@@ -11,9 +11,9 @@ forms: []
 quote: "An embedded truth is when you frame something in your script as though it is already true instead of coming in wishy-washy."
 source: "[[Say This in Your Videos, It’ll Improve Your Storytelling by 10x]]"
 source_url: "https://www.youtube.com/watch?v=pcnrzBwoVUk&t=178"
-image: ""
+image: "[[wishy-washy.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.310Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

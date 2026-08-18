@@ -11,9 +11,9 @@ forms: []
 quote: "In this next era, the cream of the crop will be premium storytellers. The way to cut through noise is better storytelling."
 source: "[[The NEW Way to WIN on Social Media in 2026]]"
 source_url: "https://www.youtube.com/watch?v=ImzoNTrgvFg&t=1403"
-image: ""
+image: "[[cream of the crop.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.316Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

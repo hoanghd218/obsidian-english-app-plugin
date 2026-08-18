@@ -11,9 +11,9 @@ forms: ["safe bets"]
 quote: "What I would recommend is a safe bet is KVM2. This is going to allow you to spin up multiple different agents."
 source: "[[The EXACT System to Build AI Employees with Hermes Agent]]"
 source_url: "https://www.youtube.com/watch?v=KmJ-PUsxMHo&t=197"
-image: ""
+image: "[[a safe bet.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.152Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

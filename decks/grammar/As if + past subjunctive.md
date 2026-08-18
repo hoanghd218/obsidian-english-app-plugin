@@ -10,9 +10,9 @@ collocations: ["He talks about the launch as if it were already a success", "She
 quote: "They frame their points as if they were already true."
 source: "[[How To Build a Personal Brand That’s Magnetic As F*ck]]"
 source_url: "https://www.youtube.com/watch?v=xw_hhw1V1A8&t=538s"
-image: ""
+image: "[[As if + past subjunctive.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.311Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

@@ -11,9 +11,9 @@ forms: ["gatekeep","gatekeeps","gatekept","gatekeeper","gatekeepers"]
 quote: "No gatekeeping here, but to be honest, I could do a whole video on just those nine hook formats."
 source: "[[How to Script Viral Videos 10x Faster (Nobody Teaches This)]]"
 source_url: "https://www.youtube.com/watch?v=_Z11mjFh2zY&t=453"
-image: ""
+image: "[[gatekeeping.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.307Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

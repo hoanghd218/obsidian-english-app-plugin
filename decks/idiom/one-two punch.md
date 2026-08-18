@@ -11,9 +11,9 @@ forms: ["one-two punches"]
 quote: "This one-two punch of initial awareness and then rapid valuebased curiosity is the cheat code to winning packaging."
 source: "[[Why The Smartest Creators I Know Focus on Packaging, Not Content]]"
 source_url: "https://www.youtube.com/watch?v=jZCupmAOMAE&t=102"
-image: ""
+image: "[[one-two punch.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.322Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

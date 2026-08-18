@@ -11,9 +11,9 @@ forms: []
 quote: "Mistake three is then forgetting the whatif. Because this is where you're going to lose buy in if you don't ask the question to the specific individual."
 source: "[[How To Explain Anything To Anyone (The 4MAT Method)]]"
 source_url: "https://www.youtube.com/watch?v=YZjWuFVSjjM&t=547"
-image: ""
+image: "[[buy-in.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.305Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

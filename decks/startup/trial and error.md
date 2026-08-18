@@ -11,9 +11,9 @@ forms: []
 quote: "If you're serious about scaling your shop beyond 100,000 sales and want to skip the guesswork and trial and error, I recommend watching this video next."
 source: "[[Only 30 Minutes a Day? Here’s How I’d Build a 6-Figure POD Business]]"
 source_url: "https://www.youtube.com/watch?v=-NukmwK6vyM&t=587"
-image: ""
+image: "[[trial and error.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.330Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

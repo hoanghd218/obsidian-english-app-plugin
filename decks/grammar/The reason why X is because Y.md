@@ -10,9 +10,9 @@ collocations: ["The reason why most startups die is because they run out of focu
 quote: "The reason why even million view banger videos eventually slow down is because even those run out of people that want to watch it."
 source: "[[How Social Media Algorithms Actually Work (And How to Beat Them)]]"
 source_url: "https://www.youtube.com/watch?v=8cQidXgtGmU&t=277s"
-image: ""
+image: "[[The reason why X is because Y.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.312Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

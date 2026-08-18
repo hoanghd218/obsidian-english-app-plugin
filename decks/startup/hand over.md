@@ -11,9 +11,9 @@ forms: ["hands over","handed over","handing over"]
 quote: "And the new deals that put millions into a company without handing over control of it. Almost nobody explains those new deals."
 source: "[[The New Era of Startup Funding Has Just Begun]]"
 source_url: "https://www.youtube.com/watch?v=P1Xsgdc6P_0&t=30"
-image: ""
+image: "[[hand over.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.328Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

@@ -11,9 +11,9 @@ forms: ["puts out fires","putting out fires"]
 quote: "because there's going to be 10 probably PRs that we ship that are fire, you know, putting out fires. Um, and and you can get distracted and exhausted."
 source: "[[Most Valuable Skill of 2026 Managing AI Agents]]"
 source_url: "https://www.youtube.com/watch?v=vJEy3nP2_C8&t=1141"
-image: ""
+image: "[[put out fires.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.323Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

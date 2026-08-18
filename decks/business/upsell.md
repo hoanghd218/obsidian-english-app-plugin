@@ -11,9 +11,9 @@ forms: ["upsells","upsold","upselling"]
 quote: "Once they get there, they trust us, then we can upsell them to anything we want. I could upsell them to a 10K to 10K AI system if I had something like that."
 source: "[[Alex Hormozi wouldn't start an AI Agency, so why would you?]]"
 source_url: "https://www.youtube.com/watch?v=SUKqhX9vUoM&t=653"
-image: ""
+image: "[[upsell.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.156Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

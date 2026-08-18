@@ -10,9 +10,9 @@ collocations: ["Not only does this save time, but it also cuts costs in half", "
 quote: "So, not only are you coming in raw, but you're spending the most valuable real estate of the video when you're the coldest and most anxious."
 source: "[[Speaking Like This Gives You an Unfair Advantage on Social Media]]"
 source_url: "https://www.youtube.com/watch?v=ZM3elcBE48I&t=179"
-image: ""
+image: "[[not only + inversion.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.314Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

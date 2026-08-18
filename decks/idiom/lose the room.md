@@ -11,9 +11,9 @@ forms: ["loses the room","lost the room","losing the room"]
 quote: "No more rambling, no more losing the room, just four simple questions you need to answer."
 source: "[[How To Explain Anything To Anyone (The 4MAT Method)]]"
 source_url: "https://www.youtube.com/watch?v=YZjWuFVSjjM&t=0"
-image: ""
+image: "[[lose the room.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.321Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

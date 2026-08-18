@@ -11,9 +11,9 @@ forms: []
 quote: "What's great about this model is that there's little guesswork. You're capitalizing on what's hot and grabbing a piece of the pie."
 source: "[[Easiest Way To Start Print On Demand From $0 In 2026]]"
 source_url: "https://www.youtube.com/watch?v=XFGOEaGokaU&t=72"
-image: ""
+image: "[[a piece of the pie.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.315Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

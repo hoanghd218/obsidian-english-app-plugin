@@ -11,9 +11,9 @@ forms: []
 quote: "but it's like this moment, this recording really doesn't matter in the grand scheme of whatever you're trying to achieve."
 source: "[[Speaking Like This Gives You an Unfair Advantage on Social Media]]"
 source_url: "https://www.youtube.com/watch?v=ZM3elcBE48I&t=347"
-image: ""
+image: "[[in the grand scheme of things.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.320Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

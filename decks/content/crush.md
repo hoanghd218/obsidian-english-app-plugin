@@ -11,9 +11,9 @@ forms: ["crushes","crushed","crushing"]
 quote: "Just use this one. It crushes every time. Now, I know this works because I've personally studied thousands of videos."
 source: "[[Copy This Hook, It'll Blow Up Your Social Media]]"
 source_url: "https://www.youtube.com/watch?v=8VolLwMCLuY&t=7"
-image: ""
+image: "[[crush.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.306Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

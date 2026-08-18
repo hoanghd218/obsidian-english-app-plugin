@@ -10,9 +10,9 @@ collocations: ["If you were to lose this client, how would it affect revenue?", 
 quote: "If you were to spawn a 20 or 30 agents, you would be running into your 5-hour Codex limit."
 source: "[[How I manage 250+ AI Agents for my Hedge Fund]]"
 source_url: "https://www.youtube.com/watch?v=BLMkrw1W6No&t=1663s"
-image: ""
+image: "[[If you were to + V.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.311Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

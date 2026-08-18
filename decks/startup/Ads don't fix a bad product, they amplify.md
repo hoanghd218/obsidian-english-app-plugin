@@ -13,18 +13,18 @@ collocations:
 quote: But if it's good, it can help you reach and attract a bigger audience. Ads don't fix a bad product, they amplify a good one.
 source: "[[Easiest Way To Start Print On Demand From $0 In 2026]]"
 source_url: https://www.youtube.com/watch?v=XFGOEaGokaU&t=1231
-image: ""
+image: "[[Ads don't fix a bad product, they amplify.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.327Z"
-srs_stability: 0
-srs_difficulty: 0
+srs_due: 2026-08-18T12:45:15.409Z
+srs_stability: 1.2931
+srs_difficulty: 5.1122
 srs_elapsed_days: 0
 srs_scheduled_days: 0
-srs_reps: 0
+srs_reps: 1
 srs_lapses: 0
 srs_learning_steps: 0
-srs_state: 0
-srs_last_review: ""
+srs_state: 1
+srs_last_review: 2026-08-18T12:39:15.409Z
 ---
 
 > [!quote] Ngữ cảnh

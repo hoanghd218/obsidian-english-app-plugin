@@ -11,9 +11,9 @@ forms: ["grinds it out","ground it out","grinding it out"]
 quote: "While the average creator makes 30 to 50k per year, and they really grind it out on these brand deals, I think that same skill set is going to be worth 3 to 500k per year in just 1 to 2 more years"
 source: "[[The NEW Way to WIN on Social Media in 2026]]"
 source_url: "https://www.youtube.com/watch?v=ImzoNTrgvFg&t=1058"
-image: ""
+image: "[[grind it out.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.307Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

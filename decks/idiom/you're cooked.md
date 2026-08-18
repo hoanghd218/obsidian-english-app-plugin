@@ -11,9 +11,9 @@ forms: []
 quote: "if you've designed your thumbnails to pop on the traditionally white screen and you've used some darkish grayish background, well, when you flip to dark mode, if they don't pop out, you're cooked."
 source: "[[Why The Smartest Creators I Know Focus on Packaging, Not Content]]"
 source_url: "https://www.youtube.com/watch?v=jZCupmAOMAE&t=383"
-image: ""
+image: "[[you're cooked.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.326Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

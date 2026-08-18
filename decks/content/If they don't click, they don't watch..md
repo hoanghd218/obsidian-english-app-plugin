@@ -10,9 +10,9 @@ collocations: ["confirm the click", "packaging is the art of getting the viewer 
 quote: "Beast is famous for saying, \"If they don't click, they don't watch.\""
 source: "[[Why The Smartest Creators I Know Focus on Packaging, Not Content]]"
 source_url: "https://www.youtube.com/watch?v=jZCupmAOMAE&t=156"
-image: ""
+image: "[[If they don't click, they don't watch..png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.303Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

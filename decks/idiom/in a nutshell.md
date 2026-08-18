@@ -11,9 +11,9 @@ forms: []
 quote: "And so that's profile creation in a nutshell. Now, this is an important step because it really trains your mind to think differently."
 source: "[[The EXACT System to Build AI Employees with Hermes Agent]]"
 source_url: "https://www.youtube.com/watch?v=KmJ-PUsxMHo&t=2047"
-image: ""
+image: "[[in a nutshell.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.320Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

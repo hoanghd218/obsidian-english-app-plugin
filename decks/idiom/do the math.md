@@ -11,9 +11,9 @@ forms: ["does the math","did the math","done the math","doing the math"]
 quote: "it was very easy for them to do the math on that cuz if they get a hundred leads, let's say at 70 bucks, okay, they spend seven grand on me."
 source: "[[Alex Hormozi wouldn't start an AI Agency, so why would you?]]"
 source_url: "https://www.youtube.com/watch?v=SUKqhX9vUoM&t=393"
-image: ""
+image: "[[do the math.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.317Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

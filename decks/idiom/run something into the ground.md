@@ -11,9 +11,9 @@ forms: ["runs something into the ground","ran something into the ground","runnin
 quote: "Are you not going to run that paid ad until it's out of juice? No. You're going to run it to the ground."
 source: "[[How to Create a Killer Hook (Impossible to Skip)]]"
 source_url: "https://www.youtube.com/watch?v=onQoYdxWXdA&t=974"
-image: ""
+image: "[[run something into the ground.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.323Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

@@ -11,9 +11,9 @@ forms: ["goes down the rabbit hole","went down the rabbit hole","gone down the r
 quote: "I have a million followers, I've done billions of views, and I've gone about as far down the storytelling rabbit hole as one could possibly go."
 source: "[[The Neuroscience of Addictive Storytelling (And How to Master It)]]"
 source_url: "https://www.youtube.com/watch?v=KyC8r-zitVE&t=39"
-image: ""
+image: "[[go down the rabbit hole.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.319Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

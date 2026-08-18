@@ -11,9 +11,9 @@ forms: ["ends up","ended up","ending up"]
 quote: "And this is where we ended up. Same AI, same project. And the difference wasn't just a better prompt. It was the design process."
 source: "[[NO MORE AI SLOP  Claude Design Full Tutorial]]"
 source_url: "https://www.youtube.com/watch?v=T96O8dTzi2Q&t=0"
-image: ""
+image: "[[end up.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.153Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

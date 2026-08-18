@@ -10,9 +10,9 @@ collocations: ["A referral lead is twice as likely to buy as a cold lead", "This
 quote: "And this is crazy, the research shows that people are twice as motivated to avoid pain as they are to seek an additional reward."
 source: "[[Say This in Your Videos, It’ll Improve Your Storytelling by 10x]]"
 source_url: "https://www.youtube.com/watch?v=pcnrzBwoVUk&t=558"
-image: ""
+image: "[[twice as X as Y.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.314Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

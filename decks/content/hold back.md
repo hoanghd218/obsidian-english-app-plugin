@@ -11,9 +11,9 @@ forms: ["holds back","held back","holding back"]
 quote: "In this video, I break down the 4 biggest mistakes holding back your hooks and how to solve for them immediately."
 source: "[[How to Create a Killer Hook (Impossible to Skip)]]"
 source_url: "https://www.youtube.com/watch?v=onQoYdxWXdA"
-image: ""
+image: "[[hold back.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.308Z"
+srs_due: "2026-08-18T00:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

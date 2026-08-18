@@ -11,9 +11,9 @@ forms: []
 quote: "The answer for what to do is literally right there on a silver platter."
 source: "[[How to WIN on Social Media as a Business Owner in 2026 (Nobody Teaches this)]]"
 source_url: "https://www.youtube.com/watch?v=SnUZdT3EpPg&t=1565"
-image: ""
+image: "[[on a silver platter.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.322Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

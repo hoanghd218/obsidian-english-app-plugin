@@ -10,9 +10,9 @@ collocations: ["We automated the reports, freeing up two hours every day", "The 
 quote: "The 4MAT Framework takes this powerful cycle and turns it into a practical teaching model, ensuring that every lesson includes elements of feeling, watching, thinking, and doing."
 source: "[[The 4MAT Framework]]"
 source_url: "https://www.davidhodder.com/the-4mat-framework/"
-image: ""
+image: "[[participle clause of result.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.314Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

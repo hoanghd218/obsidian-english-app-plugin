@@ -10,9 +10,9 @@ collocations: ["the thread that runs through", "a common thread", "contrast crea
 quote: "Contrast really is the thread that runs through all great stories. If there's one thing to study, it would be this."
 source: "[[Say This in Your Videos, It’ll Improve Your Storytelling by 10x]]"
 source_url: "https://www.youtube.com/watch?v=pcnrzBwoVUk&t=1038"
-image: ""
+image: "[[Contrast really is the thread that runs through.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.303Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

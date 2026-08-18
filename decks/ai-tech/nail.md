@@ -11,9 +11,9 @@ forms: ["nails","nailed","nailing"]
 quote: "That's why it always nails the rough cut every time because cutting raw footage down just needs a good transcript."
 source: "[[My Claude Code Edits FULL Videos in One Shot (Here's How)]]"
 source_url: "https://www.youtube.com/watch?v=mlhhZSHIS-w&t=242"
-image: ""
+image: "[[nail.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.153Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

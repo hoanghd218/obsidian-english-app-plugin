@@ -11,9 +11,9 @@ forms: ["runs with","ran with","running with"]
 quote: "there are things that are not obvious to the average person that are huge untapped opportunities if you can run with them."
 source: "[[The NEW Way to WIN on Social Media in 2026]]"
 source_url: "https://www.youtube.com/watch?v=ImzoNTrgvFg&t=33"
-image: ""
+image: "[[run with.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.309Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

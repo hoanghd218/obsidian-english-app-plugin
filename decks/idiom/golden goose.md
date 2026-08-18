@@ -11,9 +11,9 @@ forms: ["golden geese"]
 quote: "When you run them as ads, you don't boost directly from the organic golden goose."
 source: "[[I Studied 10,000+ Videos, These Mistakes Are Killing Your Content]]"
 source_url: "https://www.youtube.com/watch?v=tVZOS5Z019U&t=249"
-image: ""
+image: "[[golden goose.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.319Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

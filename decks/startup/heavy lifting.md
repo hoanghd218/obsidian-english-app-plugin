@@ -11,9 +11,9 @@ forms: []
 quote: "The heavy lifting already happened, right? They've seen the deliverable, the price is already anchored and the guarantee should kill the risk for them."
 source: "[[Start a One-Person AI Business in 2026 (Full Playbook)]]"
 source_url: "https://www.youtube.com/watch?v=VDROpRg0zV8&t=2146"
-image: ""
+image: "[[heavy lifting.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.328Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

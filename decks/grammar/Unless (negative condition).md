@@ -10,9 +10,9 @@ collocations: ["Don't touch the pricing unless the data tells you to", "Unless y
 quote: "So, I'd say this in almost all scenarios, unless you're doing CPG, retail, or like traditional ecom, you're going to want to build an individual personal brand account."
 source: "[[How to WIN on Social Media as a Business Owner in 2026 (Nobody Teaches this)]]"
 source_url: "https://www.youtube.com/watch?v=SnUZdT3EpPg&t=1004s"
-image: ""
+image: "[[Unless (negative condition).png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.313Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

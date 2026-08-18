@@ -11,9 +11,9 @@ forms: ["lock on","lock onto","locks on","locks onto","locked on","locked onto",
 quote: "When they hear someone say they've achieved the dream outcome that they want, immediately their subconscious locks on and they focus in."
 source: "[[Copy This Hook, It'll Blow Up Your Social Media]]"
 source_url: "https://www.youtube.com/watch?v=8VolLwMCLuY&t=97"
-image: ""
+image: "[[lock on(to).png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.308Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

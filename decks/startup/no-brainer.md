@@ -11,9 +11,9 @@ forms: ["no-brainers"]
 quote: "If not, they get the full refund. So it's a no-brainer for them."
 source: "[[Start a One-Person AI Business in 2026 (Full Playbook)]]"
 source_url: "https://www.youtube.com/watch?v=VDROpRg0zV8&t=2112"
-image: ""
+image: "[[no-brainer.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.329Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

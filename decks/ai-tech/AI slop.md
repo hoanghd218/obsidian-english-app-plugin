@@ -11,9 +11,9 @@ forms: []
 quote: "if you don't do the pre-work for the edit and you don't actually think about what you want the end result to look like, you're going to end up with a really sort of AI slop looking video"
 source: "[[My Claude Code Edits FULL Videos in One Shot (Here's How)]]"
 source_url: "https://www.youtube.com/watch?v=mlhhZSHIS-w&t=530"
-image: ""
+image: "[[AI slop.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.150Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

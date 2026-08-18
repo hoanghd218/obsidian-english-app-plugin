@@ -11,9 +11,9 @@ forms: ["smells something from a mile away","smelled something from a mile away"
 quote: "Okay, a 20-year operator can smell hype from a mile away. The realist, you know, backed by experience, wins instantly."
 source: "[[Start a One-Person AI Business in 2026 (Full Playbook)]]"
 source_url: "https://www.youtube.com/watch?v=VDROpRg0zV8&t=1592"
-image: ""
+image: "[[smell something from a mile away.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.324Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

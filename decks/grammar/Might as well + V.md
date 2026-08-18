@@ -10,9 +10,9 @@ collocations: ["We're already here, so we might as well finish the whole setup",
 quote: "Since we're already designing, I might as well show you how to create a product mock-up, too."
 source: "[[Easiest Way To Start Print On Demand From $0 In 2026]]"
 source_url: "https://www.youtube.com/watch?v=XFGOEaGokaU&t=533s"
-image: ""
+image: "[[Might as well + V.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.312Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

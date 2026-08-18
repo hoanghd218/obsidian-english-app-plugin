@@ -11,9 +11,9 @@ forms: ["signal-to-noise ratios"]
 quote: "Let's say you make 100 piece of content, and 30 of them are valuable for the viewer. That is a 30 to 70 signal-to-noise ratio."
 source: "[[How to Build an Audience That's Obsessed With You (The Power of Suggestion)]]"
 source_url: "https://www.youtube.com/watch?v=cuVyTmbOZjk&t=221"
-image: ""
+image: "[[signal-to-noise ratio.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.309Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

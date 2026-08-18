@@ -11,9 +11,9 @@ forms: ["walks someone through","walked someone through","walking someone throug
 quote: "Walk me through how to create it from scratch and then show me what some of the amazing AI features are that are driving it."
 source: "[[Nas Daily's AI Turns One Photo Into a Profitable Business]]"
 source_url: "https://www.youtube.com/watch?v=wAPEzRe4rPM&t=110"
-image: ""
+image: "[[walk someone through.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.330Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

@@ -15,18 +15,18 @@ forms: ["rolls in","rolled in","rolling in"]
 quote: Most beginners think print on demand is just uploading a design on a product, putting it for sale, and waiting for the money to roll in. That's a lie, and it's why most fail.
 source: "[[Easiest Way To Start Print On Demand From $0 In 2026]]"
 source_url: https://www.youtube.com/watch?v=XFGOEaGokaU&t=0
-image: ""
+image: "[[roll in.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.329Z"
-srs_stability: 0
-srs_difficulty: 0
+srs_due: 2026-08-18T12:34:56.079Z
+srs_stability: 2.3065
+srs_difficulty: 2.1181
 srs_elapsed_days: 0
 srs_scheduled_days: 0
-srs_reps: 0
+srs_reps: 1
 srs_lapses: 0
-srs_learning_steps: 0
-srs_state: 0
-srs_last_review: ""
+srs_learning_steps: 1
+srs_state: 1
+srs_last_review: 2026-08-18T12:24:56.079Z
 ---
 
 > [!quote] Ngữ cảnh

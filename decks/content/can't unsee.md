@@ -11,9 +11,9 @@ forms: ["couldn't unsee"]
 quote: "Not because you told them they were wrong, but because you introduced a new way of thinking that they can't unsee."
 source: "[[How to Build an Audience That's Obsessed With You (The Power of Suggestion)]]"
 source_url: "https://www.youtube.com/watch?v=cuVyTmbOZjk&t=540"
-image: ""
+image: "[[can't unsee.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.305Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

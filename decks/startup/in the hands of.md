@@ -11,9 +11,9 @@ forms: []
 quote: "Can I pick whether to approve the ads before they go out or is it all in the hands of the AI?"
 source: "[[Nas Daily's AI Turns One Photo Into a Profitable Business]]"
 source_url: "https://www.youtube.com/watch?v=wAPEzRe4rPM&t=968"
-image: ""
+image: "[[in the hands of.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.329Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

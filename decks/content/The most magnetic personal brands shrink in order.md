@@ -10,9 +10,9 @@ collocations: ["shrink in order to grow", "become more valuable for fewer people
 quote: "The most magnetic personal brands shrink in order to grow. They become more valuable for fewer people first."
 source: "[[How To Build a Personal Brand That’s Magnetic As F*ck]]"
 source_url: "https://www.youtube.com/watch?v=xw_hhw1V1A8&t=315"
-image: ""
+image: "[[The most magnetic personal brands shrink in order.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.304Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

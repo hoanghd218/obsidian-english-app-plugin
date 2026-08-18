@@ -11,9 +11,9 @@ forms: ["sits on the sidelines","sat on the sidelines","sitting on the sidelines
 quote: "So some people think we're sitting on the sidelines when we haven't even been invited to the game yet."
 source: "[[How To Explain Anything To Anyone (The 4MAT Method)]]"
 source_url: "https://www.youtube.com/watch?v=YZjWuFVSjjM&t=446"
-image: ""
+image: "[[sit on the sidelines.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.324Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

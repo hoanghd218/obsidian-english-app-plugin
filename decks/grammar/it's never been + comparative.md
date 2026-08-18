@@ -10,9 +10,9 @@ collocations: ["It's never been easier to start an online business", "It's never
 quote: "From AI agents to live stream clip farms, it's never been harder to figure out the perfect marketing strategy for a specific business or personal brand."
 source: "[[The NEW Way to WIN on Social Media in 2026]]"
 source_url: "https://www.youtube.com/watch?v=ImzoNTrgvFg"
-image: ""
+image: "[[it's never been + comparative.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.313Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

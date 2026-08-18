@@ -11,9 +11,9 @@ forms: []
 quote: "All right, now I want to get into the meat and potatoes. This is what I like to call Callaway's Internet Money Machine Playbook."
 source: "[[How to Get Rich on Social Media (Without Luck, Time, or Being a Genius)]]"
 source_url: "https://www.youtube.com/watch?v=Lf7ZXu4WiUs&t=148"
-image: ""
+image: "[[meat and potatoes.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.321Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

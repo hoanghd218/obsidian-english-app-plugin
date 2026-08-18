@@ -10,9 +10,9 @@ collocations: ["free up human creativity", "AI-enabled creativity", "free up you
 quote: "It's not that AI is going to remove human creativity, it's that it frees up human creativity."
 source: "[[Copy This System, It’ll Blow Up Your Social Media]]"
 source_url: "https://www.youtube.com/watch?v=B9l9TRhu5Vw&t=1593"
-image: ""
+image: "[[It's not that AI is going to remove.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.303Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

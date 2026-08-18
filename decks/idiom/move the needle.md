@@ -11,9 +11,9 @@ forms: ["moves the needle","moved the needle","moving the needle"]
 quote: "that might get views because people are laughing, but it wouldn't actually move the needle towards conversion because the buyer wouldn't know how your solution solves their problem."
 source: "[[How to WIN on Social Media as a Business Owner in 2026 (Nobody Teaches this)]]"
 source_url: "https://www.youtube.com/watch?v=SnUZdT3EpPg&t=629"
-image: ""
+image: "[[move the needle.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.321Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

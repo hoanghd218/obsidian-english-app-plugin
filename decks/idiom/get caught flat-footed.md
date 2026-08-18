@@ -11,9 +11,9 @@ forms: ["gets caught flat-footed","got caught flat-footed","getting caught flat-
 quote: "Now your brain is paying more attention to the story than it was before cuz you don't want to get caught flat-footed making a mistake again."
 source: "[[The Neuroscience of Addictive Storytelling (And How to Master It)]]"
 source_url: "https://www.youtube.com/watch?v=KyC8r-zitVE&t=695"
-image: ""
+image: "[[get caught flat-footed.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.318Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

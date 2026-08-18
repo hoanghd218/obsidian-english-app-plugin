@@ -11,9 +11,9 @@ forms: ["comes full circle","came full circle","coming full circle"]
 quote: "This quadrant brings the learning journey full circle, returning to the creative and intuitive right brain."
 source: "[[The 4MAT Framework]]"
 source_url: "https://www.davidhodder.com/the-4mat-framework/"
-image: ""
+image: "[[come full circle.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.316Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

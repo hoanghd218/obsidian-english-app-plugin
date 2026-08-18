@@ -10,9 +10,9 @@ collocations: ["We could have lost the whole account if she hadn't called", "Who
 quote: "Who could have seen that coming based on the unicycle and the woods? It just doesn't make sense to have those details come next."
 source: "[[Storytelling Is Easier Than You Think]]"
 source_url: "https://www.youtube.com/watch?v=SDHKQbKC7gA&t=487"
-image: ""
+image: "[[could have + V3.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.313Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

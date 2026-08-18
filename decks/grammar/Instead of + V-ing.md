@@ -10,9 +10,9 @@ collocations: ["Instead of chasing every trend, double down on what already work
 quote: "Instead of optimizing your content for pure quantity of information, you should optimize for the speed of how fast you can lock in one core learning."
 source: "[[Everything you know about content is (probably) wrong]]"
 source_url: "https://www.youtube.com/watch?v=acEJRhZBSVk&t=68s"
-image: ""
+image: "[[Instead of + V-ing.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.311Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

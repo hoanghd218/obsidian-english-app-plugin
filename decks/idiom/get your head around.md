@@ -11,9 +11,9 @@ forms: ["got your head around","getting your head around"]
 quote: "Now, of course, the final question for you as the viewer after watching this playbook and starting to get your head around these six words is this."
 source: "[[The ONLY 6 Words You Need to Hook ANY Viewer]]"
 source_url: "https://www.youtube.com/watch?v=S9FlxFv9dxg&t=777"
-image: ""
+image: "[[get your head around.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.319Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

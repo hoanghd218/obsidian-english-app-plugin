@@ -11,9 +11,9 @@ forms: ["stops the scroll","stopped the scroll","stopping the scroll"]
 quote: "If you can understand these six words and why they work so well to stop the scroll, you can essentially become a master of content psychology overnight."
 source: "[[The ONLY 6 Words You Need to Hook ANY Viewer]]"
 source_url: "https://www.youtube.com/watch?v=S9FlxFv9dxg&t=11"
-image: ""
+image: "[[stop the scroll.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.309Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

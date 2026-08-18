@@ -11,9 +11,9 @@ forms: ["sits on top of","sat on top of","sitting on top of"]
 quote: "There's one called SEO Plan that sits on top of everything else. When you run it, it figures out which other skills it needs, runs them, and builds the output from what comes back."
 source: "[[We Built 24 Claude Skills That Save Hours of SEO Work]]"
 source_url: "https://www.youtube.com/watch?v=0aB3nMr-98M&t=84"
-image: ""
+image: "[[sit on top of.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.154Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

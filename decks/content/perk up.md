@@ -11,9 +11,9 @@ forms: ["perks up","perked up","perking up"]
 quote: "And the reason you perked up is not that the video painted your problem that you have trouble sleeping. It's that they painted the dream outcome that you want"
 source: "[[Copy This Hook, It'll Blow Up Your Social Media]]"
 source_url: "https://www.youtube.com/watch?v=8VolLwMCLuY&t=184"
-image: ""
+image: "[[perk up.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.308Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

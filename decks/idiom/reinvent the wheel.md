@@ -11,9 +11,9 @@ forms: ["reinvents the wheel","reinvented the wheel","reinventing the wheel"]
 quote: "You don't really need to do anything else. Don't make this process harder than it has to be. The pros do not reinvent the wheel."
 source: "[[How to Create a Killer Hook (Impossible to Skip)]]"
 source_url: "https://www.youtube.com/watch?v=onQoYdxWXdA&t=1055"
-image: ""
+image: "[[reinvent the wheel.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.323Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

@@ -10,9 +10,9 @@ collocations: ["If I were building this business today, I would focus on one cha
 quote: "If I were starting from scratch, here's exactly what I would do to turn my content into cash flow in three simple steps."
 source: "[[Copy This Hook, It'll Blow Up Your Social Media]]"
 source_url: "https://www.youtube.com/watch?v=8VolLwMCLuY&t=499s"
-image: ""
+image: "[[If I were + V-ing (second conditional).png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.311Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

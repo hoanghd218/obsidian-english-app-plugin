@@ -11,9 +11,9 @@ forms: ["smooths over","smoothed over","smoothing over"]
 quote: "If those numbers are flat and you're hoping the money will fix them up, it won't. The new cash smooths over the same flat line for a while."
 source: "[[The New Era of Startup Funding Has Just Begun]]"
 source_url: "https://www.youtube.com/watch?v=P1Xsgdc6P_0&t=579"
-image: ""
+image: "[[smooth over.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.330Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

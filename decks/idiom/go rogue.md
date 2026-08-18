@@ -11,9 +11,9 @@ forms: ["goes rogue","went rogue","gone rogue","going rogue"]
 quote: "So, if my agent goes rogue or somebody gets my key and I forget to delete it, they can only spend $30 using this key."
 source: "[[The EXACT System to Build AI Employees with Hermes Agent]]"
 source_url: "https://www.youtube.com/watch?v=KmJ-PUsxMHo&t=529"
-image: ""
+image: "[[go rogue.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.319Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

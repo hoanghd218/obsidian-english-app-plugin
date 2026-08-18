@@ -11,9 +11,9 @@ forms: []
 quote: "Now, I will admit it's not all roses and rainbows."
 source: "[[Everything you know about content is (probably) wrong]]"
 source_url: "https://www.youtube.com/watch?v=acEJRhZBSVk&t=679"
-image: ""
+image: "[[not all roses and rainbows.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.321Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

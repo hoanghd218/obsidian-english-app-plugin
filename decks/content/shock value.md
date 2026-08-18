@@ -11,9 +11,9 @@ forms: []
 quote: "Now, shock value is the distance between what someone already knows about a topic and what you tell them in the video."
 source: "[[How to Script Viral Videos 10x Faster (Nobody Teaches This)]]"
 source_url: "https://www.youtube.com/watch?v=_Z11mjFh2zY&t=181"
-image: ""
+image: "[[shock value.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.309Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

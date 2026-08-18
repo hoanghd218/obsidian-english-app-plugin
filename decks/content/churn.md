@@ -11,9 +11,9 @@ forms: ["churns","churned","churning"]
 quote: "And that confusion is really why viewers don't hook and they churn. They don't churn because they don't like you. They churn because the story you start telling stops making sense and they can't follow it."
 source: "[[How to Create a Killer Hook (Impossible to Skip)]]"
 source_url: "https://www.youtube.com/watch?v=onQoYdxWXdA&t=111"
-image: ""
+image: "[[churn.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.305Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

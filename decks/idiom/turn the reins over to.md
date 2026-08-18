@@ -11,9 +11,9 @@ forms: ["turns the reins over to","turned the reins over to","turning the reins 
 quote: "In the final step, you turn the reins over to them. You provide blank copies of the budgeting worksheet"
 source: "[[The 4MAT Framework]]"
 source_url: "https://www.davidhodder.com/the-4mat-framework/"
-image: ""
+image: "[[turn the reins over to.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.326Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

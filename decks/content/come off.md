@@ -11,9 +11,9 @@ forms: ["comes off","came off","coming off"]
 quote: "The number one reason you don't come off well is that you're in a heightened state of anxiety whenever you press record and sit in front of a camera."
 source: "[[Speaking Like This Gives You an Unfair Advantage on Social Media]]"
 source_url: "https://www.youtube.com/watch?v=ZM3elcBE48I&t=56"
-image: ""
+image: "[[come off.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.305Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

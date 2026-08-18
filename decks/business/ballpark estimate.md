@@ -11,9 +11,9 @@ forms: ["ballpark estimates"]
 quote: "in order for me to give you an accurate ballpark estimate of what this is going to cost, I really need to understand more in depth the complexity of the system"
 source: "[[18 Months of Pricing AI Automations in 21 Mins]]"
 source_url: "https://www.youtube.com/watch?v=Lg5TYWPSg6M&t=90"
-image: ""
+image: "[[ballpark estimate.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.155Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

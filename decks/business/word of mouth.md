@@ -11,9 +11,9 @@ forms: ["word-of-mouth"]
 quote: "They just live off of word of mouth referrals and some Google clicks, organic Google clicks, which is great"
 source: "[[Alex Hormozi wouldn't start an AI Agency, so why would you?]]"
 source_url: "https://www.youtube.com/watch?v=SUKqhX9vUoM&t=470"
-image: ""
+image: "[[word of mouth.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.156Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

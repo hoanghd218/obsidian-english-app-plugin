@@ -11,9 +11,9 @@ forms: ["cuts the fluff","cutting the fluff"]
 quote: "And this means really focusing on cutting the fluff at the beginning of your content to bring the value closer to the top."
 source: "[[Everything you know about content is (probably) wrong]]"
 source_url: "https://www.youtube.com/watch?v=acEJRhZBSVk&t=93"
-image: ""
+image: "[[cut the fluff.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.306Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

@@ -10,9 +10,9 @@ collocations: ["Given enough time, any team can learn this system", "Written in 
 quote: "Left to its own devices, Claude builds pretty much AI slop for graphics."
 source: "[[My Claude Code Edits FULL Videos in One Shot (Here's How)]]"
 source_url: "https://www.youtube.com/watch?v=mlhhZSHIS-w&t=882"
-image: ""
+image: "[[past participle clause.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.314Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

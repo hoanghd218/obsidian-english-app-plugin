@@ -11,9 +11,9 @@ forms: []
 quote: "And this happens because viewers hear that, \"If you want more money,\" and they think, \"It really can't be that easy, so there must be some snake oil thing going on.\""
 source: "[[If You Don't Understand Psychology, You Don't Understand Social Media]]"
 source_url: "https://www.youtube.com/watch?v=7pCEsr-0KIw&t=884"
-image: ""
+image: "[[snake oil.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.324Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

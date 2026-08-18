@@ -11,9 +11,9 @@ forms: ["forks in the road"]
 quote: "And when they hear this, their brain hits a fork in the road and they struggle to decide whether or not what you say is for them."
 source: "[[Say This in Your Videos, It’ll Improve Your Storytelling by 10x]]"
 source_url: "https://www.youtube.com/watch?v=pcnrzBwoVUk&t=205"
-image: ""
+image: "[[a fork in the road.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.315Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

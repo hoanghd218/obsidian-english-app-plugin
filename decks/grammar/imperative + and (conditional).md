@@ -10,9 +10,9 @@ collocations: ["Miss one payment and the interest rate doubles", "Ship a great p
 quote: "Break them and the lender gets rights your investors never had up to demanding the whole loan back early."
 source: "[[The New Era of Startup Funding Has Just Begun]]"
 source_url: "https://www.youtube.com/watch?v=P1Xsgdc6P_0&t=410"
-image: ""
+image: "[[imperative + and (conditional).png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.313Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

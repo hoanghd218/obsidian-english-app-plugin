@@ -10,9 +10,9 @@ collocations: ["Hire people who ask questions, who admit mistakes, and who finis
 quote: "If you find a girl who believes in your dreams more than you do, who makes you want to be a better man, who's willing to work alongside you to get there, and is grateful for whatever you have right now today, no matter where you're at, just marry her."
 source: "[[The ONLY 6 Words You Need to Hook ANY Viewer]]"
 source_url: "https://www.youtube.com/watch?v=S9FlxFv9dxg&t=620"
-image: ""
+image: "[[parallel relative clauses.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.314Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

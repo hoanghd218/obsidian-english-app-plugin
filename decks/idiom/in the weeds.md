@@ -11,9 +11,9 @@ forms: []
 quote: "So, here's the major tactic for you, not to get too in the weeds."
 source: "[[Say This in Your Videos, It’ll Improve Your Storytelling by 10x]]"
 source_url: "https://www.youtube.com/watch?v=pcnrzBwoVUk&t=820"
-image: ""
+image: "[[in the weeds.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.320Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

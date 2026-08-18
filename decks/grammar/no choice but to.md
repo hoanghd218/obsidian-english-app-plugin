@@ -10,9 +10,9 @@ collocations: ["With the deadline moved up, we had no choice but to cut two feat
 quote: "It wasn't because the storyteller was so gifted, it wasn't black magic, it was this addiction loop running on repeat, hacking your prediction system so effectively that you had no choice but to keep watching."
 source: "[[The Neuroscience of Addictive Storytelling (And How to Master It)]]"
 source_url: "https://www.youtube.com/watch?v=KyC8r-zitVE&t=387"
-image: ""
+image: "[[no choice but to.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.314Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

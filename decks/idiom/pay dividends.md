@@ -11,9 +11,9 @@ forms: ["pays dividends","paid dividends","paying dividends"]
 quote: "I will say you know the work I put in over you know the last 20 years on X like it really pays dividends"
 source: "[[Most Valuable Skill of 2026 Managing AI Agents]]"
 source_url: "https://www.youtube.com/watch?v=vJEy3nP2_C8&t=2504"
-image: ""
+image: "[[pay dividends.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.322Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

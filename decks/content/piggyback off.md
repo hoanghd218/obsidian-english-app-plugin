@@ -11,9 +11,9 @@ forms: ["piggybacks off","piggybacked off","piggybacking off"]
 quote: "The indirect proof way would be to piggyback off of someone that does have direct proof."
 source: "[[If You Don't Understand Psychology, You Don't Understand Social Media]]"
 source_url: "https://www.youtube.com/watch?v=7pCEsr-0KIw&t=754"
-image: ""
+image: "[[piggyback off.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.308Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

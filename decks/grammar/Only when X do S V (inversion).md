@@ -10,9 +10,9 @@ collocations: ["Only when the offer is clear do the ads start to work", "Only wh
 quote: "Only when that first content type is figured out and systematized do they pick their head up and look to add something else to the plate."
 source: "[[How ‘Regular’ People Are Making Millions From Social Media]]"
 source_url: "https://www.youtube.com/watch?v=bqzd0h0gmU0&t=85s"
-image: ""
+image: "[[Only when X do S V (inversion).png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.312Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

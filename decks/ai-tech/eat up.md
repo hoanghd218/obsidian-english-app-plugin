@@ -11,9 +11,9 @@ forms: ["eats up","ate up","eaten up","eating up"]
 quote: "it's completely down to you how big of a problem are you going to assign these models to because they will eat up pretty much anything that you throw at them, at least from what I found."
 source: "[[How I manage 250+ AI Agents for my Hedge Fund]]"
 source_url: "https://www.youtube.com/watch?v=BLMkrw1W6No&t=1529"
-image: ""
+image: "[[eat up.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.152Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

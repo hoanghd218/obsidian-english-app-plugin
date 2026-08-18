@@ -11,9 +11,9 @@ forms: []
 quote: "Coaches who have been in the trenches, building shops, taking the course and can actually help you implement everything that's in this course to achieve success."
 source: "[[How To Start Print On Demand from Scratch in 2026]]"
 source_url: "https://www.youtube.com/watch?v=guCizDFyZh0&t=377"
-image: ""
+image: "[[in the trenches.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.320Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

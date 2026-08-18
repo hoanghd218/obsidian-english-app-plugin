@@ -11,9 +11,9 @@ forms: ["cuts to the chase","cutting to the chase"]
 quote: "And let's just cut to the chase. The only way you're going to make a million dollars is if you have strong alignment between your audience, your offer, and your content."
 source: "[[How to Get Rich on Social Media (Without Luck, Time, or Being a Genius)]]"
 source_url: "https://www.youtube.com/watch?v=Lf7ZXu4WiUs&t=148"
-image: ""
+image: "[[cut to the chase.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.317Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

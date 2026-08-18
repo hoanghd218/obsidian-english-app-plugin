@@ -11,9 +11,9 @@ forms: ["pales in comparison","paled in comparison","paling in comparison"]
 quote: "no matter what free videos you've seen before, this or any paid courses you've taken, they'll pale in comparison to what we've put together for you today."
 source: "[[How To Start Print On Demand from Scratch in 2026]]"
 source_url: "https://www.youtube.com/watch?v=guCizDFyZh0&t=3"
-image: ""
+image: "[[pale in comparison.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.329Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

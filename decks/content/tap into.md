@@ -11,9 +11,9 @@ forms: ["taps into","tapped into","tapping into"]
 quote: "This quadrant taps into the right brain’s creative and emotional centres."
 source: "[[The 4MAT Framework]]"
 source_url: "https://www.davidhodder.com/the-4mat-framework/"
-image: ""
+image: "[[tap into.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.310Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

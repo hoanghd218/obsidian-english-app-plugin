@@ -11,9 +11,9 @@ forms: ["throwing things at the wall and seeing what sticks"]
 quote: "They tried a bunch of stuff, threw it at the wall, something stickked, they doubled down a couple times, realized it was a pattern that it was working"
 source: "[[I Studied 10,000+ Videos, These Mistakes Are Killing Your Content]]"
 source_url: "https://www.youtube.com/watch?v=tVZOS5Z019U&t=1183"
-image: ""
+image: "[[throw things at the wall and see what sticks.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.326Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

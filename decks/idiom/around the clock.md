@@ -11,9 +11,9 @@ forms: []
 quote: "you have the ability to create multiple digital employees that work for you 24/7 around the clock and not only work for you 24/7, but get better over time."
 source: "[[The EXACT System to Build AI Employees with Hermes Agent]]"
 source_url: "https://www.youtube.com/watch?v=KmJ-PUsxMHo&t=0"
-image: ""
+image: "[[around the clock.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.315Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

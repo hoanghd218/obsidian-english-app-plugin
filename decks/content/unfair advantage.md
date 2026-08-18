@@ -11,9 +11,9 @@ forms: ["unfair advantages"]
 quote: "If they feel like the character is super different from them or had an unfair advantage, some condition that they cannot have, they will dismiss the dream outcome."
 source: "[[Copy This Hook, It'll Blow Up Your Social Media]]"
 source_url: "https://www.youtube.com/watch?v=8VolLwMCLuY&t=127"
-image: ""
+image: "[[unfair advantage.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.310Z"
+srs_due: "2026-08-18T00:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

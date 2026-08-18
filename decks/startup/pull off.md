@@ -11,9 +11,9 @@ forms: ["pulls off","pulled off","pulling off"]
 quote: "The founders who pull this off already have customers who stay and renew. So, when a big customer says yes, the founder asks for a whole contract up front instead of month by month."
 source: "[[The New Era of Startup Funding Has Just Begun]]"
 source_url: "https://www.youtube.com/watch?v=P1Xsgdc6P_0&t=268"
-image: ""
+image: "[[pull off.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.329Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

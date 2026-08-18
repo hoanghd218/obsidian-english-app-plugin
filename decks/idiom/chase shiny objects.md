@@ -11,9 +11,9 @@ forms: ["chases shiny objects","chased shiny objects","chasing shiny objects"]
 quote: "But, the reason you haven't is because you're trying to chase these shiny objects that just print all this money in a weekend."
 source: "[[How ‘Regular’ People Are Making Millions From Social Media]]"
 source_url: "https://www.youtube.com/watch?v=bqzd0h0gmU0&t=1170"
-image: ""
+image: "[[chase shiny objects.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.316Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

@@ -14,18 +14,18 @@ forms: ["side hustles"]
 quote: give you the actual skills that you need to start this as a side hustle and scale it into a full business.
 source: "[[How To Start Print On Demand from Scratch in 2026]]"
 source_url: https://www.youtube.com/watch?v=guCizDFyZh0&t=144
-image: ""
+image: "[[side hustle.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.330Z"
-srs_stability: 0
-srs_difficulty: 0
+srs_due: 2026-08-18T12:49:31.599Z
+srs_stability: 2.3065
+srs_difficulty: 2.1181
 srs_elapsed_days: 0
 srs_scheduled_days: 0
-srs_reps: 0
+srs_reps: 1
 srs_lapses: 0
-srs_learning_steps: 0
-srs_state: 0
-srs_last_review: ""
+srs_learning_steps: 1
+srs_state: 1
+srs_last_review: 2026-08-18T12:39:31.599Z
 ---
 
 > [!quote] Ngữ cảnh

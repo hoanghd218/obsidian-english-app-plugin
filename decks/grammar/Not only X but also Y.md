@@ -10,9 +10,9 @@ collocations: ["This tool helps you not only to save time but also to catch erro
 quote: "The only thing I ask is that you do at least consider using these links not only to get the discounts for yourself, but also to support me in this free course."
 source: "[[How To Start Print On Demand from Scratch in 2026]]"
 source_url: "https://www.youtube.com/watch?v=guCizDFyZh0&t=557s"
-image: ""
+image: "[[Not only X but also Y.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.312Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

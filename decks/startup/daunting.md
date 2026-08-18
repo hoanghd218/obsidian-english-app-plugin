@@ -11,9 +11,9 @@ forms: []
 quote: "And so although it can feel very daunting, it's ten hours of material."
 source: "[[How To Start Print On Demand from Scratch in 2026]]"
 source_url: "https://www.youtube.com/watch?v=guCizDFyZh0&t=985"
-image: ""
+image: "[[daunting.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.328Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

@@ -10,9 +10,9 @@ collocations: ["All you have to do is ask better questions", "All she had to do 
 quote: "If you want to hijack the algorithm and make it push your video more, all you have to do is help it make better matches with your content."
 source: "[[How Social Media Algorithms Actually Work (And How to Beat Them)]]"
 source_url: "https://www.youtube.com/watch?v=8cQidXgtGmU&t=75s"
-image: ""
+image: "[[All you have to do is + V.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.311Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

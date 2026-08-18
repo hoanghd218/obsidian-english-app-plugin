@@ -11,9 +11,9 @@ forms: ["strikes gold","struck gold","striking gold"]
 quote: "Once you have something working, run it over and over and over and over until it stops working. If you strike gold, it'll keep working."
 source: "[[I Studied 10,000+ Videos, These Mistakes Are Killing Your Content]]"
 source_url: "https://www.youtube.com/watch?v=tVZOS5Z019U&t=1378"
-image: ""
+image: "[[strike gold.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.325Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

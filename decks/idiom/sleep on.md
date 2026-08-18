@@ -11,9 +11,9 @@ forms: ["sleeps on","slept on","sleeping on"]
 quote: "And again, while this is a smaller thing, don't sleep on it. It's extra surface area that could help retain the viewer."
 source: "[[Why The Smartest Creators I Know Focus on Packaging, Not Content]]"
 source_url: "https://www.youtube.com/watch?v=jZCupmAOMAE&t=1391"
-image: ""
+image: "[[sleep on.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.324Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

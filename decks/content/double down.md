@@ -11,9 +11,9 @@ forms: ["doubles down","doubled down","doubling down"]
 quote: "To double down on this relatability, to make sure it feels constraint-free, he said, 'I got this result by literally doing nothing.'"
 source: "[[Copy This Hook, It'll Blow Up Your Social Media]]"
 source_url: "https://www.youtube.com/watch?v=8VolLwMCLuY&t=299"
-image: ""
+image: "[[double down.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.307Z"
+srs_due: "2026-08-18T00:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

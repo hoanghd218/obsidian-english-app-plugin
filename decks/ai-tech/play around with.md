@@ -11,9 +11,9 @@ forms: ["plays around with","played around with","playing around with"]
 quote: "first of all, we can see the parallax. We can play around with it in tweaks. So we can use like two and we can see the movement uh faster."
 source: "[[NO MORE AI SLOP  Claude Design Full Tutorial]]"
 source_url: "https://www.youtube.com/watch?v=T96O8dTzi2Q&t=490"
-image: ""
+image: "[[play around with.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.153Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

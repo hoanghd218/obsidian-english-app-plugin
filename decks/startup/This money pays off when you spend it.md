@@ -10,9 +10,9 @@ collocations: ["pay off (sinh lời, đem lại kết quả)", "spend it on proo
 quote: "This money pays off when you spend it on proof, and gets expensive when you spend it on hope. And you already know which one you are."
 source: "[[The New Era of Startup Funding Has Just Begun]]"
 source_url: "https://www.youtube.com/watch?v=P1Xsgdc6P_0&t=608"
-image: ""
+image: "[[This money pays off when you spend it.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.327Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

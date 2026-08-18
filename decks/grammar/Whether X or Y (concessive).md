@@ -10,9 +10,9 @@ collocations: ["Whether you win or lose, you'll walk away with data", "Whether i
 quote: "Whether you're a creator or a brand, these four questions are going to be on your mind every time you're trying to think through how to tell a story."
 source: "[[How to Script Viral Videos 10x Faster (Nobody Teaches This)]]"
 source_url: "https://www.youtube.com/watch?v=_Z11mjFh2zY&t=90s"
-image: ""
+image: "[[Whether X or Y (concessive).png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.313Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

@@ -11,9 +11,9 @@ forms: ["boils the ocean","boiled the ocean","boiling the ocean"]
 quote: "The regular business owners that are making millions from social media, they aren't trying to boil the ocean. They focus on one spot obsessively until they crack it."
 source: "[[How ‘Regular’ People Are Making Millions From Social Media]]"
 source_url: "https://www.youtube.com/watch?v=bqzd0h0gmU0&t=196"
-image: ""
+image: "[[boil the ocean.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.315Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

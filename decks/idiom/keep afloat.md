@@ -11,9 +11,9 @@ forms: ["keeps afloat","kept afloat","keeping afloat"]
 quote: "Brands can make more money over time because you're not relying on trends to keep you afloat."
 source: "[[Easiest Way To Start Print On Demand From $0 In 2026]]"
 source_url: "https://www.youtube.com/watch?v=XFGOEaGokaU&t=92"
-image: ""
+image: "[[keep afloat.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.320Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

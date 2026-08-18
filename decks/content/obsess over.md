@@ -11,9 +11,9 @@ forms: ["obsesses over","obsessed over","obsessing over"]
 quote: "If your content is underperforming, the main reason why that's happening is the packaging. This is the number one area all my smartest creator friends obsess over."
 source: "[[Why The Smartest Creators I Know Focus on Packaging, Not Content]]"
 source_url: "https://www.youtube.com/watch?v=jZCupmAOMAE&t=0"
-image: ""
+image: "[[obsess over.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.308Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

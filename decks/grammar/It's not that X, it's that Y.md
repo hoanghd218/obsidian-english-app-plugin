@@ -10,9 +10,9 @@ collocations: ["It's not that I don't trust you, it's that I need more data", "I
 quote: "It's not that AI is going to remove human creativity, it's that it frees up human creativity."
 source: "[[Copy This System, It’ll Blow Up Your Social Media]]"
 source_url: "https://www.youtube.com/watch?v=B9l9TRhu5Vw&t=1593s"
-image: ""
+image: "[[It's not that X, it's that Y.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.311Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

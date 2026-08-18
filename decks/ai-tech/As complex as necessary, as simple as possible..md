@@ -10,9 +10,9 @@ collocations: ["avoid over-engineering", "unnecessary complexity"]
 quote: "As complex as necessary, as simple as possible. Do not add unnecessary complexity into your code base, into your systems, into your business, into your life, into your fitness."
 source: "[[How I manage 250+ AI Agents for my Hedge Fund]]"
 source_url: "https://www.youtube.com/watch?v=BLMkrw1W6No&t=1393"
-image: ""
+image: "[[As complex as necessary, as simple as possible..png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.151Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

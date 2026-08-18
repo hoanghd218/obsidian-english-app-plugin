@@ -10,9 +10,9 @@ collocations: ["the anticipation is the high", "prediction error triggers the la
 quote: "Dopamine is not the pleasure chemical, it's the prediction chemical."
 source: "[[The Neuroscience of Addictive Storytelling (And How to Master It)]]"
 source_url: "https://www.youtube.com/watch?v=KyC8r-zitVE&t=71"
-image: ""
+image: "[[Dopamine is not the pleasure chemical, it's the.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.303Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

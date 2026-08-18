@@ -11,9 +11,9 @@ forms: ["throw out","throws out","threw out","thrown out","throwing out"]
 quote: "I've undercharged, I've underscoped, and I've just thrown out random numbers that were kind of a guess and I couldn't explain when someone actually asked me"
 source: "[[18 Months of Pricing AI Automations in 21 Mins]]"
 source_url: "https://www.youtube.com/watch?v=Lg5TYWPSg6M&t=0"
-image: ""
+image: "[[throw out (a number).png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.156Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

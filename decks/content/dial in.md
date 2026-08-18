@@ -11,9 +11,9 @@ forms: ["dials in","dialed in","dialing in"]
 quote: "Most business owners understand this deeply. And so, before they make content, they focus on dialing in a validated offer with proof."
 source: "[[How ‘Regular’ People Are Making Millions From Social Media]]"
 source_url: "https://www.youtube.com/watch?v=bqzd0h0gmU0&t=408"
-image: ""
+image: "[[dial in.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.306Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

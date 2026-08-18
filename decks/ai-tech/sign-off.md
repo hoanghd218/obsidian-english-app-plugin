@@ -11,9 +11,9 @@ forms: ["sign-offs"]
 quote: "there's certain things I will allow them to merge autonomously, and then there's other things that need explicit sign-off and approval from me."
 source: "[[How I manage 250+ AI Agents for my Hedge Fund]]"
 source_url: "https://www.youtube.com/watch?v=BLMkrw1W6No&t=620"
-image: ""
+image: "[[sign-off.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.154Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

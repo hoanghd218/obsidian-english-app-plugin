@@ -11,9 +11,9 @@ forms: ["spreads too thin","spreading too thin"]
 quote: "All right, the second major social media mistake that I see is people that get spread too thin way too early. I call this failure by suffocation."
 source: "[[I Studied 10,000+ Videos, These Mistakes Are Killing Your Content]]"
 source_url: "https://www.youtube.com/watch?v=tVZOS5Z019U&t=278"
-image: ""
+image: "[[spread too thin.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.325Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

@@ -10,9 +10,9 @@ collocations: ["Nobody read the report, so we might as well have skipped writing
 quote: "For all the gifts on the table you don't pick up, they might as well have been empty boxes on the inside."
 source: "[[Why The Smartest Creators I Know Focus on Packaging, Not Content]]"
 source_url: "https://www.youtube.com/watch?v=jZCupmAOMAE&t=132"
-image: ""
+image: "[[might as well have + V3.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.313Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

@@ -11,9 +11,9 @@ forms: ["goes against the grain","went against the grain","gone against the grai
 quote: "Contrarian hooks are great when you have a strong take that goes against the grain and you're willing to frame the entire video around it."
 source: "[[How to Script Viral Videos 10x Faster (Nobody Teaches This)]]"
 source_url: "https://www.youtube.com/watch?v=_Z11mjFh2zY&t=612"
-image: ""
+image: "[[go against the grain.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.319Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

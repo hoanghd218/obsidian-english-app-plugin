@@ -11,9 +11,9 @@ forms: []
 quote: "I'm good to go. Now I can accept payments from every country in the world."
 source: "[[Nas Daily's AI Turns One Photo Into a Profitable Business]]"
 source_url: "https://www.youtube.com/watch?v=wAPEzRe4rPM&t=475"
-image: ""
+image: "[[good to go.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.319Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

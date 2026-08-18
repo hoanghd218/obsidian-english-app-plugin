@@ -10,9 +10,9 @@ collocations: ["I tested five tools, most of which were free", "She manages ten 
 quote: "When you run paid ads, you bring in a whole new crop of viewers to your original organic audience, many of which aren't a perfect exact match to that ideal audience avatar."
 source: "[[I Studied 10,000+ Videos, These Mistakes Are Killing Your Content]]"
 source_url: "https://www.youtube.com/watch?v=tVZOS5Z019U&t=112"
-image: ""
+image: "[[many of which.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.313Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

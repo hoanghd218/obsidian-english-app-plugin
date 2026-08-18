@@ -11,9 +11,9 @@ forms: ["uncharted territories"]
 quote: "We are officially entering uncharted territory for social media and the pace of change is only getting faster."
 source: "[[The NEW Way to WIN on Social Media in 2026]]"
 source_url: "https://www.youtube.com/watch?v=ImzoNTrgvFg&t=0"
-image: ""
+image: "[[uncharted territory.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.326Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

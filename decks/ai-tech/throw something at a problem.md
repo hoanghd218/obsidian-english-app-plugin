@@ -11,9 +11,9 @@ forms: ["throws something at a problem","threw something at a problem","thrown s
 quote: "So, I launch two audit agents on each run. Like, again, you probably could do one. My mindset at the moment is just to throw tokens at problems."
 source: "[[How I manage 250+ AI Agents for my Hedge Fund]]"
 source_url: "https://www.youtube.com/watch?v=BLMkrw1W6No&t=2041"
-image: ""
+image: "[[throw something at a problem.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.154Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

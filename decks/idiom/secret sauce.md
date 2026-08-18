@@ -11,9 +11,9 @@ forms: []
 quote: "Or they're afraid of giving away the secret sauce that makes their paid stuff valuable."
 source: "[[How to Build an Audience That's Obsessed With You (The Power of Suggestion)]]"
 source_url: "https://www.youtube.com/watch?v=cuVyTmbOZjk&t=983"
-image: ""
+image: "[[secret sauce.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.324Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

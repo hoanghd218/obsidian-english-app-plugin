@@ -11,9 +11,9 @@ forms: ["piques someone's interest","piqued someone's interest","piquing someone
 quote: "And if told to the right viewer, that would really peique their interest, exceed their expectations, and make them keep watching."
 source: "[[Storytelling Is Easier Than You Think]]"
 source_url: "https://www.youtube.com/watch?v=SDHKQbKC7gA&t=923"
-image: ""
+image: "[[pique someone's interest.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.309Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

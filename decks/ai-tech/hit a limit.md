@@ -11,9 +11,9 @@ forms: ["hits a limit","hitting a limit"]
 quote: "And here you can see I hit my limit and this sucks."
 source: "[[NO MORE AI SLOP  Claude Design Full Tutorial]]"
 source_url: "https://www.youtube.com/watch?v=T96O8dTzi2Q&t=466"
-image: ""
+image: "[[hit a limit.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.153Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

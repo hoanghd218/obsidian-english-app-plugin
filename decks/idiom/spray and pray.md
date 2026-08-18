@@ -11,9 +11,9 @@ forms: ["spray-and-pray"]
 quote: "typically beginners that are starting out are spraying and praying all over the place, and they don't have this."
 source: "[[How Social Media Algorithms Actually Work (And How to Beat Them)]]"
 source_url: "https://www.youtube.com/watch?v=8cQidXgtGmU&t=512"
-image: ""
+image: "[[spray and pray.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.325Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

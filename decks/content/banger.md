@@ -11,9 +11,9 @@ forms: ["bangers"]
 quote: "It's really just about layering the facts in order, and adding transitions to smooth it out. That's really all you have to do to write a banger script."
 source: "[[How to Script Viral Videos 10x Faster (Nobody Teaches This)]]"
 source_url: "https://www.youtube.com/watch?v=_Z11mjFh2zY&t=1798"
-image: ""
+image: "[[banger.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.304Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

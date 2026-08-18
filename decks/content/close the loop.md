@@ -11,9 +11,9 @@ forms: ["closes the loop","closed the loop","closing the loop"]
 quote: "You don't end it on a cliffhanger. You actually wrap up the loose ends and close the loop nicely."
 source: "[[How to Become a Storytelling Genius (Dopamine Ladders)]]"
 source_url: "https://www.youtube.com/watch?v=jtmstMt4WLc&t=621"
-image: ""
+image: "[[close the loop.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.305Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

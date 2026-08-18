@@ -10,9 +10,9 @@ collocations: ["I'll have my assistant send you the invoice today", "You can hav
 quote: "And so anytime you want to connect a tool, you not only can have Hermes help you through it, but you can tell it to connect the tool for you, which is very, very cool."
 source: "[[The EXACT System to Build AI Employees with Hermes Agent]]"
 source_url: "https://www.youtube.com/watch?v=KmJ-PUsxMHo&t=2580"
-image: ""
+image: "[[have someone do something.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.313Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

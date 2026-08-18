@@ -11,9 +11,9 @@ forms: ["sounds like a broken record","sounded like a broken record","sounding l
 quote: "If you're struggling with this, again, I sound like a broken record. We have a script writer in Sandcastle that'll just write it for you."
 source: "[[How to Create a Killer Hook (Impossible to Skip)]]"
 source_url: "https://www.youtube.com/watch?v=onQoYdxWXdA&t=1177"
-image: ""
+image: "[[sound like a broken record.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.324Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

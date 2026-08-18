@@ -10,9 +10,9 @@ collocations: ["The market changed overnight, which is why we pivoted", "He neve
 quote: "I've been playing around with it, which is why I don't want to open it cuz there's going to be a load of confidential stuff in there."
 source: "[[How I manage 250+ AI Agents for my Hedge Fund]]"
 source_url: "https://www.youtube.com/watch?v=BLMkrw1W6No&t=2591s"
-image: ""
+image: "[[Which is why (sentential relative clause).png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.313Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

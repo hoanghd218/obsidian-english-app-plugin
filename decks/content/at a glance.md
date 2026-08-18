@@ -11,9 +11,9 @@ forms: []
 quote: "The 4MAT Framework at a glance"
 source: "[[The 4MAT Framework]]"
 source_url: "https://www.davidhodder.com/the-4mat-framework/"
-image: ""
+image: "[[at a glance.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.304Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

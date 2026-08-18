@@ -11,9 +11,9 @@ forms: ["walled gardens"]
 quote: "otherwise, you're going to have to build it yourself, which is stupid, or you're going to pay and be locked into, you know, a walled garden."
 source: "[[Most Valuable Skill of 2026 Managing AI Agents]]"
 source_url: "https://www.youtube.com/watch?v=vJEy3nP2_C8&t=2339"
-image: ""
+image: "[[walled garden.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.326Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

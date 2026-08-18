@@ -10,9 +10,9 @@ collocations: ["They stayed not because they had to, but because they wanted to"
 quote: "Not because you told them they were wrong, but because you introduced a new way of thinking that they can't unsee."
 source: "[[How to Build an Audience That's Obsessed With You (The Power of Suggestion)]]"
 source_url: "https://www.youtube.com/watch?v=cuVyTmbOZjk&t=540s"
-image: ""
+image: "[[Not because X, but because Y.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.312Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

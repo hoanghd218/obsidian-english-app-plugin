@@ -10,9 +10,9 @@ collocations: ["The onboarding is so simple that customers finish it in two minu
 quote: "Now, I obviously don't always hit that bar, but what it does is it pulls my floor up so high that I just beat most other people in the category by default."
 source: "[[How To Build a Personal Brand That’s Magnetic As F*ck]]"
 source_url: "https://www.youtube.com/watch?v=xw_hhw1V1A8&t=677s"
-image: ""
+image: "[[So + adjective + that (result).png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.312Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

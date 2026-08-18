@@ -10,9 +10,9 @@ collocations: ["The way you open the meeting sets the tone for everything after"
 quote: "And so the lesson is the way you write the first couple sentences in the hook has to be unmistakably clear and focused on a single subject."
 source: "[[How to Create a Killer Hook (Impossible to Skip)]]"
 source_url: "https://www.youtube.com/watch?v=onQoYdxWXdA&t=111s"
-image: ""
+image: "[[The way + S + V (noun phrase).png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.312Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

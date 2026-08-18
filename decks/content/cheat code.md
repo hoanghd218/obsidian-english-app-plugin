@@ -11,9 +11,9 @@ forms: ["cheat codes"]
 quote: "Now, one cheat code for accomplishing both of these things, the subject and question at the same time, is to just use a question hook."
 source: "[[How to Create a Killer Hook (Impossible to Skip)]]"
 source_url: "https://www.youtube.com/watch?v=onQoYdxWXdA&t=245"
-image: ""
+image: "[[cheat code.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.305Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

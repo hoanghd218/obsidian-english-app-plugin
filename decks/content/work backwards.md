@@ -11,9 +11,9 @@ forms: ["works backwards","worked backwards","working backwards"]
 quote: "I take those interesting facts, the second half of my loop, and I work backwards to figure out what context would I have to provide to a viewer so that when they got to the loop, it connected and everything made sense."
 source: "[[Storytelling Is Easier Than You Think]]"
 source_url: "https://www.youtube.com/watch?v=SDHKQbKC7gA&t=698"
-image: ""
+image: "[[work backwards.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.310Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

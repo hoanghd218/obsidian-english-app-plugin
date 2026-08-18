@@ -11,9 +11,9 @@ forms: ["contrarian takes"]
 quote: "So, first I start with the contrarian take or non-obvious takeaway. And this really is what makes great videos, this piece right here."
 source: "[[Copy This System, It’ll Blow Up Your Social Media]]"
 source_url: "https://www.youtube.com/watch?v=B9l9TRhu5Vw&t=763"
-image: ""
+image: "[[contrarian take.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.306Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

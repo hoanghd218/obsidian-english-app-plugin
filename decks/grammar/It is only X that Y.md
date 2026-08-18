@@ -10,9 +10,9 @@ collocations: ["It is only when the system runs itself that you should hire more
 quote: "It is only at that point, once you have a system running for 30 days in a row without breaking, that you should then expand and try to tackle another content platform."
 source: "[[I Studied 10,000+ Videos, These Mistakes Are Killing Your Content]]"
 source_url: "https://www.youtube.com/watch?v=tVZOS5Z019U&t=390"
-image: ""
+image: "[[It is only X that Y.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.311Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

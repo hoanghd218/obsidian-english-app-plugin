@@ -10,9 +10,9 @@ collocations: ["liquid gold", "when it comes to marketing", "when it comes to mo
 quote: "The kind of personal brand that makes people beg to want to work with you. If you can develop this, it is like liquid gold when it comes to marketing and sales."
 source: "[[How To Build a Personal Brand That’s Magnetic As F*ck]]"
 source_url: "https://www.youtube.com/watch?v=xw_hhw1V1A8&t=9"
-image: ""
+image: "[[It is like liquid gold when it comes to marketing.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.303Z"
+srs_due: "2026-08-18T00:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

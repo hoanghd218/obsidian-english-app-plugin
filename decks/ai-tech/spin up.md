@@ -11,9 +11,9 @@ forms: ["spins up","spun up","spinning up"]
 quote: "So, your local machine stays very light, very agile, and you can spin up multiple different Hermes agents on a VPS a lot easier than you can on local."
 source: "[[The EXACT System to Build AI Employees with Hermes Agent]]"
 source_url: "https://www.youtube.com/watch?v=KmJ-PUsxMHo&t=148"
-image: ""
+image: "[[spin up.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.154Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

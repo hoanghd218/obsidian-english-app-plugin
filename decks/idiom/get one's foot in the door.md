@@ -11,9 +11,9 @@ forms: ["gets one's foot in the door","got one's foot in the door","getting one'
 quote: "I think we'll need to leverage relationships across the company to get our foot in the door with them."
 source: "[[How To Explain Anything To Anyone (The 4MAT Method)]]"
 source_url: "https://www.youtube.com/watch?v=YZjWuFVSjjM&t=320"
-image: ""
+image: "[[get one's foot in the door.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.318Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

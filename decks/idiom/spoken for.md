@@ -11,9 +11,9 @@ forms: []
 quote: "Some stack two or three of these deals on top of each other until 15 to 20% of every dollar coming in is already spoken for. Growth stalls and the payments keep coming out anyways."
 source: "[[The New Era of Startup Funding Has Just Begun]]"
 source_url: "https://www.youtube.com/watch?v=P1Xsgdc6P_0&t=204"
-image: ""
+image: "[[spoken for.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.325Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

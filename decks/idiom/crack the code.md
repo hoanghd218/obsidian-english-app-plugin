@@ -11,9 +11,9 @@ forms: ["cracks the code","cracked the code","cracking the code"]
 quote: "I'm talking about normal people, regular business owners who have cracked the code on how to scale with content without it taking over their life."
 source: "[[How ‘Regular’ People Are Making Millions From Social Media]]"
 source_url: "https://www.youtube.com/watch?v=bqzd0h0gmU0&t=9"
-image: ""
+image: "[[crack the code.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.316Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

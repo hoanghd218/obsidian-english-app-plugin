@@ -11,9 +11,9 @@ forms: []
 quote: "In fact, because of this, you could argue that social media and YouTube are now more up for grabs than in any era previously."
 source: "[[Everything you know about content is (probably) wrong]]"
 source_url: "https://www.youtube.com/watch?v=acEJRhZBSVk&t=660"
-image: ""
+image: "[[up for grabs.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.326Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

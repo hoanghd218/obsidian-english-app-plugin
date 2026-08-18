@@ -11,9 +11,9 @@ forms: ["leans into","leaned into","leaning into"]
 quote: "I would recommend that instead of playing a character that is not representative of who you actually are, lean into your true self really all the way into the things that actually represent you."
 source: "[[If You Don't Understand Psychology, You Don't Understand Social Media]]"
 source_url: "https://www.youtube.com/watch?v=7pCEsr-0KIw&t=455"
-image: ""
+image: "[[lean into.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.308Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

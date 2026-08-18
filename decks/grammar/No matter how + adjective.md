@@ -10,9 +10,9 @@ collocations: ["No matter how hard you work, you can't out-work a bad strategy",
 quote: "If your singing is bad, no matter how loud you turn it up, no one wants to listen to you."
 source: "[[Easiest Way To Start Print On Demand From $0 In 2026]]"
 source_url: "https://www.youtube.com/watch?v=XFGOEaGokaU&t=1231s"
-image: ""
+image: "[[No matter how + adjective.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.312Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

@@ -11,9 +11,9 @@ forms: []
 quote: "So, from this point forward in this video, I'm going to assume you're a business owner that has the avatar figured out and has the offer dialed."
 source: "[[How to Get Rich on Social Media (Without Luck, Time, or Being a Genius)]]"
 source_url: "https://www.youtube.com/watch?v=Lf7ZXu4WiUs&t=251"
-image: ""
+image: "[[dialed in.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.307Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

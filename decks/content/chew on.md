@@ -11,9 +11,9 @@ forms: ["chews on","chewed on","chewing on"]
 quote: "Not every moment in the story needs one of these big questions, but every great story has a massive big question towards the beginning that viewers will chew on."
 source: "[[The Neuroscience of Addictive Storytelling (And How to Master It)]]"
 source_url: "https://www.youtube.com/watch?v=KyC8r-zitVE&t=1054"
-image: ""
+image: "[[chew on.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.305Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

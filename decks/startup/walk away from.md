@@ -11,9 +11,9 @@ forms: ["walks away from","walked away from","walking away from"]
 quote: "So you can also take that as a qualification signal and just be willing to walk away from from those who want to skip the audit by all means."
 source: "[[Start a One-Person AI Business in 2026 (Full Playbook)]]"
 source_url: "https://www.youtube.com/watch?v=VDROpRg0zV8&t=2303"
-image: ""
+image: "[[walk away from.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.330Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

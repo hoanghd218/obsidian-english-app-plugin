@@ -11,9 +11,9 @@ forms: ["locks in","locked in","locking in"]
 quote: "they're going to lock you in to their models to their process whereas if you use an independent agent lab you know like an AMP like a Devon like a factory"
 source: "[[Most Valuable Skill of 2026 Managing AI Agents]]"
 source_url: "https://www.youtube.com/watch?v=vJEy3nP2_C8&t=2230"
-image: ""
+image: "[[lock in.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.153Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

@@ -11,9 +11,9 @@ forms: ["reverse engineers","reverse engineered","reverse engineering","reverse-
 quote: "All you have to do is figure out how to reverse engineer that when you make your content and you'll be good to go."
 source: "[[How to Become a Storytelling Genius (Dopamine Ladders)]]"
 source_url: "https://www.youtube.com/watch?v=jtmstMt4WLc&t=1256"
-image: ""
+image: "[[reverse engineer.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.309Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

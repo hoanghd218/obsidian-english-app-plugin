@@ -11,9 +11,9 @@ forms: ["humans in the loop","human-in-the-loop"]
 quote: "No, no, of course you can. A human is always in the loop. This is important."
 source: "[[Nas Daily's AI Turns One Photo Into a Profitable Business]]"
 source_url: "https://www.youtube.com/watch?v=wAPEzRe4rPM&t=973"
-image: ""
+image: "[[human in the loop.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.329Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

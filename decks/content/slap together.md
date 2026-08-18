@@ -11,9 +11,9 @@ forms: ["slaps together","slapped together","slapping together"]
 quote: "Does it look tasteful or does it look slapped together? In other words, is the thumbnail well-designed?"
 source: "[[Why The Smartest Creators I Know Focus on Packaging, Not Content]]"
 source_url: "https://www.youtube.com/watch?v=jZCupmAOMAE&t=783"
-image: ""
+image: "[[slap together.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.309Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

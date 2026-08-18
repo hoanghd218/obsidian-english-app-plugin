@@ -10,9 +10,9 @@ collocations: ["If she didn't love this job, she would have quit years ago", "If
 quote: "If AI didn't exist, we still would have had the increase."
 source: "[[Alex Hormozi wouldn't start an AI Agency, so why would you?]]"
 source_url: "https://www.youtube.com/watch?v=SUKqhX9vUoM&t=29s"
-image: ""
+image: "[[Mixed conditional — If + past simple, would have + V3.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.312Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

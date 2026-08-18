@@ -10,9 +10,9 @@ collocations: ["cost doesn't justify price", "price justifies cost"]
 quote: "That's not how it works. Nobody accepts that. Cost doesn't justify price. Price justifies cost."
 source: "[[18 Months of Pricing AI Automations in 21 Mins]]"
 source_url: "https://www.youtube.com/watch?v=Lg5TYWPSg6M&t=470"
-image: ""
+image: "[[Cost doesn't justify price. Price justifies cost..png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.154Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

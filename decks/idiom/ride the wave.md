@@ -11,9 +11,9 @@ forms: ["rides the wave","rode the wave","ridden the wave","riding the wave"]
 quote: "you look for trending and viral designs in random niches, create a similar product, and get to market fast to ride the wave."
 source: "[[Easiest Way To Start Print On Demand From $0 In 2026]]"
 source_url: "https://www.youtube.com/watch?v=XFGOEaGokaU&t=41"
-image: ""
+image: "[[ride the wave.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.323Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

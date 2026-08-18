@@ -11,9 +11,9 @@ forms: ["pushes the envelope","pushed the envelope","pushing the envelope"]
 quote: "As always guys, I'm really trying to push the envelope with respect to content strategy and storytelling."
 source: "[[Storytelling Is Easier Than You Think]]"
 source_url: "https://www.youtube.com/watch?v=SDHKQbKC7gA&t=1674"
-image: ""
+image: "[[push the envelope.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.323Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

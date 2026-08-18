@@ -11,9 +11,9 @@ forms: ["hits a home run","hitting a home run"]
 quote: "The problem if you're starting out in this era is that the quality bar required to hit a home run with content is much, much higher than it was 10 years ago."
 source: "[[Everything you know about content is (probably) wrong]]"
 source_url: "https://www.youtube.com/watch?v=acEJRhZBSVk&t=690"
-image: ""
+image: "[[hit a home run.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.319Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

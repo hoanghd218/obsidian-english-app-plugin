@@ -10,9 +10,9 @@ collocations: ["The launch would have failed if we hadn't tested it with real us
 quote: "And that's when she told me she was doubling her budget, which would have been amazing if I hadn't just signed an exclusivity agreement with her competitor the night before."
 source: "[[The Neuroscience of Addictive Storytelling (And How to Master It)]]"
 source_url: "https://www.youtube.com/watch?v=KyC8r-zitVE&t=1169"
-image: ""
+image: "[[third conditional.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.314Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

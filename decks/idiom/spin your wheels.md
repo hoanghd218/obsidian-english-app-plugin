@@ -11,9 +11,9 @@ forms: ["spun your wheels","spinning your wheels"]
 quote: "That's the difference between spinning your wheels and actually moving towards building a shop that consistently gets sales."
 source: "[[Only 30 Minutes a Day? Here’s How I’d Build a 6-Figure POD Business]]"
 source_url: "https://www.youtube.com/watch?v=-NukmwK6vyM&t=159"
-image: ""
+image: "[[spin your wheels.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.325Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

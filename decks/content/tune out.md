@@ -11,9 +11,9 @@ forms: ["tunes out","tuned out","tuning out"]
 quote: "When the reveal is worse than expected, the viewer will tune out and stop paying attention immediately."
 source: "[[Storytelling Is Easier Than You Think]]"
 source_url: "https://www.youtube.com/watch?v=SDHKQbKC7gA&t=305"
-image: ""
+image: "[[tune out.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.310Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

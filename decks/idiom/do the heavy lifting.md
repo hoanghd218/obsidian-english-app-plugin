@@ -11,9 +11,9 @@ forms: ["does the heavy lifting","did the heavy lifting","done the heavy lifting
 quote: "Then, we'll grab FFmpeg and Whisper X. These are both doing the heavy lifting for cutting and transcription."
 source: "[[My Claude Code Edits FULL Videos in One Shot (Here's How)]]"
 source_url: "https://www.youtube.com/watch?v=mlhhZSHIS-w&t=434"
-image: ""
+image: "[[do the heavy lifting.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.317Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

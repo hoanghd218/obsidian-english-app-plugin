@@ -10,9 +10,9 @@ collocations: ["What if I told you that one hour a week is enough?", "What if we
 quote: "What if I told you that you can make progress every single day, even if you only have 30 minutes?"
 source: "[[Only 30 Minutes a Day? Here’s How I’d Build a 6-Figure POD Business]]"
 source_url: "https://www.youtube.com/watch?v=-NukmwK6vyM"
-image: ""
+image: "[[what if I told you.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.314Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

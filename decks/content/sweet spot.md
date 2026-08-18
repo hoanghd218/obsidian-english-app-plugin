@@ -11,9 +11,9 @@ forms: ["sweet spots"]
 quote: "Now, for me, the sweet spot when I'm adding those channels is the micro, small, and medium account size range between 10,000 followers and a million."
 source: "[[Copy This System, It’ll Blow Up Your Social Media]]"
 source_url: "https://www.youtube.com/watch?v=B9l9TRhu5Vw&t=159"
-image: ""
+image: "[[sweet spot.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.310Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

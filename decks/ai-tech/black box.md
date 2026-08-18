@@ -11,9 +11,9 @@ forms: ["black boxes"]
 quote: "They're a starting point, not a black box. Now, we didn't just build one skill. We built 24 skills our SEO team uses regularly."
 source: "[[We Built 24 Claude Skills That Save Hours of SEO Work]]"
 source_url: "https://www.youtube.com/watch?v=0aB3nMr-98M&t=84"
-image: ""
+image: "[[black box.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.152Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

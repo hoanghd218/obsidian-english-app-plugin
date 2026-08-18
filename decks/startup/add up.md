@@ -11,9 +11,9 @@ forms: ["adds up","added up","adding up"]
 quote: "Even 30 to 40 minutes of passive scrolling each night adds up fast. And that's exactly the kind of time you can redirect into building your shop."
 source: "[[Only 30 Minutes a Day? Here’s How I’d Build a 6-Figure POD Business]]"
 source_url: "https://www.youtube.com/watch?v=-NukmwK6vyM&t=52"
-image: ""
+image: "[[add up.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.327Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

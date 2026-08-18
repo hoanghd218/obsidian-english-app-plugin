@@ -11,9 +11,9 @@ forms: ["checks out","checked out","checking out"]
 quote: "We frame our solutions as overly complex because we think complex equals valuable. But the truth is, it's actually the opposite. When the viewer sees complexity, they check out completely."
 source: "[[How to Build an Audience That's Obsessed With You (The Power of Suggestion)]]"
 source_url: "https://www.youtube.com/watch?v=cuVyTmbOZjk&t=1171"
-image: ""
+image: "[[check out.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.305Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

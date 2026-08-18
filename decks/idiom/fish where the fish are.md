@@ -11,9 +11,9 @@ forms: ["fishing where the fish are"]
 quote: "Where does the highest density of my customers live? In other words, they fish where the fish are."
 source: "[[How ‘Regular’ People Are Making Millions From Social Media]]"
 source_url: "https://www.youtube.com/watch?v=bqzd0h0gmU0&t=225"
-image: ""
+image: "[[fish where the fish are.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.318Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

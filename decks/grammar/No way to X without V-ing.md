@@ -10,9 +10,9 @@ collocations: ["There is no way to learn a language without embarrassing yoursel
 quote: "The truth is there is no way to win on social media without pressing post hundreds of times."
 source: "[[How to Get Rich on Social Media (Without Luck, Time, or Being a Genius)]]"
 source_url: "https://www.youtube.com/watch?v=Lf7ZXu4WiUs&t=958s"
-image: ""
+image: "[[No way to X without V-ing.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.312Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

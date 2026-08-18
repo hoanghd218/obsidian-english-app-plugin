@@ -10,9 +10,9 @@ collocations: ["The more specific your promise, the easier the sale", "The earli
 quote: "The bigger and more non-obvious the question, the bigger the curiosity, the higher the stakes, and the more dopamine that gets released."
 source: "[[How to Become a Storytelling Genius (Dopamine Ladders)]]"
 source_url: "https://www.youtube.com/watch?v=jtmstMt4WLc&t=286s"
-image: ""
+image: "[[The more X, the more Y (double comparative).png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.312Z"
+srs_due: "2026-08-18T12:00:00.000Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

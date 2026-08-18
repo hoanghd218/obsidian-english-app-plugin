@@ -11,9 +11,9 @@ forms: ["crushes it","crushed it","crushing it"]
 quote: "This should be everything you need to go from zero to crushing with hooks."
 source: "[[The ONLY 6 Words You Need to Hook ANY Viewer]]"
 source_url: "https://www.youtube.com/watch?v=S9FlxFv9dxg&t=964"
-image: ""
+image: "[[crush it.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.317Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

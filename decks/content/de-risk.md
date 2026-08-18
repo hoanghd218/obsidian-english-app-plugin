@@ -11,9 +11,9 @@ forms: ["de-risks","de-risked","de-risking"]
 quote: "The goal for any business owner when you're making content is to derisk your reps."
 source: "[[How to Create a Killer Hook (Impossible to Skip)]]"
 source_url: "https://www.youtube.com/watch?v=onQoYdxWXdA&t=845"
-image: ""
+image: "[[de-risk.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.306Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

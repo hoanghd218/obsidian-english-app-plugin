@@ -11,9 +11,9 @@ forms: []
 quote: "And on top of all of that, your entire business is at the mercy of their rules and algorithm. If Etsy suspends your account or changes its policies, your store can disappear like that."
 source: "[[Easiest Way To Start Print On Demand From $0 In 2026]]"
 source_url: "https://www.youtube.com/watch?v=XFGOEaGokaU&t=622"
-image: ""
+image: "[[at the mercy of.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.315Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

@@ -11,9 +11,9 @@ forms: ["out-of-the-box"]
 quote: "And so this is how to add just general tool sets that Hermes agent will give you out of the box."
 source: "[[The EXACT System to Build AI Employees with Hermes Agent]]"
 source_url: "https://www.youtube.com/watch?v=KmJ-PUsxMHo&t=2319"
-image: ""
+image: "[[out of the box.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.322Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

@@ -11,9 +11,9 @@ forms: ["got your hands dirty","getting your hands dirty"]
 quote: "I choose the decisions in terms of what direction are we going in, but other than that, I literally don't get my hands dirty at all anymore."
 source: "[[How I manage 250+ AI Agents for my Hedge Fund]]"
 source_url: "https://www.youtube.com/watch?v=BLMkrw1W6No&t=1307"
-image: ""
+image: "[[get your hands dirty.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.319Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0

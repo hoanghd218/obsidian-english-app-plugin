@@ -11,9 +11,9 @@ forms: ["got your reps in","getting your reps in"]
 quote: "the thing I want you to walk away is is cloud agents. Get your reps in, figure out how that works."
 source: "[[Most Valuable Skill of 2026 Managing AI Agents]]"
 source_url: "https://www.youtube.com/watch?v=vJEy3nP2_C8&t=1436"
-image: ""
+image: "[[get your reps in.png]]"
 created: 2026-08-18
-srs_due: "2026-08-18T13:55:28.319Z"
+srs_due: "2026-08-18T08:56:36.374Z"
 srs_stability: 0
 srs_difficulty: 0
 srs_elapsed_days: 0
