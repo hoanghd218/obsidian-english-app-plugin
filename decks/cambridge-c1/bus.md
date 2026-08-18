@@ -11,7 +11,7 @@ forms: ["buses"]
 quote: "I go to school by bus."
 source: ""
 source_url: ""
-image: ""
+image: "[[bus.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:39:24.040Z"
 srs_stability: 0

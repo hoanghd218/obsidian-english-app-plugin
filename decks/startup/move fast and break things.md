@@ -14,7 +14,7 @@ forms: []
 quote: "Unless you are breaking things, you are not moving fast enough to out-innovate the incumbents."
 source: "[[The Facebook Effect — David Kirkpatrick]]"
 source_url: ""
-image: ""
+image: "[[move fast and break things.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.993510Z"
 srs_stability: 0

@@ -15,7 +15,7 @@ forms: ["go-to-market strategies"]
 quote: "Having a superior algorithm means nothing without an aggressive, repeatable go-to-market strategy."
 source: "[[Crossing the Chasm — Geoffrey Moore]]"
 source_url: ""
-image: ""
+image: "[[go-to-market strategy.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.992718Z"
 srs_stability: 0

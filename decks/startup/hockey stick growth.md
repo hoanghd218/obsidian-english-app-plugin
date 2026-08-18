@@ -15,7 +15,7 @@ forms: []
 quote: "Every venture pitch promises hockey stick growth, but only founders with genuine viral loops actually achieve it."
 source: "[[Secrets of Sand Hill Road]]"
 source_url: ""
-image: ""
+image: "[[hockey stick growth.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.993901Z"
 srs_stability: 0

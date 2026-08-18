@@ -15,7 +15,7 @@ forms: []
 quote: "Software companies thrive because recurring subscriptions dramatically boost customer LTV."
 source: "[[Lean Analytics — Alistair Croll]]"
 source_url: ""
-image: ""
+image: "[[LTV.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.991105Z"
 srs_stability: 0

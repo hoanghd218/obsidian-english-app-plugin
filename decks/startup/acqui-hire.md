@@ -14,7 +14,7 @@ forms: ["acqui-hires", "acqui-hired"]
 quote: "When their initial social app failed to scale, Google bought the company as an acqui-hire for the machine learning team."
 source: "[[TechCrunch M&A Report]]"
 source_url: ""
-image: ""
+image: "[[acqui-hire.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.994697Z"
 srs_stability: 0

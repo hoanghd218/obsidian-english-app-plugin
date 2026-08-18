@@ -11,7 +11,7 @@ forms: ["clocks"]
 quote: "The clock on the wall says three o'clock."
 source: ""
 source_url: ""
-image: ""
+image: "[[clock.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:38:44.042Z"
 srs_stability: 0

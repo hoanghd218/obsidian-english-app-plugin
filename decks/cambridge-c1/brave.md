@@ -11,7 +11,7 @@ forms: ["braver", "bravest"]
 quote: "The brave firefighter saved the little cat."
 source: ""
 source_url: ""
-image: ""
+image: "[[brave.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:50:09.801Z"
 srs_stability: 0

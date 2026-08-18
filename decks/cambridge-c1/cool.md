@@ -11,7 +11,7 @@ forms: ["cooler", "coolest"]
 quote: "The evening air feels cool and nice."
 source: ""
 source_url: ""
-image: ""
+image: "[[cool.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:50:09.801Z"
 srs_stability: 0

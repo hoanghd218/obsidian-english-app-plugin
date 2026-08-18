@@ -15,7 +15,7 @@ forms: []
 quote: "Venture capitalists price software startups primarily as a multiple of their current ARR and growth velocity."
 source: "[[Bessemer Venture Partners Cloud 100]]"
 source_url: ""
-image: ""
+image: "[[ARR.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.991884Z"
 srs_stability: 0

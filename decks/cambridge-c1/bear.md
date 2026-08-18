@@ -11,7 +11,7 @@ forms: ["bears"]
 quote: "The bear sleeps in a cave in winter."
 source: ""
 source_url: ""
-image: ""
+image: "[[bear.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:50:09.801Z"
 srs_stability: 0

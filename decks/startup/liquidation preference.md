@@ -14,7 +14,7 @@ forms: ["liquidation preferences"]
 quote: "Understanding liquidation preferences is critical; a high preference multiple can leave common shareholders with nothing."
 source: "[[Venture Deals — Brad Feld]]"
 source_url: ""
-image: ""
+image: "[[liquidation preference.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.990431Z"
 srs_stability: 0

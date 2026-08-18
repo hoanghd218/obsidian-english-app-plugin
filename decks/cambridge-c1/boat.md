@@ -11,7 +11,7 @@ forms: ["boats"]
 quote: "The little boat sails on the lake."
 source: ""
 source_url: ""
-image: ""
+image: "[[boat.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:39:24.040Z"
 srs_stability: 0

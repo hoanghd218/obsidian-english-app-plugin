@@ -15,7 +15,7 @@ forms: []
 quote: "If your CAC exceeds what a customer pays over their lifetime, your startup cannot survive."
 source: "[[Traction — Gabriel Weinberg]]"
 source_url: ""
-image: ""
+image: "[[CAC.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.991016Z"
 srs_stability: 0

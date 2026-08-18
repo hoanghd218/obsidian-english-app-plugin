@@ -15,7 +15,7 @@ forms: ["lead investors"]
 quote: "Once you secure a reputable lead investor, the rest of the funding round usually fills up within days."
 source: "[[Secrets of Sand Hill Road]]"
 source_url: ""
-image: ""
+image: "[[lead investor.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.989596Z"
 srs_stability: 0

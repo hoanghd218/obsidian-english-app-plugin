@@ -15,7 +15,7 @@ forms: ["churn rates"]
 quote: "If your churn rate is 5% per month, you lose half your customer base every year and must run just to stay in place."
 source: "[[Lean Analytics — Alistair Croll]]"
 source_url: ""
-image: ""
+image: "[[churn rate.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.991971Z"
 srs_stability: 0

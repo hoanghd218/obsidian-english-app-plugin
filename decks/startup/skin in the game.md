@@ -15,7 +15,7 @@ forms: []
 quote: "Investors respect founders who invest their own savings and have undeniable skin in the game."
 source: "[[Skin in the Game — Nassim Nicholas Taleb]]"
 source_url: ""
-image: ""
+image: "[[skin in the game.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.993419Z"
 srs_stability: 0

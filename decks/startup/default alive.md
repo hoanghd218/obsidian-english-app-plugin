@@ -14,7 +14,7 @@ forms: []
 quote: "The first thing Paul Graham asks founders is: 'Are you default alive or default dead?'"
 source: "[[Paul Graham Essays — Default Alive or Default Dead?]]"
 source_url: ""
-image: ""
+image: "[[default alive.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.992133Z"
 srs_stability: 0

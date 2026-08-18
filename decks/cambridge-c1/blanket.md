@@ -11,7 +11,7 @@ forms: ["blankets"]
 quote: "She wraps herself in a warm blanket."
 source: ""
 source_url: ""
-image: ""
+image: "[[blanket.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:48:19.834Z"
 srs_stability: 0

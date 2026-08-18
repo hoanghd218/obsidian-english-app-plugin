@@ -11,7 +11,7 @@ forms: []
 quote: "I put cheese on my sandwich."
 source: ""
 source_url: ""
-image: ""
+image: "[[cheese.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:50:09.801Z"
 srs_stability: 0

@@ -11,7 +11,7 @@ forms: ["chickens"]
 quote: "The chicken lays an egg every morning."
 source: ""
 source_url: ""
-image: ""
+image: "[[chicken.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:50:09.801Z"
 srs_stability: 0

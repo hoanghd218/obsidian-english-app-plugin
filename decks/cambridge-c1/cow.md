@@ -11,7 +11,7 @@ forms: ["cows"]
 quote: "The cow eats grass in the field."
 source: ""
 source_url: ""
-image: ""
+image: "[[cow.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:50:09.801Z"
 srs_stability: 0

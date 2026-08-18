@@ -15,7 +15,7 @@ forms: ["SAFE notes"]
 quote: "Y Combinator created the SAFE note to make angel investing faster, cheaper, and legally straightforward."
 source: "[[Y Combinator Startup School]]"
 source_url: ""
-image: ""
+image: "[[SAFE note.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.990054Z"
 srs_stability: 0

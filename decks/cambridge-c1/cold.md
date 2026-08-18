@@ -11,7 +11,7 @@ forms: ["colder", "coldest"]
 quote: "The water in the lake is very cold."
 source: ""
 source_url: ""
-image: ""
+image: "[[cold.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:48:11.603Z"
 srs_stability: 0

@@ -15,7 +15,7 @@ forms: []
 quote: "A net revenue retention rate above 120% means your business grows year-over-year even if you add zero new customers."
 source: "[[SaaStr Guide to SaaS Metrics]]"
 source_url: ""
-image: ""
+image: "[[net revenue retention.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.992050Z"
 srs_stability: 0

@@ -15,7 +15,7 @@ forms: ["bridge rounds"]
 quote: "We raised a quick $500k bridge round from existing backers to give us another 6 months of runway."
 source: "[[The Hard Thing About Hard Things]]"
 source_url: ""
-image: ""
+image: "[[bridge round.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.990586Z"
 srs_stability: 0

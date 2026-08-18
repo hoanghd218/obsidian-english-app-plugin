@@ -15,7 +15,7 @@ forms: ["pitch decks"]
 quote: "A great pitch deck doesn't just explain what you do; it proves why your team is uniquely positioned to win this market."
 source: "[[Y Combinator Guide to Pitch Decks]]"
 source_url: ""
-image: ""
+image: "[[pitch deck.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.988917Z"
 srs_stability: 0

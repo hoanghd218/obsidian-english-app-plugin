@@ -14,7 +14,7 @@ forms: ["oversubscribed rounds"]
 quote: "Creating strong FOMO among venture funds is the surest way to engineer an oversubscribed round."
 source: "[[Angel — Jason Calacanis]]"
 source_url: ""
-image: ""
+image: "[[oversubscribed round.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.994185Z"
 srs_stability: 0

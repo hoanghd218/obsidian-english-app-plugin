@@ -11,7 +11,7 @@ forms: ["more difficult", "most difficult"]
 quote: "The last question was very difficult for me."
 source: ""
 source_url: ""
-image: ""
+image: "[[difficult.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:48:11.603Z"
 srs_stability: 0

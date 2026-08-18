@@ -15,7 +15,7 @@ forms: []
 quote: "Never ask customers if they would buy your idea; ask how they currently spend money trying to solve that specific problem."
 source: "[[The Mom Test — Rob Fitzpatrick]]"
 source_url: ""
-image: ""
+image: "[[customer discovery.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.993333Z"
 srs_stability: 0

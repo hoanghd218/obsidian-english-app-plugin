@@ -11,7 +11,7 @@ forms: ["chairs"]
 quote: "Please sit on your chair, everyone."
 source: ""
 source_url: ""
-image: ""
+image: "[[chair.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:38:44.042Z"
 srs_stability: 0

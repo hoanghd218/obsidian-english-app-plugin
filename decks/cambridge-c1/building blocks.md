@@ -11,7 +11,7 @@ forms: []
 quote: "The kids build a tower with building blocks."
 source: ""
 source_url: ""
-image: ""
+image: "[[building blocks.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:48:19.834Z"
 srs_stability: 0

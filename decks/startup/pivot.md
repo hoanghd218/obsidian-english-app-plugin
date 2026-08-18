@@ -15,7 +15,7 @@ forms: ["pivots", "pivoted", "pivoting"]
 quote: "Slack began as an internal chat tool for a failing video game company before executing one of tech's greatest pivots."
 source: "[[The Lean Startup — Eric Ries]]"
 source_url: ""
-image: ""
+image: "[[pivot.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.992816Z"
 srs_stability: 0

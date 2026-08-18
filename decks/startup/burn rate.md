@@ -15,7 +15,7 @@ forms: ["burn rates"]
 quote: "High burn rate without explosive customer growth is the most common cause of startup mortality."
 source: "[[Zero to One — Peter Thiel]]"
 source_url: ""
-image: ""
+image: "[[burn rate.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.990858Z"
 srs_stability: 0

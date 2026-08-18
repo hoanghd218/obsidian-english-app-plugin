@@ -15,7 +15,7 @@ forms: []
 quote: "In the earliest phase of a startup, sweat equity is the primary currency keeping the product alive."
 source: "[[The Founder's Dilemmas — Noam Wasserman]]"
 source_url: ""
-image: ""
+image: "[[sweat equity.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.995553Z"
 srs_stability: 0

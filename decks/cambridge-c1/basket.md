@@ -11,7 +11,7 @@ forms: ["baskets"]
 quote: "She puts apples in her basket."
 source: ""
 source_url: ""
-image: ""
+image: "[[basket.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:48:19.834Z"
 srs_stability: 0

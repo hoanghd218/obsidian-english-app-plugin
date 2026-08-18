@@ -15,7 +15,7 @@ forms: ["economic moats"]
 quote: "In business, I look for economic castles protected by unbreachable economic moats."
 source: "[[Warren Buffett Shareholder Letters]]"
 source_url: ""
-image: ""
+image: "[[economic moat.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.992890Z"
 srs_stability: 0

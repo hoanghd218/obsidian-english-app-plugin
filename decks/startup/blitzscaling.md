@@ -15,7 +15,7 @@ forms: []
 quote: "When the market rewards winner-take-most dynamics, blitzscaling is the only path to dominant survival."
 source: "[[Blitzscaling — Reid Hoffman & Chris Yeh]]"
 source_url: ""
-image: ""
+image: "[[blitzscaling.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.993697Z"
 srs_stability: 0

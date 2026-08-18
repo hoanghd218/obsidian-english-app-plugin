@@ -15,7 +15,7 @@ forms: []
 quote: "Reaching $10,000 in MRR is often the psychological milestone where a founder can work full-time on their project."
 source: "[[MicroConf Guide to SaaS]]"
 source_url: ""
-image: ""
+image: "[[MRR.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.991767Z"
 srs_stability: 0

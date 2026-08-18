@@ -15,7 +15,7 @@ forms: []
 quote: "During technical due diligence, investors will inspect your codebase, architecture, and intellectual property ownership."
 source: "[[Venture Deals — Brad Feld]]"
 source_url: ""
-image: ""
+image: "[[due diligence.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.989685Z"
 srs_stability: 0

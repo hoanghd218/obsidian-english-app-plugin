@@ -11,7 +11,7 @@ forms: ["board games"]
 quote: "The family plays a board game together."
 source: ""
 source_url: ""
-image: ""
+image: "[[board game.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:48:19.834Z"
 srs_stability: 0

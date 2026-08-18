@@ -15,7 +15,7 @@ forms: ["minimum viable products"]
 quote: "If you are not embarrassed by the first version of your MVP, you have launched too late."
 source: "[[The Lean Startup — Eric Ries]]"
 source_url: ""
-image: ""
+image: "[[minimum viable product.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.992390Z"
 srs_stability: 0

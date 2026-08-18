@@ -15,7 +15,7 @@ forms: ["convertible notes"]
 quote: "Early-stage founders prefer convertible notes because they delay the difficult question of setting an exact valuation."
 source: "[[Y Combinator Startup School]]"
 source_url: ""
-image: ""
+image: "[[convertible note.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.989991Z"
 srs_stability: 0

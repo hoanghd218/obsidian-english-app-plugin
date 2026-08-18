@@ -14,7 +14,7 @@ forms: []
 quote: "The best B2B software companies recover their customer acquisition cost in under 12 months."
 source: "[[SaaStr Guide to SaaS Metrics]]"
 source_url: ""
-image: ""
+image: "[[CAC payback period.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.991635Z"
 srs_stability: 0

@@ -15,7 +15,7 @@ forms: ["network effects"]
 quote: "Marketplaces like Airbnb and Uber become nearly invincible once their two-sided network effects lock in."
 source: "[[The Cold Start Problem — Andrew Chen]]"
 source_url: ""
-image: ""
+image: "[[network effect.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.992959Z"
 srs_stability: 0

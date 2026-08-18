@@ -15,7 +15,7 @@ forms: []
 quote: "Every funding round brings cash but also causes dilution; founders must balance capital needs against losing control."
 source: "[[Venture Deals — Brad Feld]]"
 source_url: ""
-image: ""
+image: "[[equity dilution.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.990175Z"
 srs_stability: 0

@@ -11,7 +11,7 @@ forms: ["dances", "danced", "dancing"]
 quote: "The children dance to the music."
 source: ""
 source_url: ""
-image: ""
+image: "[[dance.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:39:24.040Z"
 srs_stability: 0

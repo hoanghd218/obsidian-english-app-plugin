@@ -15,7 +15,7 @@ forms: ["exit strategies"]
 quote: "Venture funds invest with a 7-to-10 year fund horizon and require a clear exit strategy to return capital to their limited partners."
 source: "[[Secrets of Sand Hill Road]]"
 source_url: ""
-image: ""
+image: "[[exit strategy.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.994809Z"
 srs_stability: 0

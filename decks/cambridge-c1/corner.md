@@ -11,7 +11,7 @@ forms: ["corners"]
 quote: "The bookshop is on the corner of the street."
 source: ""
 source_url: ""
-image: ""
+image: "[[corner.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:50:09.801Z"
 srs_stability: 0

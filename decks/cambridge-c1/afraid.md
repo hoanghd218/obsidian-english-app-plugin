@@ -11,7 +11,7 @@ forms: []
 quote: "Don't be afraid, the dog is friendly."
 source: ""
 source_url: ""
-image: ""
+image: "[[afraid.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:50:09.801Z"
 srs_stability: 0

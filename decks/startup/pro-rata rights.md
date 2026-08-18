@@ -15,7 +15,7 @@ forms: []
 quote: "Top angel investors fight hard for pro-rata rights so they can double down on their fastest-growing portfolio companies."
 source: "[[Angel — Jason Calacanis]]"
 source_url: ""
-image: ""
+image: "[[pro-rata rights.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.990520Z"
 srs_stability: 0

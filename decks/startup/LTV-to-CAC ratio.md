@@ -14,7 +14,7 @@ forms: []
 quote: "An LTV-to-CAC ratio of 3x or higher indicates a capital-efficient growth engine ready for venture expansion."
 source: "[[SaaStr Guide to SaaS Metrics]]"
 source_url: ""
-image: ""
+image: "[[LTV-to-CAC ratio.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.991200Z"
 srs_stability: 0

@@ -11,7 +11,7 @@ forms: ["catches", "caught", "catching"]
 quote: "He catches the ball with both hands."
 source: ""
 source_url: ""
-image: ""
+image: "[[catch.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:48:19.834Z"
 srs_stability: 0

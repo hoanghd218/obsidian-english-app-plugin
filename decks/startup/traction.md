@@ -15,7 +15,7 @@ forms: []
 quote: "Traction trumps everything in venture pitching; real paying customers speak louder than any fancy slide deck."
 source: "[[Traction — Gabriel Weinberg & Justin Mares]]"
 source_url: ""
-image: ""
+image: "[[traction.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.992507Z"
 srs_stability: 0

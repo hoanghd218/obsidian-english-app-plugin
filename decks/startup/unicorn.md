@@ -15,7 +15,7 @@ forms: ["unicorns"]
 quote: "Aileen Lee coined the term 'unicorn' in 2013 to highlight the extreme rarity of billion-dollar private startups."
 source: "[[Cowboy Ventures Research]]"
 source_url: ""
-image: ""
+image: "[[unicorn.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.994317Z"
 srs_stability: 0

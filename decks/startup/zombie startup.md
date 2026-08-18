@@ -14,7 +14,7 @@ forms: ["zombie startups"]
 quote: "The worst outcome for a venture-backed company isn't dying quickly; it's becoming a slow-bleeding zombie startup."
 source: "[[The Hard Thing About Hard Things]]"
 source_url: ""
-image: ""
+image: "[[zombie startup.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.994490Z"
 srs_stability: 0

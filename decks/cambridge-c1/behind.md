@@ -11,7 +11,7 @@ forms: []
 quote: "The ball is behind the sofa."
 source: ""
 source_url: ""
-image: ""
+image: "[[behind.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:48:11.603Z"
 srs_stability: 0

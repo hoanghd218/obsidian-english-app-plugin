@@ -11,7 +11,7 @@ forms: ["cats"]
 quote: "The cat sleeps on the sofa all day."
 source: ""
 source_url: ""
-image: ""
+image: "[[cat.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:39:24.040Z"
 srs_stability: 0

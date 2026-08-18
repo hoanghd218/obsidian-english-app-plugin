@@ -11,7 +11,7 @@ forms: ["birds"]
 quote: "A small bird sings in the tree."
 source: ""
 source_url: ""
-image: ""
+image: "[[bird.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:39:24.040Z"
 srs_stability: 0

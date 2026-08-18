@@ -11,7 +11,7 @@ forms: ["comes", "came", "coming"]
 quote: "Please come here and sit down."
 source: ""
 source_url: ""
-image: ""
+image: "[[come.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:48:11.603Z"
 srs_stability: 0

@@ -11,7 +11,7 @@ forms: ["changes"]
 quote: "The shopkeeper gives me my change."
 source: ""
 source_url: ""
-image: ""
+image: "[[change.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:48:19.834Z"
 srs_stability: 0

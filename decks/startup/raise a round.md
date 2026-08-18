@@ -15,7 +15,7 @@ forms: ["raised a round", "raising a round"]
 quote: "Raising a round takes twice as long as you expect; start building investor relationships six months before you need cash."
 source: "[[Y Combinator Startup School]]"
 source_url: ""
-image: ""
+image: "[[raise a round.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.994010Z"
 srs_stability: 0

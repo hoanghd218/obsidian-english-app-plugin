@@ -14,7 +14,7 @@ forms: []
 quote: "Drag-along rights prevent a disgruntled 1% shareholder from holding up a multi-million-dollar corporate acquisition."
 source: "[[Venture Deals — Brad Feld]]"
 source_url: ""
-image: ""
+image: "[[drag-along rights.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.994889Z"
 srs_stability: 0

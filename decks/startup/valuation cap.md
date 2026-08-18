@@ -15,7 +15,7 @@ forms: ["valuation caps"]
 quote: "A valuation cap rewards early risk-takers by ensuring they get more shares if the company blows up in value later."
 source: "[[Secrets of Sand Hill Road]]"
 source_url: ""
-image: ""
+image: "[[valuation cap.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.990110Z"
 srs_stability: 0

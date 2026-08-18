@@ -14,7 +14,7 @@ forms: ["post-money valuations"]
 quote: "Your ownership percentage after the round is simply the amount invested divided by the post-money valuation."
 source: "[[Venture Deals — Brad Feld]]"
 source_url: ""
-image: ""
+image: "[[post-money valuation.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.989927Z"
 srs_stability: 0

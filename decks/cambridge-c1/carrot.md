@@ -11,7 +11,7 @@ forms: ["carrots"]
 quote: "Rabbits love to eat a crunchy carrot."
 source: ""
 source_url: ""
-image: ""
+image: "[[carrot.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:50:09.801Z"
 srs_stability: 0

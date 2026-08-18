@@ -11,7 +11,7 @@ forms: ["angrier", "angriest"]
 quote: "My brother gets angry when I take his toys."
 source: ""
 source_url: ""
-image: ""
+image: "[[angry.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:50:09.801Z"
 srs_stability: 0

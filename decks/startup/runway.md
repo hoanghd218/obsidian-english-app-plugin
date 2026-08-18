@@ -15,7 +15,7 @@ forms: ["runways"]
 quote: "Rule number one for any early-stage founder: always know your exact cash runway down to the week."
 source: "[[Paul Graham Essays — How Not to Die]]"
 source_url: ""
-image: ""
+image: "[[runway.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.990787Z"
 srs_stability: 0

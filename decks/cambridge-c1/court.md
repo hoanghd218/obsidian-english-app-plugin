@@ -11,7 +11,7 @@ forms: ["courts"]
 quote: "They play basketball on the court."
 source: ""
 source_url: ""
-image: ""
+image: "[[court.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:48:19.834Z"
 srs_stability: 0

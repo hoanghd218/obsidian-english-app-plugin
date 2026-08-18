@@ -15,7 +15,7 @@ forms: []
 quote: "Scaling a business with broken unit economics only amplifies your losses at a faster speed."
 source: "[[Blitzscaling — Reid Hoffman]]"
 source_url: ""
-image: ""
+image: "[[unit economics.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.990936Z"
 srs_stability: 0

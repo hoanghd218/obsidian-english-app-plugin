@@ -11,7 +11,7 @@ forms: []
 quote: "She always says good morning to me."
 source: ""
 source_url: ""
-image: ""
+image: "[[always.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:50:09.801Z"
 srs_stability: 0

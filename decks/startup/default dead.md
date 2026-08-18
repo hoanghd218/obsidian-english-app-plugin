@@ -14,7 +14,7 @@ forms: []
 quote: "If you are default dead, you must treat fundraising not as an option, but as an existential emergency."
 source: "[[Paul Graham Essays — Default Alive or Default Dead?]]"
 source_url: ""
-image: ""
+image: "[[default dead.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.992214Z"
 srs_stability: 0

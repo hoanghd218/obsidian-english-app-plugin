@@ -11,7 +11,7 @@ forms: []
 quote: "I feel bored on rainy days at home."
 source: ""
 source_url: ""
-image: ""
+image: "[[bored.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:50:09.801Z"
 srs_stability: 0

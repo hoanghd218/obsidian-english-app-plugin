@@ -11,7 +11,7 @@ forms: ["closes", "closed", "closing"]
 quote: "Close the door, it is cold outside."
 source: ""
 source_url: ""
-image: ""
+image: "[[close.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:48:11.603Z"
 srs_stability: 0

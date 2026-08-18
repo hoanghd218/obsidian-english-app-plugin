@@ -15,7 +15,7 @@ forms: ["cliff periods"]
 quote: "If a team member leaves before hitting the one-year cliff, they walk away with zero equity."
 source: "[[The Founder's Dilemmas — Noam Wasserman]]"
 source_url: ""
-image: ""
+image: "[[cliff period.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.990330Z"
 srs_stability: 0

@@ -11,7 +11,7 @@ forms: ["cupboards"]
 quote: "Mom keeps the cups in the cupboard."
 source: ""
 source_url: ""
-image: ""
+image: "[[cupboard.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:48:19.834Z"
 srs_stability: 0

@@ -14,7 +14,7 @@ forms: ["anti-dilution provisions"]
 quote: "Watch out for 'full ratchet' anti-dilution clauses; they can virtually wipe out founder equity in a down round."
 source: "[[Venture Deals — Brad Feld]]"
 source_url: ""
-image: ""
+image: "[[anti-dilution provision.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.995299Z"
 srs_stability: 0

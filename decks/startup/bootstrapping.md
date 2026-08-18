@@ -15,7 +15,7 @@ forms: ["bootstrapped", "bootstraps"]
 quote: "Bootstrapping forces you to focus relentlessly on revenue and customer satisfaction from day one."
 source: "[[Rework — Jason Fried & DHH]]"
 source_url: ""
-image: ""
+image: "[[bootstrapping.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.990642Z"
 srs_stability: 0

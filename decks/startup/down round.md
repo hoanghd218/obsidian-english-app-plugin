@@ -15,7 +15,7 @@ forms: ["down rounds"]
 quote: "Taking an absurdly inflated valuation today sets you up for a devastating down round when growth slows tomorrow."
 source: "[[The Hard Thing About Hard Things]]"
 source_url: ""
-image: ""
+image: "[[down round.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.994256Z"
 srs_stability: 0

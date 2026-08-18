@@ -14,7 +14,7 @@ forms: ["closed the round", "closing the round"]
 quote: "A funding commitment is just a handshake until you officially sign the legal paperwork and close the round."
 source: "[[Venture Deals — Brad Feld]]"
 source_url: ""
-image: ""
+image: "[[close the round.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.994107Z"
 srs_stability: 0

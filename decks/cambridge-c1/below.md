@@ -11,7 +11,7 @@ forms: []
 quote: "The garden is below our balcony."
 source: ""
 source_url: ""
-image: ""
+image: "[[below.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:48:11.603Z"
 srs_stability: 0

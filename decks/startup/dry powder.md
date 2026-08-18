@@ -15,7 +15,7 @@ forms: []
 quote: "Even in a market downturn, top venture funds still have billions in dry powder looking for extraordinary founders."
 source: "[[TechCrunch Venture Pulse]]"
 source_url: ""
-image: ""
+image: "[[dry powder.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.990708Z"
 srs_stability: 0

@@ -11,7 +11,7 @@ forms: ["bathrooms"]
 quote: "I brush my teeth in the bathroom."
 source: ""
 source_url: ""
-image: ""
+image: "[[bathroom.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:38:44.042Z"
 srs_stability: 0

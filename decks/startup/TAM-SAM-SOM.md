@@ -15,7 +15,7 @@ forms: []
 quote: "Sophisticated investors disregard inflated top-down TAMs and demand a credible bottom-up SOM breakdown."
 source: "[[Disciplined Entrepreneurship — Bill Aulet]]"
 source_url: ""
-image: ""
+image: "[[TAM-SAM-SOM.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.992608Z"
 srs_stability: 0

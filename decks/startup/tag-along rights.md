@@ -14,7 +14,7 @@ forms: []
 quote: "Tag-along rights ensure founders cannot secretly cash out their own shares and leave early employees stranded."
 source: "[[Venture Deals — Brad Feld]]"
 source_url: ""
-image: ""
+image: "[[tag-along rights.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.995086Z"
 srs_stability: 0

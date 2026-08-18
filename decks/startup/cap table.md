@@ -15,7 +15,7 @@ forms: ["cap tables"]
 quote: "A messy cap table with too many passive early shareholders can scare away top-tier venture capitalists."
 source: "[[The Hard Thing About Hard Things]]"
 source_url: ""
-image: ""
+image: "[[cap table.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.989757Z"
 srs_stability: 0

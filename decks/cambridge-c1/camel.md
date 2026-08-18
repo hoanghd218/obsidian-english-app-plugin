@@ -11,7 +11,7 @@ forms: ["camels"]
 quote: "We rode a camel across the desert."
 source: ""
 source_url: ""
-image: ""
+image: "[[camel.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:50:09.801Z"
 srs_stability: 0

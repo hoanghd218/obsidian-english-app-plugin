@@ -11,7 +11,7 @@ forms: ["classrooms"]
 quote: "Our classroom has twenty desks and chairs."
 source: ""
 source_url: ""
-image: ""
+image: "[[classroom.png]]"
 created: 2026-08-19
 srs_due: "2026-08-18T13:39:24.040Z"
 srs_stability: 0

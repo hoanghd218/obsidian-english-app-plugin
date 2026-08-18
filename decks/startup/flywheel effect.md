@@ -15,7 +15,7 @@ forms: ["flywheel effects"]
 quote: "Jim Collins described how pushing the heavy flywheel turn after turn eventually leads to explosive breakthrough velocity."
 source: "[[Good to Great — Jim Collins]]"
 source_url: ""
-image: ""
+image: "[[flywheel effect.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.993049Z"
 srs_stability: 0

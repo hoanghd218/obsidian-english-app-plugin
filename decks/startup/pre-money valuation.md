@@ -14,7 +14,7 @@ forms: ["pre-money valuations"]
 quote: "If your pre-money valuation is $8 million and you raise $2 million, your post-money valuation becomes $10 million."
 source: "[[Venture Deals — Brad Feld]]"
 source_url: ""
-image: ""
+image: "[[pre-money valuation.png]]"
 created: 2026-08-18
 srs_due: "2026-08-18T14:03:29.989857Z"
 srs_stability: 0
