@@ -303,6 +303,100 @@ async function callGemini(model, apiKey, messages, timeoutMs) {
   }
   return text;
 }
+var OPENROUTER_VENDORS = [
+  ["openai", "OpenAI"],
+  ["anthropic", "Anthropic (Claude)"],
+  ["google", "Google (Gemini)"],
+  ["x-ai", "xAI (Grok)"],
+  ["meta-llama", "Meta (Llama)"],
+  ["deepseek", "DeepSeek"],
+  ["minimax", "MiniMax"],
+  ["mistralai", "Mistral"],
+  ["qwen", "Qwen (Alibaba)"],
+  ["moonshotai", "Moonshot (Kimi)"],
+  ["z-ai", "Z.AI (GLM)"],
+  ["nvidia", "NVIDIA"]
+];
+var openRouterModelCache = null;
+var OPENROUTER_CACHE_TTL = 60 * 60 * 1e3;
+async function fetchOpenRouterModelGroups(force = false) {
+  if (!force && openRouterModelCache && Date.now() - openRouterModelCache.at < OPENROUTER_CACHE_TTL) {
+    return openRouterModelCache.groups;
+  }
+  const res = await requestWithTimeout(
+    { url: "https://openrouter.ai/api/v1/models", method: "GET" },
+    3e4,
+    "openrouter"
+  );
+  if (res.status >= 400) throw httpError("openrouter", res);
+  const data = res.json?.data ?? [];
+  const models = [];
+  for (const raw of data) {
+    const id = typeof raw.id === "string" ? raw.id : "";
+    if (!id) continue;
+    const arch = raw.architecture;
+    const outs = Array.isArray(arch?.output_modalities) ? arch.output_modalities : ["text"];
+    if (!outs.includes("text")) continue;
+    const pricing = raw.pricing ?? {};
+    const promptPer = parseFloat(String(pricing.prompt ?? "-1"));
+    const completionPer = parseFloat(String(pricing.completion ?? "-1"));
+    const promptPerM = Number.isFinite(promptPer) && promptPer >= 0 ? promptPer * 1e6 : -1;
+    const completionPerM = Number.isFinite(completionPer) && completionPer >= 0 ? completionPer * 1e6 : -1;
+    models.push({
+      id,
+      name: typeof raw.name === "string" ? raw.name : id,
+      promptPerM,
+      completionPerM,
+      free: promptPerM === 0 && completionPerM === 0
+    });
+  }
+  if (!models.length) throw new AiApiError("OpenRouter kh\xF4ng tr\u1EA3 v\u1EC1 model n\xE0o \u2014 th\u1EED l\u1EA1i sau", "openrouter");
+  const byId = (a, b) => a.id.localeCompare(b.id);
+  const priceRank = (m) => m.promptPerM < 0 ? Number.MAX_SAFE_INTEGER : m.promptPerM;
+  const byPrice = (a, b) => priceRank(a) - priceRank(b) || byId(a, b);
+  const groups = [];
+  const router = models.filter((m) => m.id.startsWith("openrouter/")).sort(byId);
+  if (router.length) groups.push({ label: "\u2B50 OpenRouter Router", models: router });
+  const others = models.filter((m) => !m.id.startsWith("openrouter/"));
+  const free = others.filter((m) => m.free).sort(byId);
+  if (free.length) groups.push({ label: `\u{1F193} Mi\u1EC5n ph\xED (${free.length})`, models: free });
+  const paid = others.filter((m) => !m.free);
+  const grouped = /* @__PURE__ */ new Set();
+  for (const [prefix, label] of OPENROUTER_VENDORS) {
+    const list = paid.filter((m) => m.id.startsWith(`${prefix}/`)).sort(byPrice);
+    if (!list.length) continue;
+    for (const m of list) grouped.add(m.id);
+    groups.push({ label: `\u{1F3E2} ${label} (${list.length})`, models: list });
+  }
+  const rest = paid.filter((m) => !grouped.has(m.id)).sort(byPrice);
+  if (rest.length) groups.push({ label: `\u{1F4E6} C\xF4ng ty kh\xE1c (${rest.length})`, models: rest });
+  openRouterModelCache = { at: Date.now(), groups };
+  return groups;
+}
+function fmtUsdPerM(n) {
+  if (n < 0) return "?";
+  if (n === 0) return "$0";
+  return `$${parseFloat(n.toPrecision(3))}`;
+}
+function openRouterOptionLabel(m) {
+  if (m.free) return `${m.id} \xB7 free`;
+  if (m.promptPerM < 0 && m.completionPerM < 0) return m.id;
+  return `${m.id} \xB7 ${fmtUsdPerM(m.promptPerM)}/${fmtUsdPerM(m.completionPerM)}`;
+}
+function renderOpenRouterOptions(sel, groups, currentModel) {
+  sel.empty();
+  for (const g of groups) {
+    const og = sel.createEl("optgroup", { attr: { label: g.label } });
+    for (const m of g.models) {
+      og.createEl("option", { text: openRouterOptionLabel(m), attr: { value: m.id } });
+    }
+  }
+  if (currentModel && !groups.some((g) => g.models.some((m) => m.id === currentModel))) {
+    sel.createEl("option", { text: currentModel, attr: { value: currentModel } });
+  }
+  sel.createEl("option", { text: "Kh\xE1c (t\u1EF1 nh\u1EADp)\u2026", attr: { value: "__custom__" } });
+  sel.value = currentModel;
+}
 async function runAiApi(messages, options) {
   const provider = options.provider;
   const info = AI_API_PROVIDERS[provider];
@@ -631,7 +725,7 @@ var AboutModal = class extends import_obsidian3.Modal {
     const header = contentEl.createDiv({ cls: "vf-about-header" });
     header.createDiv({ text: "\u{1F393}", cls: "vf-about-icon" });
     header.createEl("h2", { text: "Vocab Forge", cls: "vf-about-title" });
-    header.createSpan({ text: "v2.1.0", cls: "vf-about-version" });
+    header.createSpan({ text: "v2.2.0", cls: "vf-about-version" });
     header.createDiv({
       text: "English Fluency OS: t\u1EEB video th\u1EADt \u0111\u1EBFn ghi nh\u1EDB, nghe, n\xF3i v\xE0 vi\u1EBFt",
       cls: "vf-about-subtitle"
@@ -5508,8 +5602,12 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian7.ItemView {
       const keyBtn = cKey.createEl("button", { text: "\u{1F511}", cls: "vf-btn-icon" });
       keyBtn.onclick = () => window.open(info.keyUrl);
       const currentModel = (s.apiModels[s.apiProvider] ?? "").trim() || info.defaultModel;
-      const customModel = this.apiModelCustom || !info.models.includes(currentModel);
-      const cModel = group("Model AI", `M\u1EB7c \u0111\u1ECBnh: ${info.defaultModel}`);
+      const isOpenRouter = s.apiProvider === "openrouter";
+      const customModel = this.apiModelCustom || !isOpenRouter && !info.models.includes(currentModel);
+      const cModel = group(
+        "Model AI",
+        isOpenRouter && !customModel ? "Danh s\xE1ch t\u1EA3i t\u1EEB OpenRouter: Mi\u1EC5n ph\xED \u2192 c\xF4ng ty l\u1EDBn \xB7 gi\xE1 $/1M token (v\xE0o/ra)" : `M\u1EB7c \u0111\u1ECBnh: ${info.defaultModel}`
+      );
       if (customModel) {
         const mInput = cModel.createEl("input", {
           attr: { type: "text", value: s.apiModels[s.apiProvider] ?? "", placeholder: info.defaultModel },
@@ -5529,6 +5627,8 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian7.ItemView {
       } else {
         const mSel = cModel.createEl("select", { cls: "dropdown" });
         for (const m of info.models) mSel.createEl("option", { text: m, attr: { value: m } });
+        if (!info.models.includes(currentModel))
+          mSel.createEl("option", { text: currentModel, attr: { value: currentModel } });
         mSel.createEl("option", { text: "Kh\xE1c (t\u1EF1 nh\u1EADp)\u2026", attr: { value: "__custom__" } });
         mSel.value = currentModel;
         mSel.onchange = async () => {
@@ -5540,6 +5640,28 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian7.ItemView {
           s.apiModels[s.apiProvider] = mSel.value;
           await this.plugin.saveAll();
         };
+        if (isOpenRouter) {
+          void fetchOpenRouterModelGroups().then((groups) => {
+            if (!mSel.isConnected) return;
+            renderOpenRouterOptions(mSel, groups, (s.apiModels.openrouter ?? "").trim() || info.defaultModel);
+          }).catch(() => {
+          });
+          const reloadBtn = cModel.createEl("button", { text: "\u{1F504}", cls: "vf-btn-icon" });
+          reloadBtn.setAttr("aria-label", "T\u1EA3i l\u1EA1i danh s\xE1ch model t\u1EEB OpenRouter");
+          reloadBtn.onclick = async () => {
+            reloadBtn.disabled = true;
+            try {
+              const groups = await fetchOpenRouterModelGroups(true);
+              renderOpenRouterOptions(mSel, groups, (s.apiModels.openrouter ?? "").trim() || info.defaultModel);
+              const total = groups.reduce((n, g) => n + g.models.length, 0);
+              new import_obsidian7.Notice(`\u2705 \u0110\xE3 t\u1EA3i ${total} model t\u1EEB OpenRouter`);
+            } catch (e) {
+              new import_obsidian7.Notice(`\u274C ${e instanceof Error ? e.message : String(e)}`, 6e3);
+            } finally {
+              reloadBtn.disabled = false;
+            }
+          };
+        }
       }
       const cTest = group("Ki\u1EC3m tra k\u1EBFt n\u1ED1i API", "G\u1EEDi m\u1ED9t c\xE2u ng\u1EAFn t\u1EDBi model \u0111\xE3 ch\u1ECDn \u0111\u1EC3 x\xE1c nh\u1EADn key ho\u1EA1t \u0111\u1ED9ng");
       const testBtn = cTest.createEl("button", { text: "\u26A1 Test", cls: "vf-btn-icon" });
@@ -5587,7 +5709,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian7.ItemView {
     const authorGroup = main.createDiv({ cls: "vf-setting vf-author-card" });
     const authorInfo = authorGroup.createDiv({ cls: "vf-setting-info" });
     authorInfo.createDiv({ text: "\u{1F464} Tony Hoang (Tr\u1EA7n V\u0103n Ho\xE0ng)", cls: "vf-setting-name" });
-    authorInfo.createDiv({ text: "\u2709\uFE0F tony@tranvanhoang.com \xB7 Vocab Forge v2.1", cls: "vf-setting-desc" });
+    authorInfo.createDiv({ text: "\u2709\uFE0F tony@tranvanhoang.com \xB7 Vocab Forge v2.2", cls: "vf-setting-desc" });
     const authorCtrl = authorGroup.createDiv({ cls: "vf-setting-control" });
     const infoModalBtn = authorCtrl.createEl("button", { text: "\u2139\uFE0F Th\xF4ng tin", cls: "vf-btn-icon" });
     infoModalBtn.onclick = () => new AboutModal(this.app, this.plugin).open();
@@ -6579,8 +6701,11 @@ var VocabForgeSettingTab = class extends import_obsidian9.PluginSettingTab {
       });
     }).addButton((b) => b.setButtonText("\u{1F511} L\u1EA5y key").onClick(() => window.open(info.keyUrl)));
     const current = (s.apiModels[s.apiProvider] ?? "").trim() || info.defaultModel;
-    const custom = this.apiModelCustom || !info.models.includes(current);
-    const modelSetting = new import_obsidian9.Setting(containerEl).setName("Model AI").setDesc(custom ? `T\u1EF1 nh\u1EADp t\xEAn model \u2014 m\u1EB7c \u0111\u1ECBnh: ${info.defaultModel}` : "Ch\u1ECDn model, ho\u1EB7c ch\u1ECDn \u201CKh\xE1c\u201D \u0111\u1EC3 t\u1EF1 nh\u1EADp");
+    const isOpenRouter = s.apiProvider === "openrouter";
+    const custom = this.apiModelCustom || !isOpenRouter && !info.models.includes(current);
+    const modelSetting = new import_obsidian9.Setting(containerEl).setName("Model AI").setDesc(
+      custom ? `T\u1EF1 nh\u1EADp t\xEAn model \u2014 m\u1EB7c \u0111\u1ECBnh: ${info.defaultModel}` : isOpenRouter ? "Danh s\xE1ch t\u1EA3i tr\u1EF1c ti\u1EBFp t\u1EEB OpenRouter: Mi\u1EC5n ph\xED \u2192 c\xF4ng ty l\u1EDBn \xB7 gi\xE1 $/1M token (v\xE0o/ra)" : "Ch\u1ECDn model, ho\u1EB7c ch\u1ECDn \u201CKh\xE1c\u201D \u0111\u1EC3 t\u1EF1 nh\u1EADp"
+    );
     if (custom) {
       modelSetting.addText(
         (t) => t.setPlaceholder(info.defaultModel).setValue(s.apiModels[s.apiProvider] ?? "").onChange(async (v) => {
@@ -6598,6 +6723,7 @@ var VocabForgeSettingTab = class extends import_obsidian9.PluginSettingTab {
     } else {
       modelSetting.addDropdown((d) => {
         for (const m of info.models) d.addOption(m, m);
+        if (!info.models.includes(current)) d.addOption(current, current);
         d.addOption("__custom__", "Kh\xE1c (t\u1EF1 nh\u1EADp)\u2026");
         d.setValue(current).onChange(async (v) => {
           if (v === "__custom__") {
@@ -6608,7 +6734,30 @@ var VocabForgeSettingTab = class extends import_obsidian9.PluginSettingTab {
           s.apiModels[s.apiProvider] = v;
           await this.plugin.saveAll();
         });
+        if (isOpenRouter) {
+          void fetchOpenRouterModelGroups().then((groups) => {
+            if (!d.selectEl.isConnected) return;
+            renderOpenRouterOptions(d.selectEl, groups, current);
+          }).catch(() => {
+          });
+        }
       });
+      if (isOpenRouter) {
+        modelSetting.addExtraButton(
+          (b) => b.setIcon("refresh-cw").setTooltip("T\u1EA3i l\u1EA1i danh s\xE1ch model t\u1EEB OpenRouter").onClick(async () => {
+            try {
+              const groups = await fetchOpenRouterModelGroups(true);
+              const cur = (s.apiModels.openrouter ?? "").trim() || info.defaultModel;
+              const sel = modelSetting.controlEl.querySelector("select");
+              if (sel) renderOpenRouterOptions(sel, groups, cur);
+              const total = groups.reduce((n, g) => n + g.models.length, 0);
+              new import_obsidian9.Notice(`\u2705 \u0110\xE3 t\u1EA3i ${total} model t\u1EEB OpenRouter`);
+            } catch (e) {
+              new import_obsidian9.Notice(`\u274C ${e instanceof Error ? e.message : String(e)}`, 6e3);
+            }
+          })
+        );
+      }
     }
     new import_obsidian9.Setting(containerEl).setName("Ki\u1EC3m tra k\u1EBFt n\u1ED1i API").setDesc("G\u1EEDi m\u1ED9t c\xE2u ng\u1EAFn t\u1EDBi model \u0111\xE3 ch\u1ECDn \u0111\u1EC3 x\xE1c nh\u1EADn key ho\u1EA1t \u0111\u1ED9ng").addButton(
       (b) => b.setButtonText("\u26A1 Test").onClick(async () => {

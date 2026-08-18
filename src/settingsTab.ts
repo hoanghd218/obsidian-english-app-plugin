@@ -1,7 +1,13 @@
 import { App, Notice, PluginSettingTab, Setting } from "obsidian";
 import type VocabForgePlugin from "./main";
 import { AboutModal } from "./aboutModal";
-import { AI_API_PROVIDERS, AI_API_PROVIDER_IDS, type AiApiProvider } from "./aiApi";
+import {
+	AI_API_PROVIDERS,
+	AI_API_PROVIDER_IDS,
+	fetchOpenRouterModelGroups,
+	renderOpenRouterOptions,
+	type AiApiProvider,
+} from "./aiApi";
 import type { AiMode } from "./types";
 
 export class VocabForgeSettingTab extends PluginSettingTab {
@@ -187,10 +193,18 @@ export class VocabForgeSettingTab extends PluginSettingTab {
 			.addButton((b) => b.setButtonText("🔑 Lấy key").onClick(() => window.open(info.keyUrl)));
 
 		const current = (s.apiModels[s.apiProvider] ?? "").trim() || info.defaultModel;
-		const custom = this.apiModelCustom || !info.models.includes(current);
+		const isOpenRouter = s.apiProvider === "openrouter";
+		// OpenRouter: model đã lưu có thể đến từ danh sách tải động → không ép sang chế độ tự nhập
+		const custom = this.apiModelCustom || (!isOpenRouter && !info.models.includes(current));
 		const modelSetting = new Setting(containerEl)
 			.setName("Model AI")
-			.setDesc(custom ? `Tự nhập tên model — mặc định: ${info.defaultModel}` : "Chọn model, hoặc chọn “Khác” để tự nhập");
+			.setDesc(
+				custom
+					? `Tự nhập tên model — mặc định: ${info.defaultModel}`
+					: isOpenRouter
+						? "Danh sách tải trực tiếp từ OpenRouter: Miễn phí → công ty lớn · giá $/1M token (vào/ra)"
+						: "Chọn model, hoặc chọn “Khác” để tự nhập"
+			);
 		if (custom) {
 			modelSetting
 				.addText((t) =>
@@ -213,6 +227,7 @@ export class VocabForgeSettingTab extends PluginSettingTab {
 		} else {
 			modelSetting.addDropdown((d) => {
 				for (const m of info.models) d.addOption(m, m);
+				if (!info.models.includes(current)) d.addOption(current, current);
 				d.addOption("__custom__", "Khác (tự nhập)…");
 				d.setValue(current).onChange(async (v) => {
 					if (v === "__custom__") {
@@ -223,7 +238,37 @@ export class VocabForgeSettingTab extends PluginSettingTab {
 					s.apiModels[s.apiProvider] = v;
 					await this.plugin.saveAll();
 				});
+				if (isOpenRouter) {
+					// Thay danh sách gợi ý tĩnh bằng catalog thật (đã phân nhóm) ngay khi tải xong
+					void fetchOpenRouterModelGroups()
+						.then((groups) => {
+							if (!d.selectEl.isConnected) return;
+							renderOpenRouterOptions(d.selectEl, groups, current);
+						})
+						.catch(() => {
+							// offline / lỗi mạng — giữ danh sách gợi ý tĩnh
+						});
+				}
 			});
+			if (isOpenRouter) {
+				modelSetting.addExtraButton((b) =>
+					b
+						.setIcon("refresh-cw")
+						.setTooltip("Tải lại danh sách model từ OpenRouter")
+						.onClick(async () => {
+							try {
+								const groups = await fetchOpenRouterModelGroups(true);
+								const cur = (s.apiModels.openrouter ?? "").trim() || info.defaultModel;
+								const sel = modelSetting.controlEl.querySelector("select");
+								if (sel) renderOpenRouterOptions(sel, groups, cur);
+								const total = groups.reduce((n, g) => n + g.models.length, 0);
+								new Notice(`✅ Đã tải ${total} model từ OpenRouter`);
+							} catch (e) {
+								new Notice(`❌ ${e instanceof Error ? e.message : String(e)}`, 6000);
+							}
+						})
+				);
+			}
 		}
 
 		new Setting(containerEl)

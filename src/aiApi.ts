@@ -287,6 +287,137 @@ async function callGemini(
 	return text;
 }
 
+// ---------------------------------------------------------------- OPENROUTER CATALOG
+
+export interface OpenRouterModel {
+	id: string;
+	name: string;
+	/** USD cho mỗi 1 triệu token input; -1 = không rõ giá (vd auto router) */
+	promptPerM: number;
+	/** USD cho mỗi 1 triệu token output; -1 = không rõ giá */
+	completionPerM: number;
+	free: boolean;
+}
+
+export interface OpenRouterModelGroup {
+	label: string;
+	models: OpenRouterModel[];
+}
+
+/** Các công ty lớn được tách nhóm riêng; còn lại gom vào "Công ty khác" */
+const OPENROUTER_VENDORS: Array<[prefix: string, label: string]> = [
+	["openai", "OpenAI"],
+	["anthropic", "Anthropic (Claude)"],
+	["google", "Google (Gemini)"],
+	["x-ai", "xAI (Grok)"],
+	["meta-llama", "Meta (Llama)"],
+	["deepseek", "DeepSeek"],
+	["minimax", "MiniMax"],
+	["mistralai", "Mistral"],
+	["qwen", "Qwen (Alibaba)"],
+	["moonshotai", "Moonshot (Kimi)"],
+	["z-ai", "Z.AI (GLM)"],
+	["nvidia", "NVIDIA"],
+];
+
+let openRouterModelCache: { at: number; groups: OpenRouterModelGroup[] } | null = null;
+const OPENROUTER_CACHE_TTL = 60 * 60 * 1000;
+
+/**
+ * Tải danh sách model trực tiếp từ OpenRouter (endpoint công khai, không cần key)
+ * và phân nhóm: Router → Miễn phí → từng công ty lớn → còn lại.
+ * Kết quả cache 1 giờ; `force` = tải lại ngay.
+ */
+export async function fetchOpenRouterModelGroups(force = false): Promise<OpenRouterModelGroup[]> {
+	if (!force && openRouterModelCache && Date.now() - openRouterModelCache.at < OPENROUTER_CACHE_TTL) {
+		return openRouterModelCache.groups;
+	}
+	const res = await requestWithTimeout(
+		{ url: "https://openrouter.ai/api/v1/models", method: "GET" },
+		30_000,
+		"openrouter"
+	);
+	if (res.status >= 400) throw httpError("openrouter", res);
+	const data = (res.json as { data?: Array<Record<string, unknown>> })?.data ?? [];
+	const models: OpenRouterModel[] = [];
+	for (const raw of data) {
+		const id = typeof raw.id === "string" ? raw.id : "";
+		if (!id) continue;
+		const arch = raw.architecture as { output_modalities?: unknown } | undefined;
+		const outs = Array.isArray(arch?.output_modalities) ? (arch.output_modalities as unknown[]) : ["text"];
+		if (!outs.includes("text")) continue;
+		const pricing = (raw.pricing ?? {}) as { prompt?: unknown; completion?: unknown };
+		const promptPer = parseFloat(String(pricing.prompt ?? "-1"));
+		const completionPer = parseFloat(String(pricing.completion ?? "-1"));
+		const promptPerM = Number.isFinite(promptPer) && promptPer >= 0 ? promptPer * 1_000_000 : -1;
+		const completionPerM = Number.isFinite(completionPer) && completionPer >= 0 ? completionPer * 1_000_000 : -1;
+		models.push({
+			id,
+			name: typeof raw.name === "string" ? raw.name : id,
+			promptPerM,
+			completionPerM,
+			free: promptPerM === 0 && completionPerM === 0,
+		});
+	}
+	if (!models.length) throw new AiApiError("OpenRouter không trả về model nào — thử lại sau", "openrouter");
+
+	const byId = (a: OpenRouterModel, b: OpenRouterModel) => a.id.localeCompare(b.id);
+	const priceRank = (m: OpenRouterModel) => (m.promptPerM < 0 ? Number.MAX_SAFE_INTEGER : m.promptPerM);
+	const byPrice = (a: OpenRouterModel, b: OpenRouterModel) => priceRank(a) - priceRank(b) || byId(a, b);
+
+	const groups: OpenRouterModelGroup[] = [];
+	const router = models.filter((m) => m.id.startsWith("openrouter/")).sort(byId);
+	if (router.length) groups.push({ label: "⭐ OpenRouter Router", models: router });
+	const others = models.filter((m) => !m.id.startsWith("openrouter/"));
+	const free = others.filter((m) => m.free).sort(byId);
+	if (free.length) groups.push({ label: `🆓 Miễn phí (${free.length})`, models: free });
+	const paid = others.filter((m) => !m.free);
+	const grouped = new Set<string>();
+	for (const [prefix, label] of OPENROUTER_VENDORS) {
+		const list = paid.filter((m) => m.id.startsWith(`${prefix}/`)).sort(byPrice);
+		if (!list.length) continue;
+		for (const m of list) grouped.add(m.id);
+		groups.push({ label: `🏢 ${label} (${list.length})`, models: list });
+	}
+	const rest = paid.filter((m) => !grouped.has(m.id)).sort(byPrice);
+	if (rest.length) groups.push({ label: `📦 Công ty khác (${rest.length})`, models: rest });
+
+	openRouterModelCache = { at: Date.now(), groups };
+	return groups;
+}
+
+function fmtUsdPerM(n: number): string {
+	if (n < 0) return "?";
+	if (n === 0) return "$0";
+	return `$${parseFloat(n.toPrecision(3))}`;
+}
+
+export function openRouterOptionLabel(m: OpenRouterModel): string {
+	if (m.free) return `${m.id} · free`;
+	if (m.promptPerM < 0 && m.completionPerM < 0) return m.id;
+	return `${m.id} · ${fmtUsdPerM(m.promptPerM)}/${fmtUsdPerM(m.completionPerM)}`;
+}
+
+/** Đổ danh sách model đã phân nhóm vào <select> — dùng chung cho cả hai màn settings */
+export function renderOpenRouterOptions(
+	sel: HTMLSelectElement,
+	groups: OpenRouterModelGroup[],
+	currentModel: string
+): void {
+	sel.empty();
+	for (const g of groups) {
+		const og = sel.createEl("optgroup", { attr: { label: g.label } });
+		for (const m of g.models) {
+			og.createEl("option", { text: openRouterOptionLabel(m), attr: { value: m.id } });
+		}
+	}
+	if (currentModel && !groups.some((g) => g.models.some((m) => m.id === currentModel))) {
+		sel.createEl("option", { text: currentModel, attr: { value: currentModel } });
+	}
+	sel.createEl("option", { text: "Khác (tự nhập)…", attr: { value: "__custom__" } });
+	sel.value = currentModel;
+}
+
 /**
  * Gọi model qua API key. `messages` là toàn bộ hội thoại (API không lưu phiên);
  * với yêu cầu một lượt chỉ cần một message role "user".

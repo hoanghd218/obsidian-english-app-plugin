@@ -1,6 +1,6 @@
 {
   "name": "vocab-forge",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Obsidian English Fluency OS with YouTube Smart Capture, FSRS, dictation, shadowing, voice roleplay and AI via local CLIs or direct API keys (mobile-friendly).",
   "main": "main.js",
   "type": "module",
