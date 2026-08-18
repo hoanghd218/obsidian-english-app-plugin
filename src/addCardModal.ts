@@ -2,7 +2,7 @@ import { App, Modal, Notice, Setting, TFile } from "obsidian";
 import type VocabForgePlugin from "./main";
 import type { NewCardInput } from "./store";
 import { DEFAULT_CATEGORIES, type CardType } from "./types";
-import { cardFillPrompt, extractJson, runGrok, type CardFill } from "./ai";
+import { cardFillPrompt, extractJson, type CardFill } from "./ai";
 
 export interface AddCardPrefill {
 	word?: string;
@@ -19,7 +19,7 @@ export class AddCardModal extends Modal {
 	private mode: Mode = "auto";
 	private aiFilled = false;
 	private aiBusy = false;
-	private makeImage = true;
+	private makeImage = false;
 
 	private input: NewCardInput = {
 		word: "",
@@ -82,7 +82,7 @@ export class AddCardModal extends Modal {
 	// --- chế độ tự động: chỉ nhập từ, AI điền hết
 	private displayAutoEntry(contentEl: HTMLElement): void {
 		contentEl.createDiv({
-			text: "Nhập từ / cụm từ — Grok sẽ tự điền IPA, nghĩa Anh–Việt, ví dụ, collocations, word family, chủ đề và (tuỳ chọn) sinh ảnh minh hoạ.",
+				text: "Nhập từ / cụm từ — AI CLI đã chọn sẽ điền IPA, nghĩa Anh–Việt, ví dụ, collocations, word family và chủ đề.",
 			cls: "vf-muted vf-auto-desc",
 		});
 		const input = contentEl.createEl("input", {
@@ -97,7 +97,7 @@ export class AddCardModal extends Modal {
 
 		new Setting(contentEl)
 			.setName("🖼 Sinh ảnh minh hoạ sau khi tạo thẻ")
-			.setDesc("Grok Imagine, chạy nền ~1 phút")
+				.setDesc("Tuỳ chọn riêng cho Grok CLI đã đăng nhập; plugin không truyền API key")
 			.addToggle((t) => t.setValue(this.makeImage).onChange((v) => (this.makeImage = v)));
 
 		const btn = contentEl.createEl("button", {
@@ -119,7 +119,7 @@ export class AddCardModal extends Modal {
 		this.aiBusy = true;
 		this.display();
 		try {
-			const raw = await runGrok(cardFillPrompt(word), this.plugin.settings.grokPath, 120_000);
+			const raw = await this.plugin.runAI(cardFillPrompt(word), 120_000);
 			const fill = extractJson<CardFill>(raw);
 			if (!fill) throw new Error("bad json");
 			this.input.word = word;

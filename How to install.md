@@ -8,7 +8,7 @@
 ## 🎯 Mục tiêu thực thi
 
 Cài đặt đầy đủ 2 thành phần vào Obsidian Vault của người dùng:
-1. **Plugin Vocab Forge** (`main.js`, `manifest.json`, `styles.css`) vào thư mục `.obsidian/plugins/vocab-forge/`.
+1. **Plugin Vocab Forge** (`main.js`, `manifest.json`, `styles.css`, `assets/`) vào thư mục `.obsidian/plugins/vocab-forge/`.
 2. **Kho thẻ từ vựng (Vocab Packs)** từ thư mục `decks/` (1.381 thẻ với 9 bộ chủ đề) vào thư mục lưu thẻ trong Vault (mặc định: `5. Toolbox/English/Cards/` hoặc `VocabForge/Cards/`).
 3. **Kích hoạt plugin** tự động trong file `.obsidian/community-plugins.json`.
 
@@ -27,14 +27,16 @@ Cài đặt đầy đủ 2 thành phần vào Obsidian Vault của người dùn
    ```bash
    mkdir -p "$TARGET_VAULT/.obsidian/plugins/vocab-forge"
    ```
-2. Sao chép 3 tệp cốt lõi từ repository này vào thư mục plugin:
+2. Sao chép các tệp cốt lõi và asset giao diện từ repository này vào thư mục plugin:
    - `main.js`
    - `manifest.json`
    - `styles.css`
+   - `assets/vocab-forge-hero.jpg`
 
    *Lệnh bash:*
    ```bash
    cp main.js manifest.json styles.css "$TARGET_VAULT/.obsidian/plugins/vocab-forge/"
+   cp -r assets "$TARGET_VAULT/.obsidian/plugins/vocab-forge/"
    ```
 
 ---
@@ -112,7 +114,15 @@ Nếu người dùng muốn cấu hình sẵn đường dẫn thẻ hoặc mục
     "dailyNewGoal": 10,
     "dailyPracticeGoal": 15,
     "reminderHour": 20,
-    "grokPath": "grok"
+    "grokPath": "grok",
+    "aiProvider": "auto",
+    "claudePath": "claude",
+    "codexPath": "codex",
+    "geminiPath": "gemini",
+    "learningGoal": "business",
+    "dailyMinutes": 10,
+    "errorNotebookPath": "5. Toolbox/English/My English Errors.md",
+    "voiceLocale": "en-US"
   },
   "stats": {},
   "xp": 0,
@@ -121,7 +131,13 @@ Nếu người dùng muốn cấu hình sẵn đường dẫn thẻ hoặc mục
   "questRewardDates": [],
   "story": null,
   "badges": {},
-  "lastReminder": ""
+  "lastReminder": "",
+  "skillStats": {
+    "memory": { "attempts": 0, "totalScore": 0, "lastAt": "" },
+    "listening": { "attempts": 0, "totalScore": 0, "lastAt": "" },
+    "speaking": { "attempts": 0, "totalScore": 0, "lastAt": "" },
+    "writing": { "attempts": 0, "totalScore": 0, "lastAt": "" }
+  }
 }
 ```
 
@@ -151,6 +167,7 @@ echo "🚀 Bắt đầu cài đặt Vocab Forge vào: $TARGET_VAULT"
 # 1. Cài đặt plugin files
 mkdir -p "$PLUGIN_DIR"
 cp main.js manifest.json styles.css "$PLUGIN_DIR/"
+cp -r assets "$PLUGIN_DIR/"
 echo "✅ Đã cài đặt plugin files vào $PLUGIN_DIR"
 
 # 2. Cài đặt vocab decks
@@ -191,4 +208,4 @@ AI hãy hướng dẫn hoặc xác nhận với người dùng:
 
 - **Tác giả:** Tony Hoang (Trần Văn Hoàng)
 - **Email:** [tony@tranvanhoang.com](mailto:tony@tranvanhoang.com)
-- **Plugin:** Vocab Forge v1.6.1
+- **Plugin:** Vocab Forge v2.0.0

@@ -1,9 +1,9 @@
 {
   "id": "vocab-forge",
   "name": "Vocab Forge",
-  "version": "1.6.1",
+  "version": "2.0.0",
   "minAppVersion": "1.4.0",
-  "description": "Học từ vựng tiếng Anh từ video YouTube — flashcard 2 mặt với thuật toán FSRS (spaced repetition như Anki). Mỗi thẻ là một note Markdown trong vault.",
+  "description": "English Fluency OS trong Obsidian: Smart Capture YouTube, FSRS, dictation, shadowing, voice roleplay và AI CLI local. Mỗi thẻ là một note Markdown.",
   "author": "Tony Hoang (Trần Văn Hoàng)",
   "authorUrl": "mailto:tony@tranvanhoang.com",
   "isDesktopOnly": false

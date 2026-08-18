@@ -14,9 +14,9 @@ export class AboutModal extends Modal {
 		const header = contentEl.createDiv({ cls: "vf-about-header" });
 		header.createDiv({ text: "🎓", cls: "vf-about-icon" });
 		header.createEl("h2", { text: "Vocab Forge", cls: "vf-about-title" });
-		header.createSpan({ text: "v1.6.1", cls: "vf-about-version" });
+		header.createSpan({ text: "v2.0.0", cls: "vf-about-version" });
 		header.createDiv({
-			text: "Học từ vựng tiếng Anh thông minh với thuật toán FSRS & hỗ trợ AI",
+			text: "English Fluency OS: từ video thật đến ghi nhớ, nghe, nói và viết",
 			cls: "vf-about-subtitle",
 		});
 
@@ -68,7 +68,9 @@ export class AboutModal extends Modal {
 
 		const feats = [
 			{ icon: "🧠", title: "FSRS Spaced Repetition", desc: "Thuật toán lặp lại ngắt quãng hiện đại tối ưu khả năng ghi nhớ dài hạn." },
-			{ icon: "🤖", title: "Trí tuệ nhân tạo Grok AI", desc: "Tự động điền thẻ, giải thích ngữ pháp, tạo mẹo nhớ & hội thoại roleplay." },
+			{ icon: "✨", title: "YouTube Smart Capture", desc: "Dán URL hoặc transcript, AI CLI chọn cụm hữu dụng và tạo thẻ đúng timestamp." },
+			{ icon: "🎙️", title: "Fluency Lab", desc: "Listening, dictation, ghi âm shadowing, word-level diff và Video Comprehension Score." },
+			{ icon: "🤖", title: "AI CLI không API key", desc: "Dùng tài khoản Claude, Codex, Gemini hoặc Grok CLI đã đăng nhập trên máy." },
 			{ icon: "🎯", title: "Nhiều chế độ luyện tập", desc: "Trắc nghiệm, nối từ, điền từ vào câu, xếp từ & tìm lỗi sai." },
 			{ icon: "📝", title: "100% Markdown Vault Native", desc: "Toàn bộ từ vựng được lưu trữ an toàn dưới dạng file Markdown trong Vault của bạn." },
 		];

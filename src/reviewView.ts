@@ -2,6 +2,7 @@ import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
 import type VocabForgePlugin from "./main";
 import { AboutModal } from "./aboutModal";
 import { ImageModal } from "./imageModal";
+import { renderMarkdown, renderInlineMarkdown } from "./markdown";
 import { formatInterval, Rating, State, type Grade } from "./srs";
 import {
 	categoryEmoji,
@@ -28,7 +29,6 @@ import {
 	extractJson,
 	grammarPrompt,
 	mnemonicPrompt,
-	runGrok,
 	sentenceCheckPrompt,
 	storyPrompt,
 	type SentenceCheck,
@@ -36,6 +36,22 @@ import {
 import { XP_PER_LEVEL } from "./types";
 import { BADGES } from "./badges";
 import type { ErrorItem } from "./practice";
+import {
+	analyzeVideoComprehension,
+	appendErrorNotebookEntry,
+	recommendDailySession,
+	type VideoComprehensionResult,
+} from "./learning";
+import {
+	AudioRecorder,
+	SpeechRecognitionController,
+	diffTranscripts,
+	isAudioRecordingSupported,
+	isSpeechRecognitionSupported,
+	scoreShadowing,
+	type ShadowingScore,
+	type TranscriptDiff,
+} from "./speech";
 
 export const VIEW_TYPE_VOCAB = "vocab-forge-review";
 
@@ -50,6 +66,7 @@ type Section =
 	| "practice-done"
 	| "story"
 	| "chat"
+	| "lab"
 	| "settings";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -109,6 +126,24 @@ export class VocabReviewView extends ItemView {
 	private chatSession = "";
 	private chatBusy = false;
 	private chatInput = "";
+	private chatListening = false;
+
+	// --- fluency lab: dictation, shadowing, video coverage
+	private labMode: "dictation" | "shadowing" | "coverage" = "dictation";
+	private labIndex = 0;
+	private labAnswer = "";
+	private labReveal = false;
+	private labDiff: TranscriptDiff | null = null;
+	private labSpoken = "";
+	private labShadowScore: ShadowingScore | null = null;
+	private labRecording = false;
+	private labStarting = false;
+	private labAudioUrl = "";
+	private labConfidence = 0;
+	private coverageText = "";
+	private coverageResult: VideoComprehensionResult | null = null;
+	private readonly audioRecorder = new AudioRecorder();
+	private readonly speechRecognition = new SpeechRecognitionController();
 
 	// --- nối cặp (match)
 	private matchSel: { kind: "w" | "m"; idx: number } | null = null;
@@ -136,9 +171,34 @@ export class VocabReviewView extends ItemView {
 		this.render();
 	}
 
+	async onClose(): Promise<void> {
+		this.speechRecognition.abort();
+		this.audioRecorder.cancel();
+		if (this.labAudioUrl) URL.revokeObjectURL(this.labAudioUrl);
+	}
+
 	renderHome(): void {
+		this.leaveInteractiveSection("dashboard");
 		this.section = "dashboard";
 		this.render();
+	}
+
+	resetAiConversation(): void {
+		this.speechRecognition.abort();
+		this.chatListening = false;
+		this.chatBusy = false;
+		this.chatSession = "";
+		this.chatMsgs = [];
+		this.chatInput = "";
+		if (this.section === "chat") this.render();
+	}
+
+	private leaveInteractiveSection(next: Section): void {
+		if (this.section === "lab" && next !== "lab") this.resetLabAttempt();
+		if (this.section === "chat" && next !== "chat") {
+			this.speechRecognition.abort();
+			this.chatListening = false;
+		}
 	}
 
 	// ================================================================ SHELL
@@ -161,6 +221,7 @@ export class VocabReviewView extends ItemView {
 			case "practice-done": this.renderPracticeDone(main); break;
 			case "story": this.renderStory(main); break;
 			case "chat": this.renderChat(main); break;
+			case "lab": this.renderLab(main); break;
 			case "settings": this.renderSettings(main); break;
 		}
 	}
@@ -181,11 +242,13 @@ export class VocabReviewView extends ItemView {
 			new AboutModal(this.app, this.plugin).open();
 		};
 
-		const items: Array<{ id: Section | "study" | "add" | "about"; icon: string; label: string }> = [
+		const items: Array<{ id: Section | "study" | "add" | "capture" | "about"; icon: string; label: string }> = [
 			{ id: "dashboard", icon: "🏠", label: "Dashboard" },
 			{ id: "study", icon: "▶️", label: "Học ngay" },
 			{ id: "practice", icon: "🎯", label: "Luyện tập" },
+			{ id: "lab", icon: "🎙️", label: "Fluency Lab" },
 			{ id: "chat", icon: "💬", label: "Hội thoại" },
+			{ id: "capture", icon: "✨", label: "Smart Capture" },
 			{ id: "decks", icon: "🗂️", label: "Bộ thẻ" },
 			{ id: "add", icon: "➕", label: "Thêm thẻ" },
 			{ id: "settings", icon: "⚙️", label: "Cài đặt" },
@@ -198,15 +261,31 @@ export class VocabReviewView extends ItemView {
 				(it.id === "practice" && (this.section === "practice-run" || this.section === "practice-done")) ||
 				(it.id === "decks" && this.section === "deck-detail");
 			const el = nav.createDiv({ cls: `vf-nav-item ${active ? "vf-nav-active" : ""}` });
+			el.setAttr("role", "button");
+			el.setAttr("tabindex", "0");
+			el.setAttr("aria-label", it.label);
+			if (active) el.setAttr("aria-current", "page");
+			el.setAttr("title", it.label);
 			el.createSpan({ text: it.icon, cls: "vf-nav-icon" });
 			el.createSpan({ text: it.label, cls: "vf-nav-label" });
 			el.onclick = () => {
-				if (it.id === "study") this.startSession(null);
+				if (it.id === "study") {
+					this.leaveInteractiveSection("review");
+					this.startSession(null);
+				}
 				else if (it.id === "add") this.plugin.openAddCardModal();
+				else if (it.id === "capture") this.plugin.openSmartCapture();
 				else if (it.id === "about") new AboutModal(this.app, this.plugin).open();
 				else {
+					this.leaveInteractiveSection(it.id);
 					this.section = it.id;
 					this.render();
+				}
+			};
+			el.onkeydown = (event) => {
+				if (event.key === "Enter" || event.key === " ") {
+					event.preventDefault();
+					el.click();
 				}
 			};
 		}
@@ -261,6 +340,8 @@ export class VocabReviewView extends ItemView {
 		practiceBtn.onclick = () => { this.section = "practice"; this.render(); };
 		const storyBtn = heroBtns.createEl("button", { text: "📖 Story hôm nay", cls: "vf-btn-hero-ghost" });
 		storyBtn.onclick = () => { this.section = "story"; this.render(); };
+		const captureBtn = heroBtns.createEl("button", { text: "✨ Lấy từ video", cls: "vf-btn-hero-ghost" });
+		captureBtn.onclick = () => this.plugin.openSmartCapture();
 		const ring = hero.createDiv({ cls: "vf-hero-ring" });
 		const pct = today ? Math.min(100, Math.round((today.reviews / Math.max(1, today.reviews + total)) * 100)) : total > 0 ? 0 : 100;
 		ring.style.setProperty("--vf-pct", String(pct));
@@ -272,6 +353,8 @@ export class VocabReviewView extends ItemView {
 		this.tile(tiles, "✨", String(newAvailable), "Thẻ mới", "vf-tile-new");
 		this.tile(tiles, "📖", String(today?.reviews ?? 0), "Lượt ôn hôm nay", "");
 		this.tile(tiles, "🏆", `${learned}/${all.length}`, "Đã học / tổng", "");
+
+		this.renderAdaptiveCoach(main, all);
 
 		// --- Decks tóm tắt
 		const decks = this.groupByCategory(all);
@@ -360,6 +443,93 @@ export class VocabReviewView extends ItemView {
 		const right = t.createDiv({ cls: "vf-tile-body" });
 		right.createDiv({ text: value, cls: "vf-tile-value" });
 		right.createDiv({ text: label, cls: "vf-tile-label" });
+	}
+
+	private renderAdaptiveCoach(main: HTMLElement, cards: VocabCard[]): void {
+		const skillPerformance = {
+			recall: this.performanceFor("memory"),
+			listening: this.performanceFor("listening"),
+			shadowing: this.performanceFor("speaking"),
+			grammar: this.performanceFor("writing"),
+		};
+		const plan = recommendDailySession({
+			cards,
+			history: this.plugin.data.stats,
+			skillPerformance,
+			minutes: this.plugin.settings.dailyMinutes,
+			newCardLimit: this.plugin.newRemainingToday(),
+			reverseEnabled: this.plugin.settings.reverseEnabled,
+		});
+		const grid = main.createDiv({ cls: "vf-coach-grid" });
+		const coach = grid.createDiv({ cls: "vf-coach-card" });
+		coach.createDiv({ text: "Adaptive Today Coach", cls: "vf-eyebrow" });
+		coach.createDiv({ text: `Phiên ${Math.max(1, Math.round(plan.totalMinutes))} phút dành riêng cho bạn`, cls: "vf-coach-title" });
+		coach.createDiv({ text: plan.weakReason, cls: "vf-muted" });
+		const chips = coach.createDiv({ cls: "vf-coach-plan" });
+		for (const block of plan.blocks.slice(0, 5)) {
+			chips.createSpan({ text: `${this.skillIcon(block.skill)} ${block.count} ${this.skillName(block.skill)}`, cls: "vf-plan-chip" });
+		}
+		const start = coach.createEl("button", { text: "Bắt đầu phiên đề xuất →", cls: "vf-btn-hero vf-btn-hero-small" });
+		start.onclick = () => {
+			if ((plan.weakSkill === "listening" || plan.weakSkill === "shadowing") && cards.some((c) => c.quote)) {
+				this.labMode = plan.weakSkill === "shadowing" ? "shadowing" : "dictation";
+				this.section = "lab";
+				this.render();
+			} else if (plan.dueCount > 0) this.startSession(null);
+			else this.startPractice("mix");
+		};
+
+		const goal = grid.createDiv({ cls: "vf-goal-card" });
+		goal.createDiv({ text: "Lộ trình hiện tại", cls: "vf-eyebrow" });
+		goal.createDiv({ text: this.goalLabel(), cls: "vf-goal-name" });
+		goal.createDiv({ text: this.goalStep(cards), cls: "vf-goal-step" });
+		for (const [skill, label] of [["memory", "Ghi nhớ"], ["listening", "Nghe"], ["speaking", "Nói"], ["writing", "Viết"]] as const) {
+			const stat = this.plugin.data.skillStats[skill];
+			const avg = stat.attempts ? Math.round(stat.totalScore / stat.attempts) : 0;
+			const row = goal.createDiv({ cls: "vf-skill-row" });
+			row.createSpan({ text: label });
+			const track = row.createDiv({ cls: "vf-skill-track" });
+			track.createDiv({ cls: "vf-skill-fill" }).style.width = `${avg}%`;
+			row.createSpan({ text: stat.attempts ? String(avg) : "—" });
+		}
+	}
+
+	private performanceFor(skill: "memory" | "listening" | "speaking" | "writing") {
+		const stat = this.plugin.data.skillStats[skill];
+		return {
+			attempts: stat.attempts,
+			correct: stat.totalScore / 100,
+			recentAccuracy: stat.attempts ? stat.totalScore / stat.attempts / 100 : undefined,
+			lastPracticed: stat.lastAt || undefined,
+		};
+	}
+
+	private goalLabel(): string {
+		return ({
+			business: "💼 Business English",
+			daily: "💬 Giao tiếp hằng ngày",
+			ielts: "🎓 IELTS",
+			content: "📱 Content Creator",
+			"ai-tech": "🤖 AI & Technology",
+			cambridge: "📚 Cambridge / CEFR",
+		})[this.plugin.settings.learningGoal];
+	}
+
+	private goalStep(cards: VocabCard[]): string {
+		const goal = this.plugin.settings.learningGoal;
+		const relevant = cards.filter((c) => c.category === goal || (goal === "cambridge" && c.category.startsWith("cambridge")));
+		const learned = relevant.filter((c) => c.fsrs.state !== State.New).length;
+		return relevant.length
+			? `Đã mở khóa ${learned}/${relevant.length} thẻ phù hợp. Bước tiếp theo: đưa từ đã nhớ vào nghe và nói.`
+			: "Bắt đầu bằng Smart Capture để tạo bộ từ đúng với mục tiêu của bạn.";
+	}
+
+	private skillName(skill: string): string {
+		return ({ review: "ôn", recall: "recall", recognition: "từ mới", cloze: "cloze", listening: "nghe", shadowing: "shadow", grammar: "grammar" } as Record<string, string>)[skill] ?? skill;
+	}
+
+	private skillIcon(skill: string): string {
+		return ({ review: "🧠", recall: "⌨️", recognition: "✨", cloze: "🧩", listening: "🎧", shadowing: "🎙️", grammar: "✍️" } as Record<string, string>)[skill] ?? "•";
 	}
 
 	// ================================================================ DECKS
@@ -586,17 +756,20 @@ export class VocabReviewView extends ItemView {
 		if (card.mnemonic) {
 			const mn = box.createDiv({ cls: "vf-ai-note vf-ai-mnemonic" });
 			mn.createSpan({ text: "🧠 ", cls: "vf-ai-note-icon" });
-			mn.createSpan({ text: card.mnemonic });
+			const mnBody = mn.createDiv({ cls: "vf-ai-note-body" });
+			renderMarkdown(mnBody, card.mnemonic);
 		}
 		if (card.grammarNote) {
 			const gr = box.createDiv({ cls: "vf-ai-note vf-ai-grammar" });
 			gr.createSpan({ text: "📖 ", cls: "vf-ai-note-icon" });
-			gr.createSpan({ text: card.grammarNote });
+			const grBody = gr.createDiv({ cls: "vf-ai-note-body" });
+			renderMarkdown(grBody, card.grammarNote);
 		}
 		if (card.myExample) {
 			const ex = box.createDiv({ cls: "vf-ai-note vf-ai-example" });
 			ex.createSpan({ text: "✍️ ", cls: "vf-ai-note-icon" });
-			ex.createSpan({ text: card.myExample });
+			const exBody = ex.createDiv({ cls: "vf-ai-note-body" });
+			renderMarkdown(exBody, card.myExample);
 		}
 
 		const btnRow = box.createDiv({ cls: "vf-ai-btn-row" });
@@ -606,9 +779,9 @@ export class VocabReviewView extends ItemView {
 		});
 		mnBtn.onclick = () =>
 			void this.aiAction(mnBtn, async () => {
-				const out = await runGrok(
+				const out = await this.plugin.runAI(
 					mnemonicPrompt(card.word, card.meaningVi || card.meaningEn),
-					this.plugin.settings.grokPath
+					120_000
 				);
 				if (out) await this.plugin.store.saveExtraField(card, "mnemonic", out.split("\n")[0].trim());
 			});
@@ -619,7 +792,7 @@ export class VocabReviewView extends ItemView {
 			});
 			grBtn.onclick = () =>
 				void this.aiAction(grBtn, async () => {
-					const out = await runGrok(grammarPrompt(card.quote), this.plugin.settings.grokPath);
+					const out = await this.plugin.runAI(grammarPrompt(card.quote));
 					if (out) await this.plugin.store.saveExtraField(card, "grammar_note", out.trim());
 				});
 		}
@@ -640,12 +813,30 @@ export class VocabReviewView extends ItemView {
 					new Notice("Gõ câu của bạn trước đã");
 					return;
 				}
-				const raw = await runGrok(
+				const raw = await this.plugin.runAI(
 					sentenceCheckPrompt(card.word, card.meaningEn, this.aiSentence.trim()),
-					this.plugin.settings.grokPath
+					120_000
 				);
 				this.aiResult = extractJson<SentenceCheck>(raw);
 				if (!this.aiResult) new Notice("AI trả lời không đúng định dạng — thử lại");
+				else {
+					this.plugin.recordSkill("writing", this.aiResult.score * 10);
+					if (this.aiResult.corrected.trim() && this.aiResult.corrected.trim() !== this.aiSentence.trim()) {
+						try {
+							await appendErrorNotebookEntry(this.app, {
+								category: "grammar",
+								original: this.aiSentence.trim(),
+								corrected: this.aiResult.corrected.trim(),
+								explanation: this.aiResult.explain_vi,
+								source: card.file.path,
+								targetWords: [card.word],
+							}, { path: this.plugin.settings.errorNotebookPath });
+						} catch (error) {
+							console.warn("Vocab Forge: không lưu được Sổ lỗi", error);
+							new Notice("Đã chấm câu nhưng chưa lưu được vào Sổ lỗi");
+						}
+					}
+				}
 			});
 
 		if (this.aiResult) {
@@ -653,9 +844,14 @@ export class VocabReviewView extends ItemView {
 			const res = box.createDiv({
 				cls: `vf-feedback ${r.score >= 7 ? "vf-feedback-ok" : "vf-feedback-no"} vf-ai-result`,
 			});
-			res.createDiv({ text: `${r.score >= 7 ? "👍" : "🛠"} ${r.score}/10 — ${r.explain_vi}`, cls: "vf-feedback-text" });
-			if (r.corrected && r.corrected.trim() && r.corrected.trim() !== this.aiSentence.trim())
-				res.createDiv({ text: `→ ${r.corrected}`, cls: "vf-feedback-meaning" });
+			const resText = res.createDiv({ cls: "vf-feedback-text" });
+			resText.createSpan({ text: `${r.score >= 7 ? "👍" : "🛠"} ${r.score}/10 — ` });
+			renderInlineMarkdown(resText, r.explain_vi);
+			if (r.corrected && r.corrected.trim() && r.corrected.trim() !== this.aiSentence.trim()) {
+				const cor = res.createDiv({ cls: "vf-feedback-meaning" });
+				cor.createSpan({ text: "→ " });
+				renderInlineMarkdown(cor, r.corrected);
+			}
 			const save = res.createEl("button", { text: "💾 Lưu câu vào thẻ", cls: "vf-btn-icon" });
 			save.onclick = async () => {
 				const sentence = (r.score >= 7 ? this.aiSentence : r.corrected).trim();
@@ -676,7 +872,7 @@ export class VocabReviewView extends ItemView {
 			await fn();
 		} catch (e) {
 			console.error("Vocab Forge AI:", e);
-			new Notice("Lỗi gọi Grok CLI — kiểm tra đường dẫn grok trong Cài đặt");
+			new Notice("Lỗi gọi AI CLI — kiểm tra provider và trạng thái đăng nhập trong Cài đặt");
 		} finally {
 			this.aiBusy = false;
 			btn.disabled = false;
@@ -1480,18 +1676,56 @@ export class VocabReviewView extends ItemView {
 		sel2.value = String(s.reminderHour);
 		sel2.onchange = async () => { s.reminderHour = Number(sel2.value); await this.plugin.saveAll(); };
 
-		// grok path
-		main.createEl("h4", { text: "AI (Grok CLI)" });
-		const c7 = group("Đường dẫn lệnh grok", "Dùng cho mẹo nhớ, chấm câu, giải thích ngữ pháp, story");
-		const gp = c7.createEl("input", { attr: { type: "text", value: s.grokPath }, cls: "vf-input" });
-		gp.onchange = async () => { s.grokPath = gp.value.trim() || "grok"; await this.plugin.saveAll(); };
+		main.createEl("h4", { text: "Lộ trình cá nhân" });
+		const cgGoal = group("Mục tiêu học", "Coach ưu tiên deck và bài luyện phù hợp với mục tiêu này");
+		const goal = cgGoal.createEl("select", { cls: "dropdown" });
+		for (const [value, label] of [["business", "Business English"], ["daily", "Giao tiếp hằng ngày"], ["ielts", "IELTS"], ["content", "Content creator"], ["ai-tech", "AI & Technology"], ["cambridge", "Cambridge / CEFR"]] as const)
+			goal.createEl("option", { text: label, attr: { value } });
+		goal.value = s.learningGoal;
+		goal.onchange = async () => { s.learningGoal = goal.value as typeof s.learningGoal; await this.plugin.saveAll(); this.render(); };
+		const cgMinutes = group("Thời lượng phiên Coach", "Tạo phiên học cân bằng ghi nhớ, nghe, nói và viết");
+		const minValue = cgMinutes.createSpan({ text: `${s.dailyMinutes} phút`, cls: "vf-setting-value" });
+		const minRange = cgMinutes.createEl("input", { attr: { type: "range", min: "5", max: "30", step: "5", value: String(s.dailyMinutes) } });
+		minRange.oninput = () => minValue.setText(`${minRange.value} phút`);
+		minRange.onchange = async () => { s.dailyMinutes = Number(minRange.value); await this.plugin.saveAll(); };
+		const errorPath = group("Sổ lỗi cá nhân", "Lưu lỗi AI phát hiện thành note Markdown có thể ôn lại");
+		const ep = errorPath.createEl("input", { attr: { type: "text", value: s.errorNotebookPath }, cls: "vf-input" });
+		ep.onchange = async () => { s.errorNotebookPath = ep.value.trim() || "5. Toolbox/English/My English Errors.md"; await this.plugin.saveAll(); };
+
+		main.createEl("h4", { text: "AI CLI · không dùng API key" });
+		const c7 = group("AI mặc định", "Auto ưu tiên Claude → Grok → Gemini → Codex đã đăng nhập trên máy");
+		const provider = c7.createEl("select", { cls: "dropdown" });
+		for (const [value, label] of [["auto", "Tự động"], ["claude", "Claude CLI"], ["codex", "Codex CLI"], ["gemini", "Gemini CLI"], ["grok", "Grok CLI"]] as const)
+			provider.createEl("option", { text: label, attr: { value } });
+		provider.value = s.aiProvider;
+		provider.onchange = async () => {
+			s.aiProvider = provider.value as typeof s.aiProvider;
+			this.plugin.resetAiProvider();
+			await this.plugin.saveAll();
+		};
+		const checkAi = c7.createEl("button", { text: "Kiểm tra", cls: "vf-btn-icon" });
+		checkAi.onclick = async () => {
+			checkAi.disabled = true;
+			checkAi.setText("Đang kiểm tra…");
+			try { new Notice(await this.plugin.aiStatusSummary(), 9000); }
+			finally { checkAi.disabled = false; checkAi.setText("Kiểm tra"); }
+		};
+		const cliPaths: Array<[string, "claudePath" | "codexPath" | "geminiPath" | "grokPath", string]> = [
+			["Claude CLI", "claudePath", "claude"], ["Codex CLI", "codexPath", "codex"],
+			["Gemini CLI", "geminiPath", "gemini"], ["Grok CLI", "grokPath", "grok"],
+		];
+		for (const [label, key, fallback] of cliPaths) {
+			const ctrl = group(label, "Đường dẫn binary; để tên lệnh nếu đã có trong PATH");
+			const input = ctrl.createEl("input", { attr: { type: "text", value: s[key] }, cls: "vf-input" });
+			input.onchange = async () => { s[key] = input.value.trim() || fallback; this.plugin.resetAiProvider(); await this.plugin.saveAll(); };
+		}
 
 		// thông tin tác giả
 		main.createEl("h4", { text: "Thông tin & Tác giả" });
 		const authorGroup = main.createDiv({ cls: "vf-setting vf-author-card" });
 		const authorInfo = authorGroup.createDiv({ cls: "vf-setting-info" });
 		authorInfo.createDiv({ text: "👤 Tony Hoang (Trần Văn Hoàng)", cls: "vf-setting-name" });
-		authorInfo.createDiv({ text: "✉️ tony@tranvanhoang.com · Vocab Forge v1.6.1", cls: "vf-setting-desc" });
+		authorInfo.createDiv({ text: "✉️ tony@tranvanhoang.com · Vocab Forge v2.0", cls: "vf-setting-desc" });
 		const authorCtrl = authorGroup.createDiv({ cls: "vf-setting-control" });
 		const infoModalBtn = authorCtrl.createEl("button", { text: "ℹ️ Thông tin", cls: "vf-btn-icon" });
 		infoModalBtn.onclick = () => new AboutModal(this.app, this.plugin).open();
@@ -1588,12 +1822,304 @@ export class VocabReviewView extends ItemView {
 		}
 	}
 
+	// ========================================================== FLUENCY LAB
+
+	private renderLab(main: HTMLElement): void {
+		const head = main.createDiv({ cls: "vf-lab-header" });
+		const title = head.createDiv();
+		title.createDiv({ text: "Voice-first practice", cls: "vf-eyebrow" });
+		title.createEl("h3", { text: "🎙️ Fluency Lab" });
+		title.createDiv({ text: "Nghe thật kỹ, nói thành tiếng và đo tiến bộ — dùng chính câu trong vault của bạn.", cls: "vf-muted" });
+		const capture = head.createEl("button", { text: "✨ Smart Capture", cls: "vf-btn-icon" });
+		capture.onclick = () => this.plugin.openSmartCapture();
+
+		const tabs = main.createDiv({ cls: "vf-lab-tabs" });
+		for (const [mode, label] of [["dictation", "🎧 Listening & Dictation"], ["shadowing", "🎙️ Shadowing"], ["coverage", "📊 Video Score"]] as const) {
+			const tab = tabs.createEl("button", { text: label, cls: `vf-lab-tab ${this.labMode === mode ? "vf-lab-tab-on" : ""}` });
+			tab.onclick = () => {
+				this.labMode = mode;
+				this.resetLabAttempt();
+				this.render();
+			};
+		}
+
+		if (this.labMode === "coverage") {
+			this.renderCoverageLab(main);
+			return;
+		}
+		const cards = this.labCards();
+		if (!cards.length) {
+			const empty = main.createDiv({ cls: "vf-story-wait" });
+			empty.createDiv({ text: "🎧", cls: "vf-done-emoji" });
+			empty.createDiv({ text: "Cần ít nhất một thẻ có quote để luyện nghe/nói.", cls: "vf-muted" });
+			const btn = empty.createEl("button", { text: "Lấy câu từ video", cls: "vf-btn-hero vf-btn-hero-small" });
+			btn.onclick = () => this.plugin.openSmartCapture();
+			return;
+		}
+		const card = cards[this.labIndex % cards.length];
+		const panel = main.createDiv({ cls: "vf-lab-panel" });
+		const stage = panel.createDiv({ cls: "vf-media-stage" });
+		stage.createDiv({ text: `${categoryEmoji(card.category)} ${card.category} · ${this.labIndex + 1}/${cards.length}`, cls: "vf-eyebrow" });
+		const embed = this.youtubeClipEmbed(card.sourceUrl, card.quote);
+		if (embed) {
+			stage.createEl("iframe", {
+				cls: "vf-lab-video",
+				attr: { src: embed, title: `Nguồn video: ${card.word}`, allow: "accelerometer; autoplay; encrypted-media; picture-in-picture" },
+			});
+		} else {
+			const wave = stage.createDiv({ cls: "vf-wave" });
+			for (let i = 0; i < 13; i++) wave.createSpan();
+		}
+		const quote = stage.createDiv({
+			text: `“${card.quote}”`,
+			cls: `vf-lab-quote ${this.labMode === "dictation" && !this.labReveal && !this.labDiff ? "vf-lab-hidden" : ""}`,
+		});
+		quote.setAttr("aria-label", this.labReveal || this.labDiff ? card.quote : "Câu đang được ẩn để luyện nghe");
+		const controls = stage.createDiv({ cls: "vf-lab-controls" });
+		const listen = controls.createEl("button", { text: "▶ Nghe câu", cls: "vf-btn-hero vf-btn-hero-small" });
+		listen.onclick = () => this.plugin.speak(card.quote);
+		if (card.sourceUrl) {
+			const source = controls.createEl("button", { text: "↗ Video gốc", cls: "vf-btn-hero-ghost" });
+			source.onclick = () => window.open(card.sourceUrl);
+		}
+		const next = controls.createEl("button", { text: "Câu khác →", cls: "vf-btn-hero-ghost" });
+		next.onclick = () => this.nextLab(cards.length);
+
+		if (this.labMode === "dictation") this.renderDictation(panel, card);
+		else this.renderShadowing(panel, card);
+	}
+
+	private labCards(): VocabCard[] {
+		return this.plugin.store.getAllCards()
+			.filter((c) => c.quote.trim().split(/\s+/).length >= 4 && c.quote.trim().split(/\s+/).length <= 45)
+			.sort((a, b) => (b.fsrs.lapses - a.fsrs.lapses) || (b.fsrs.reps - a.fsrs.reps));
+	}
+
+	private youtubeClipEmbed(url: string, quote: string): string | null {
+		const id = url.match(/(?:v=|youtu\.be\/|\/shorts\/)([\w-]{11})/)?.[1];
+		if (!id) return null;
+		const raw = url.match(/[?&#](?:t|start)=([^&#]+)/)?.[1] ?? "0";
+		const h = Number(raw.match(/(\d+)h/)?.[1] ?? 0);
+		const m = Number(raw.match(/(\d+)m/)?.[1] ?? 0);
+		const secPart = raw.match(/(\d+)s/)?.[1];
+		const start = secPart ? h * 3600 + m * 60 + Number(secPart) : Number.parseInt(raw, 10) || 0;
+		const duration = Math.max(6, Math.min(24, Math.ceil(quote.split(/\s+/).length / 2.1) + 2));
+		return `https://www.youtube-nocookie.com/embed/${id}?start=${start}&end=${start + duration}&controls=1&rel=0&playsinline=1`;
+	}
+
+	private renderDictation(panel: HTMLElement, card: VocabCard): void {
+		const box = panel.createDiv({ cls: "vf-dictation-box" });
+		box.createDiv({ text: "Nghe mà không nhìn chữ, sau đó gõ lại nguyên câu.", cls: "vf-muted" });
+		const input = box.createEl("textarea", { attr: { placeholder: "Gõ câu bạn nghe được…", spellcheck: "false", "aria-label": "Câu bạn nghe được" } });
+		input.value = this.labAnswer;
+		input.oninput = () => (this.labAnswer = input.value);
+		input.onkeydown = (e) => e.stopPropagation();
+		const actions = box.createDiv({ cls: "vf-actions" });
+		const check = actions.createEl("button", { text: "Kiểm tra", cls: "vf-btn-hero vf-btn-hero-small" });
+		check.onclick = () => {
+			if (!this.labAnswer.trim()) return new Notice("Hãy gõ câu bạn nghe được trước");
+			this.labDiff = diffTranscripts(card.quote, this.labAnswer);
+			this.labReveal = true;
+			this.plugin.recordSkill("listening", Math.round(this.labDiff.accuracy * 100));
+			this.plugin.recordPractice(this.labDiff.accuracy >= 0.8);
+			this.render();
+		};
+		const reveal = actions.createEl("button", { text: this.labReveal ? "Ẩn đáp án" : "Gợi ý: hiện câu", cls: "vf-btn-icon" });
+		reveal.onclick = () => { this.labReveal = !this.labReveal; this.render(); };
+		if (this.labDiff) {
+			const result = box.createDiv({ cls: "vf-feedback vf-feedback-ok" });
+			const score = Math.round(this.labDiff.accuracy * 100);
+			result.createDiv({ text: `${score >= 85 ? "✨" : score >= 60 ? "👍" : "🛠"} ${score}/100 · WER ${Math.round(this.labDiff.wordErrorRate * 100)}%`, cls: "vf-feedback-text" });
+			this.renderTranscriptDiff(result, this.labDiff);
+		}
+	}
+
+	private renderShadowing(panel: HTMLElement, card: VocabCard): void {
+		const box = panel.createDiv({ cls: "vf-dictation-box" });
+		box.createDiv({ text: "Nghe một lần, sau đó thu âm nhại lại đúng nhịp và đủ từ.", cls: "vf-muted" });
+		const supported = isAudioRecordingSupported();
+		const hasRecognition = isSpeechRecognitionSupported();
+		if (!supported) box.createDiv({ text: "Thiết bị này chưa hỗ trợ ghi âm. Bạn vẫn có thể nghe và shadowing thủ công.", cls: "vf-feedback vf-feedback-no" });
+		else if (!hasRecognition) box.createDiv({ text: "Trình duyệt chưa hỗ trợ nhận dạng giọng nói: vẫn có thể thu và nghe lại, nhưng không có điểm transcript.", cls: "vf-feedback vf-feedback-no" });
+		const live = box.createDiv({ text: this.labSpoken || "Transcript giọng nói sẽ hiện ở đây…", cls: "vf-muted vf-live-transcript" });
+		live.setAttr("aria-live", "polite");
+		const actions = box.createDiv({ cls: "vf-actions" });
+		const record = actions.createEl("button", {
+			text: this.labStarting ? "Đang mở mic…" : this.labRecording ? "■ Dừng & chấm" : "● Bắt đầu thu",
+			cls: `vf-btn-hero vf-btn-hero-small ${this.labRecording ? "vf-recording" : ""}`,
+			attr: { "aria-pressed": String(this.labRecording) },
+		});
+		record.disabled = !supported || this.labStarting;
+		record.onclick = () => void (this.labRecording ? this.stopShadowing(card) : this.startShadowing());
+		if (this.labAudioUrl) box.createEl("audio", { attr: { controls: "", src: this.labAudioUrl } });
+		if (this.labShadowScore) {
+			const score = this.labShadowScore;
+			const ring = box.createDiv({ text: `${score.overall}`, cls: "vf-score-ring" });
+			ring.style.setProperty("--vf-score", String(score.overall));
+			box.createDiv({ text: `Accuracy ${score.accuracy}% · Đủ từ ${score.completeness}% · Fluency ${score.fluency}%`, cls: "vf-coach-title" });
+			box.createDiv({ text: "Điểm phản ánh độ khớp transcript và nhịp nói ước tính; không đo chính xác phát âm hay ngữ điệu.", cls: "vf-muted" });
+			this.renderTranscriptDiff(box, score.diff);
+			for (const tip of score.feedback) box.createDiv({ text: `• ${tip}`, cls: "vf-muted" });
+		}
+	}
+
+	private async startShadowing(): Promise<void> {
+		if (this.labStarting || this.labRecording) return;
+		this.labStarting = true;
+		this.render();
+		try {
+			this.labSpoken = "";
+			this.labShadowScore = null;
+			this.labConfidence = 0;
+			await this.audioRecorder.start();
+			if (this.section !== "lab") {
+				this.audioRecorder.cancel();
+				return;
+			}
+			if (isSpeechRecognitionSupported()) this.speechRecognition.start({
+				language: this.plugin.settings.voiceLocale,
+				onUpdate: (update) => {
+					this.labSpoken = `${update.finalTranscript} ${update.interimTranscript}`.trim();
+					this.labConfidence = update.confidence || this.labConfidence;
+					const live = this.contentEl.querySelector(".vf-live-transcript");
+					if (live) live.textContent = this.labSpoken || "Đang nghe…";
+				},
+				onEnd: (finalText) => { if (finalText) this.labSpoken = finalText; },
+				onError: (error) => { console.warn("Vocab Forge speech recognition:", error); },
+			});
+			this.labRecording = true;
+		} catch (e) {
+			console.error("Vocab Forge recorder:", e);
+			this.audioRecorder.cancel();
+			if (this.section === "lab") new Notice("Không mở được microphone — kiểm tra quyền microphone của Obsidian");
+		} finally {
+			this.labStarting = false;
+			if (this.section === "lab") this.render();
+		}
+	}
+
+	private async stopShadowing(card: VocabCard): Promise<void> {
+		this.labRecording = false;
+		try {
+			const recognized = this.speechRecognition.isActive
+				? await this.speechRecognition.stopAndWait(1_500)
+				: this.labSpoken;
+			if (recognized) this.labSpoken = recognized;
+			const recording = await this.audioRecorder.stop();
+			if (this.labAudioUrl) URL.revokeObjectURL(this.labAudioUrl);
+			this.labAudioUrl = recording.createObjectUrl();
+			this.labShadowScore = this.labSpoken ? scoreShadowing({
+				reference: card.quote,
+				spoken: this.labSpoken,
+				referenceDurationMs: card.quote.split(/\s+/).length * 430,
+				recordingDurationMs: recording.durationMs,
+				recognitionConfidence: this.labConfidence,
+			}) : null;
+			if (this.labShadowScore) {
+				this.plugin.recordSkill("speaking", this.labShadowScore.overall);
+				this.plugin.recordPractice(this.labShadowScore.overall >= 75);
+			} else new Notice("Đã ghi âm — hãy nghe lại bản thu để tự đối chiếu");
+		} catch (e) {
+			console.error("Vocab Forge shadowing:", e);
+			new Notice("Không hoàn tất được bản ghi âm");
+		}
+		this.render();
+	}
+
+	private renderTranscriptDiff(parent: HTMLElement, diff: TranscriptDiff): void {
+		const line = parent.createDiv({ cls: "vf-lab-quote" });
+		line.setAttr("aria-live", "polite");
+		for (const word of diff.words) {
+			const text = word.kind === "substitution"
+				? `${word.spoken ?? "?"} → ${word.reference ?? "?"}`
+				: word.kind === "deletion"
+					? `+ ${word.reference ?? ""}`
+					: word.kind === "insertion"
+						? `− ${word.spoken ?? ""}`
+						: word.reference ?? word.spoken ?? "";
+			line.createSpan({ text: `${text} `, cls: `vf-diff-${word.kind}` });
+		}
+	}
+
+	private cleanCoverageText(value: string): string {
+		return value
+			.replace(/^---\r?\n[\s\S]*?\r?\n---\s*/, "")
+			.replace(/https?:\/\/\S+/g, " ")
+			.replace(/^#{1,6}\s+/gm, "")
+			.replace(/!\[([^\]]*)\]\([^)]*\)|\[([^\]]+)\]\([^)]*\)/g, "$1 $2")
+			.replace(/^\s*(?:[-*+] |\d+[.)] |> ?)/gm, "")
+			.replace(/\[?\d{1,2}:\d{2}(?::\d{2})?\]?/g, " ")
+			.replace(/[`*_~]/g, " ")
+			.slice(0, 100_000);
+	}
+
+	private renderCoverageLab(main: HTMLElement): void {
+		const card = main.createDiv({ cls: "vf-coverage-card" });
+		card.createDiv({ text: "Video Comprehension Score", cls: "vf-eyebrow" });
+		card.createDiv({ text: "Dán transcript để biết bạn hiểu được bao nhiêu và nên học từ nào trước.", cls: "vf-coach-title" });
+		const input = card.createEl("textarea", { cls: "vf-coverage-input", attr: { placeholder: "Dán transcript tiếng Anh hoặc nội dung note tại đây…", "aria-label": "Transcript cần phân tích" } });
+		input.value = this.coverageText;
+		input.oninput = () => { this.coverageText = input.value; this.coverageResult = null; };
+		const actions = card.createDiv({ cls: "vf-actions" });
+		const analyze = actions.createEl("button", { text: "Phân tích video", cls: "vf-btn-hero vf-btn-hero-small" });
+		analyze.onclick = () => {
+			if (!this.coverageText.trim()) return new Notice("Hãy dán transcript trước");
+			this.coverageResult = analyzeVideoComprehension(this.cleanCoverageText(this.coverageText), this.plugin.store.getAllCards());
+			this.render();
+		};
+		const active = actions.createEl("button", { text: "Dùng note đang mở", cls: "vf-btn-icon" });
+		active.onclick = async () => {
+			const file = this.app.workspace.getActiveFile();
+			if (!file) return new Notice("Không có note đang mở");
+			this.coverageText = await this.app.vault.read(file);
+			this.coverageResult = analyzeVideoComprehension(this.cleanCoverageText(this.coverageText), this.plugin.store.getAllCards());
+			this.render();
+		};
+		if (!this.coverageResult) return;
+		const r = this.coverageResult;
+		const stats = card.createDiv({ cls: "vf-coverage-stats" });
+		for (const [value, label] of [[`${Math.round(r.coverage * 100)}%`, "Mức hiểu ước tính"], [r.estimatedCefr, "Độ khó CEFR"], [String(Math.max(0, r.uniqueTokens - r.knownUniqueTokens)), "Từ chưa biết"]]) {
+			const stat = stats.createDiv({ cls: "vf-coverage-stat" });
+			stat.createDiv({ text: value, cls: "vf-coverage-value" });
+			stat.createDiv({ text: label, cls: "vf-coverage-label" });
+		}
+		card.createDiv({
+			text: r.readiness === "comfortable" ? "✅ Bạn có thể xem khá thoải mái." : r.readiness === "supported" ? "👍 Xem được nếu bật subtitle." : "🧭 Nên học một số từ khóa trước khi xem.",
+			cls: `vf-feedback ${r.readiness === "challenging" ? "vf-feedback-no" : "vf-feedback-ok"}`,
+		});
+		card.createDiv({ text: r.heuristicNote, cls: "vf-muted" });
+		const words = card.createDiv({ cls: "vf-chips" });
+		for (const item of r.unknown.slice(0, 15)) words.createSpan({ text: `${item.word} ×${item.count}`, cls: "vf-chip" });
+		const capture = card.createEl("button", { text: "✨ Chuyển transcript thành thẻ", cls: "vf-btn-icon" });
+		capture.onclick = () => this.plugin.openSmartCapture(this.coverageText);
+	}
+
+	private nextLab(total: number): void {
+		this.labIndex = (this.labIndex + 1) % Math.max(1, total);
+		this.resetLabAttempt();
+		this.render();
+	}
+
+	private resetLabAttempt(): void {
+		this.speechRecognition.abort();
+		this.audioRecorder.cancel();
+		this.labAnswer = "";
+		this.labReveal = false;
+		this.labDiff = null;
+		this.labSpoken = "";
+		this.labShadowScore = null;
+		this.labRecording = false;
+		this.labStarting = false;
+		if (this.labAudioUrl) URL.revokeObjectURL(this.labAudioUrl);
+		this.labAudioUrl = "";
+	}
+
 	// ================================================================= CHAT
 
 	private renderChat(main: HTMLElement): void {
-		main.createEl("h3", { text: "💬 Hội thoại (Roleplay)" });
+		main.createEl("h3", { text: "💬 Voice Roleplay" });
 		main.createDiv({
-			text: "Nói chuyện với AI đóng vai đối tác — nhiệm vụ của bạn: dùng được các từ mục tiêu trong hội thoại.",
+			text: "Nói hoặc gõ với AI đóng vai đối tác. Cuối phiên, AI phân tích độ tự nhiên và cách dùng từ mục tiêu.",
 			cls: "vf-muted",
 		});
 
@@ -1650,23 +2176,65 @@ export class VocabReviewView extends ItemView {
 			e.stopPropagation();
 			if (e.key === "Enter") void this.sendChat();
 		};
-		input.disabled = this.chatBusy;
+		input.disabled = this.chatBusy || this.chatListening;
+		const mic = row.createEl("button", {
+			text: this.chatListening ? "■" : "🎙️",
+			cls: `vf-btn-icon ${this.chatListening ? "vf-recording" : ""}`,
+			attr: { "aria-label": this.chatListening ? "Dừng ghi giọng nói" : "Trả lời bằng giọng nói" },
+		});
+		mic.disabled = this.chatBusy || !isSpeechRecognitionSupported();
+		mic.onclick = () => this.toggleChatVoice();
 		const send = row.createEl("button", { text: "Gửi ➤", cls: "vf-btn-hero vf-btn-hero-small" });
-		send.disabled = this.chatBusy;
+		send.disabled = this.chatBusy || this.chatListening;
 		send.onclick = () => void this.sendChat();
 
 		const foot = main.createDiv({ cls: "vf-actions" });
 		const end = foot.createEl("button", { text: "🏁 Kết thúc & nhận xét", cls: "vf-btn-icon" });
-		end.disabled = this.chatBusy || this.chatMsgs.filter((m) => m.role === "me").length === 0;
+		end.disabled = this.chatBusy || this.chatListening || this.chatMsgs.filter((m) => m.role === "me").length === 0;
 		end.onclick = () => void this.endChat();
 		const reset = foot.createEl("button", { text: "🔄 Hội thoại mới", cls: "vf-btn-icon" });
-		reset.disabled = this.chatBusy;
+		reset.disabled = this.chatBusy || this.chatListening;
 		reset.onclick = () => void this.startChat();
 		if (!this.flippedFocusGuard()) window.setTimeout(() => input.focus(), 30);
 	}
 
 	private flippedFocusGuard(): boolean {
-		return this.chatBusy;
+		return this.chatBusy || this.chatListening;
+	}
+
+	private toggleChatVoice(): void {
+		if (this.chatListening) {
+			this.speechRecognition.stop();
+			this.chatListening = false;
+			this.render();
+			return;
+		}
+		try {
+			this.chatListening = true;
+			this.speechRecognition.start({
+				language: this.plugin.settings.voiceLocale,
+				continuous: false,
+				onUpdate: (update) => {
+					this.chatInput = `${update.finalTranscript} ${update.interimTranscript}`.trim();
+					const input = this.contentEl.querySelector(".vf-chat-input-row input") as HTMLInputElement | null;
+					if (input) input.value = this.chatInput;
+				},
+				onEnd: (text) => {
+					if (text) this.chatInput = text;
+					this.chatListening = false;
+					this.render();
+				},
+				onError: () => {
+					this.chatListening = false;
+					new Notice("Không nhận được giọng nói — kiểm tra quyền microphone");
+					this.render();
+				},
+			});
+			this.render();
+		} catch {
+			this.chatListening = false;
+			new Notice("Thiết bị chưa hỗ trợ speech recognition");
+		}
 	}
 
 	private pickChatWords(): string[] {
@@ -1674,7 +2242,8 @@ export class VocabReviewView extends ItemView {
 			.getAllCards()
 			.filter((c) => c.type !== "sentence" && c.type !== "passage" && c.type !== "grammar");
 		const hard = all.filter((c) => c.fsrs.lapses >= 2);
-		const due = this.plugin.store.getDueCards();
+		const allowedPaths = new Set(all.map((card) => card.file.path));
+		const due = this.plugin.store.getDueCards().filter((card) => allowedPaths.has(card.file.path));
 		const learned = all.filter((c) => c.fsrs.state !== State.New);
 		const pool = [...hard, ...due, ...learned, ...all];
 		const words: string[] = [];
@@ -1686,6 +2255,9 @@ export class VocabReviewView extends ItemView {
 	}
 
 	private async startChat(): Promise<void> {
+		this.speechRecognition.abort();
+		this.chatListening = false;
+		if (this.chatSession) this.plugin.clearAiSession(this.chatSession);
 		this.chatWords = this.pickChatWords();
 		if (this.chatWords.length < 2) {
 			new Notice("Chưa đủ thẻ để tạo hội thoại");
@@ -1697,9 +2269,8 @@ export class VocabReviewView extends ItemView {
 		this.chatBusy = true;
 		this.render();
 		try {
-			const first = await runGrok(
+			const first = await this.plugin.runAI(
 				chatStartPrompt(this.chatWords),
-				this.plugin.settings.grokPath,
 				120_000,
 				this.chatSession
 			);
@@ -1707,7 +2278,7 @@ export class VocabReviewView extends ItemView {
 			this.plugin.speak(first.trim());
 		} catch (e) {
 			console.error("Vocab Forge chat:", e);
-			new Notice("Không bắt đầu được hội thoại — kiểm tra Grok CLI");
+			new Notice("Không bắt đầu được hội thoại — kiểm tra AI CLI");
 		} finally {
 			this.chatBusy = false;
 			this.render();
@@ -1716,13 +2287,13 @@ export class VocabReviewView extends ItemView {
 
 	private async sendChat(): Promise<void> {
 		const text = this.chatInput.trim();
-		if (!text || this.chatBusy || !this.chatSession) return;
+		if (!text || this.chatBusy || this.chatListening || !this.chatSession) return;
 		this.chatMsgs.push({ role: "me", text });
 		this.chatInput = "";
 		this.chatBusy = true;
 		this.render();
 		try {
-			const reply = await runGrok(text, this.plugin.settings.grokPath, 120_000, this.chatSession);
+			const reply = await this.plugin.runAI(text, 120_000, this.chatSession);
 			this.chatMsgs.push({ role: "ai", text: reply.trim() });
 			this.plugin.speak(reply.trim());
 		} catch (e) {
@@ -1737,17 +2308,19 @@ export class VocabReviewView extends ItemView {
 	}
 
 	private async endChat(): Promise<void> {
-		if (this.chatBusy || !this.chatSession) return;
+		if (this.chatBusy || this.chatListening || !this.chatSession) return;
+		this.speechRecognition.abort();
+		this.chatListening = false;
 		this.chatBusy = true;
 		this.render();
 		try {
-			const fb = await runGrok(
+			const fb = await this.plugin.runAI(
 				chatFeedbackPrompt(this.chatWords),
-				this.plugin.settings.grokPath,
 				120_000,
 				this.chatSession
 			);
 			this.chatMsgs.push({ role: "feedback", text: fb.trim() });
+			this.plugin.clearAiSession(this.chatSession);
 			this.chatSession = "";
 		} catch (e) {
 			console.error("Vocab Forge chat:", e);
@@ -1777,7 +2350,7 @@ export class VocabReviewView extends ItemView {
 		if (this.storyBusy) {
 			const wait = main.createDiv({ cls: "vf-story-wait" });
 			wait.createDiv({ text: "⏳", cls: "vf-done-emoji" });
-			wait.createDiv({ text: "Grok đang viết story từ các thẻ của bạn… (~30–60s)", cls: "vf-muted" });
+			wait.createDiv({ text: "AI CLI đang viết story từ các thẻ của bạn… (~30–60s)", cls: "vf-muted" });
 			return;
 		}
 
@@ -1834,7 +2407,7 @@ export class VocabReviewView extends ItemView {
 		this.storyBusy = true;
 		this.render();
 		try {
-			const raw = await runGrok(storyPrompt(words, cats), this.plugin.settings.grokPath, 150_000);
+			const raw = await this.plugin.runAI(storyPrompt(words, cats), 150_000);
 			const sep = raw.indexOf("---");
 			const en = (sep === -1 ? raw : raw.slice(0, sep)).trim();
 			const vi = sep === -1 ? "" : raw.slice(sep + 3).trim();
@@ -1843,7 +2416,7 @@ export class VocabReviewView extends ItemView {
 			await this.plugin.saveAll();
 		} catch (e) {
 			console.error("Vocab Forge story:", e);
-			new Notice("Không tạo được story — kiểm tra Grok CLI");
+			new Notice("Không tạo được story — kiểm tra AI CLI");
 		} finally {
 			this.storyBusy = false;
 			this.render();

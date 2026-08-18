@@ -22,10 +22,21 @@ import {
 	type VocabCard,
 	type VocabForgeData,
 	type VocabForgeSettings,
+	type LearningSkill,
 } from "./types";
 import { State } from "./srs";
 import { checkBadges } from "./badges";
 import { VocabForgeSettingTab } from "./settingsTab";
+import {
+	detectAiCliProviders,
+	runAiCli,
+	type AiCliProvider,
+} from "./aiCli";
+import {
+	buildSmartCapturePrompt,
+	parseSmartCaptureSuggestions,
+	SmartCaptureModal,
+} from "./smartCaptureModal";
 
 export default class VocabForgePlugin extends Plugin {
 	data!: VocabForgeData;
@@ -33,9 +44,15 @@ export default class VocabForgePlugin extends Plugin {
 	store!: CardStore;
 	scheduler!: FSRS;
 	private statusEl!: HTMLElement;
+	private readonly aiSessions = new Map<string, { provider: AiCliProvider; id: string }>();
+	private autoAiProvider: AiCliProvider | null = null;
+	private readonly autoAiFailures = new Set<AiCliProvider>();
+	private aiWorkingDirectory = "";
 
 	async onload(): Promise<void> {
 		const raw = (await this.loadData()) as Partial<VocabForgeData> | null;
+		const emptySkill = () => ({ attempts: 0, totalScore: 0, lastAt: "" });
+		const savedSkills = raw?.skillStats;
 		this.data = {
 			settings: { ...DEFAULT_SETTINGS, ...(raw?.settings ?? {}) },
 			stats: raw?.stats ?? {},
@@ -46,6 +63,12 @@ export default class VocabForgePlugin extends Plugin {
 			story: raw?.story ?? null,
 			badges: raw?.badges ?? {},
 			lastReminder: raw?.lastReminder ?? "",
+			skillStats: {
+				memory: { ...emptySkill(), ...(savedSkills?.memory ?? {}) },
+				listening: { ...emptySkill(), ...(savedSkills?.listening ?? {}) },
+				speaking: { ...emptySkill(), ...(savedSkills?.speaking ?? {}) },
+				writing: { ...emptySkill(), ...(savedSkills?.writing ?? {}) },
+			},
 		};
 		this.settings = this.data.settings;
 		this.autoFreeze();
@@ -67,6 +90,11 @@ export default class VocabForgePlugin extends Plugin {
 			id: "add-card",
 			name: "Thêm thẻ mới",
 			callback: () => this.openAddCardModal(),
+		});
+		this.addCommand({
+			id: "smart-capture",
+			name: "Smart Capture từ YouTube / transcript",
+			callback: () => this.openSmartCapture(),
 		});
 		this.addCommand({
 			id: "open-about",
@@ -154,6 +182,125 @@ export default class VocabForgePlugin extends Plugin {
 		new AboutModal(this.app, this).open();
 	}
 
+	openSmartCapture(initialTranscript = ""): void {
+		new SmartCaptureModal(this.app, this.store, {
+			initialTranscript,
+			initialCategory: this.settings.learningGoal === "cambridge"
+				? "cambridge-c2"
+				: this.settings.learningGoal === "daily"
+					? "casual"
+					: this.settings.learningGoal,
+			ytDlpPath: "yt-dlp",
+			extractor: async (context) => {
+				const raw = await this.runAI(buildSmartCapturePrompt(context), 180_000);
+				return parseSmartCaptureSuggestions(raw);
+			},
+			onCardsCreated: () => {
+				this.invalidateKnownWords();
+				this.refreshStatusBar();
+			},
+		}).open();
+	}
+
+	private aiPath(provider: AiCliProvider): string | undefined {
+		const configured = ({
+			grok: this.settings.grokPath,
+			claude: this.settings.claudePath,
+			codex: this.settings.codexPath,
+			gemini: this.settings.geminiPath,
+		})[provider].trim();
+		return configured && configured !== provider ? configured : undefined;
+	}
+
+	private aiPaths(): Partial<Record<AiCliProvider, string>> {
+		const paths: Partial<Record<AiCliProvider, string>> = {};
+		for (const provider of ["grok", "claude", "codex", "gemini"] as AiCliProvider[]) {
+			const configured = this.aiPath(provider);
+			if (configured) paths[provider] = configured;
+		}
+		return paths;
+	}
+
+	private getAiWorkingDirectory(): string {
+		if (this.aiWorkingDirectory) return this.aiWorkingDirectory;
+		const requireFn = (window as unknown as { require?: (name: string) => unknown }).require;
+		if (!requireFn) return "";
+		const fs = requireFn("fs") as { mkdirSync(path: string, options: { recursive: boolean }): void };
+		const os = requireFn("os") as { tmpdir(): string };
+		const path = requireFn("path") as { join(...parts: string[]): string };
+		this.aiWorkingDirectory = path.join(os.tmpdir(), "vocab-forge-ai-sandbox");
+		fs.mkdirSync(this.aiWorkingDirectory, { recursive: true });
+		return this.aiWorkingDirectory;
+	}
+
+	private async selectedAiProvider(): Promise<AiCliProvider> {
+		if (this.settings.aiProvider !== "auto") return this.settings.aiProvider;
+		if (this.autoAiProvider) return this.autoAiProvider;
+		const preferred: AiCliProvider[] = ["claude", "grok", "gemini", "codex"];
+		const statuses = await detectAiCliProviders({
+			paths: this.aiPaths(),
+		});
+		const found = preferred.find((provider) =>
+			!this.autoAiFailures.has(provider) && statuses.some((s) => s.provider === provider && s.available)
+		);
+		if (!found) throw new Error("Chưa tìm thấy Claude, Codex, Gemini hoặc Grok CLI đã đăng nhập");
+		this.autoAiProvider = found;
+		return found;
+	}
+
+	async runAI(prompt: string, timeoutMs = 120_000, sessionKey?: string): Promise<string> {
+		const previous = sessionKey ? this.aiSessions.get(sessionKey) : undefined;
+		const provider = previous?.provider ?? await this.selectedAiProvider();
+		const session = previous && previous.provider === provider
+			? { mode: "resume" as const, id: previous.id }
+			: sessionKey
+				? { mode: "new" as const }
+				: { mode: "none" as const };
+		let result;
+		try {
+			result = await runAiCli(prompt, {
+				provider,
+				executablePath: this.aiPath(provider),
+				cwd: this.getAiWorkingDirectory() || undefined,
+				timeoutMs,
+				session,
+			});
+		} catch (error) {
+			// Auto mode may find an installed but logged-out CLI. For a new request,
+			// remember that failure and try the next locally signed-in provider.
+			if (this.settings.aiProvider === "auto" && !previous && this.autoAiFailures.size < 3) {
+				this.autoAiFailures.add(provider);
+				this.autoAiProvider = null;
+				return this.runAI(prompt, timeoutMs, sessionKey);
+			}
+			throw error;
+		}
+		if (sessionKey && result.sessionId) this.aiSessions.set(sessionKey, { provider, id: result.sessionId });
+		return result.text;
+	}
+
+	clearAiSession(sessionKey: string): void {
+		this.aiSessions.delete(sessionKey);
+	}
+
+	resetAiProvider(): void {
+		this.autoAiProvider = null;
+		this.autoAiFailures.clear();
+		this.aiSessions.clear();
+		for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_VOCAB)) {
+			if (leaf.view instanceof VocabReviewView) leaf.view.resetAiConversation();
+		}
+	}
+
+	async aiStatusSummary(): Promise<string> {
+		const statuses = await detectAiCliProviders({
+			paths: this.aiPaths(),
+		});
+		return statuses
+			.map((s) => `${s.available ? "✅" : "○"} ${s.provider}${s.version ? ` · ${s.version}` : ""}`)
+			.join("\n");
+	}
+
 	private cardFromSelection(editor: Editor, view: MarkdownView): void {
 		const sel = editor.getSelection().trim();
 		const file = view.file;
@@ -184,6 +331,12 @@ export default class VocabForgePlugin extends Plugin {
 		if (wasNew) stat.newCards++;
 		if (passed === true) stat.pass = (stat.pass ?? 0) + 1;
 		else if (passed === false) stat.fail = (stat.fail ?? 0) + 1;
+		if (passed !== null) {
+			const memory = this.data.skillStats.memory;
+			memory.attempts++;
+			memory.totalScore += passed ? 100 : 0;
+			memory.lastAt = new Date().toISOString();
+		}
 		this.data.xp += 10;
 		this.maybeGrantQuestReward();
 		this.checkBadges();
@@ -197,6 +350,15 @@ export default class VocabForgePlugin extends Plugin {
 		this.data.xp += correct ? 5 : 2;
 		this.maybeGrantQuestReward();
 		this.checkBadges();
+		void this.saveAll();
+	}
+
+	recordSkill(skill: LearningSkill, score: number): void {
+		const stat = this.data.skillStats[skill];
+		stat.attempts++;
+		stat.totalScore += Math.max(0, Math.min(100, score));
+		stat.lastAt = new Date().toISOString();
+		this.data.xp += score >= 80 ? 8 : score >= 60 ? 5 : 2;
 		void this.saveAll();
 	}
 

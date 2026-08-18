@@ -49,10 +49,10 @@ export function runGrok(
 	const os = nodeRequire("os") as { homedir(): string };
 	const proc = nodeRequire("process") as { env: Record<string, string | undefined> };
 	const bin = resolveGrokPath(grokPath);
-	const env = {
-		...proc.env,
-		PATH: `${proc.env.PATH ?? ""}:${os.homedir()}/.local/bin:/usr/local/bin:/opt/homebrew/bin`,
-	};
+	const env = { ...proc.env };
+	for (const key of ["XAI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY"])
+		delete env[key];
+	env.PATH = `${proc.env.PATH ?? ""}:${os.homedir()}/.local/bin:/usr/local/bin:/opt/homebrew/bin`;
 	const args = ["--no-auto-update", "--no-alt-screen", "--disable-web-search"];
 	if (sessionId) args.push("-s", sessionId);
 	args.push("-p", prompt);
@@ -164,10 +164,10 @@ export function generateImage(
 	const osm = nodeRequire("os") as { homedir(): string };
 	const proc = nodeRequire("process") as { env: Record<string, string | undefined> };
 	const bin = resolveGrokPath(grokPath);
-	const env = {
-		...proc.env,
-		PATH: `${proc.env.PATH ?? ""}:${osm.homedir()}/.local/bin:/usr/local/bin:/opt/homebrew/bin`,
-	};
+	const env = { ...proc.env };
+	for (const key of ["XAI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY"])
+		delete env[key];
+	env.PATH = `${proc.env.PATH ?? ""}:${osm.homedir()}/.local/bin:/usr/local/bin:/opt/homebrew/bin`;
 	return new Promise((resolve) => {
 		cp.execFile(
 			bin,

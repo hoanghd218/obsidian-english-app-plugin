@@ -12,6 +12,14 @@ export interface VocabForgeSettings {
 	dailyPracticeGoal: number;
 	highlightEnabled: boolean;
 	grokPath: string;
+	aiProvider: AiCliProvider;
+	claudePath: string;
+	codexPath: string;
+	geminiPath: string;
+	learningGoal: LearningGoal;
+	dailyMinutes: number;
+	errorNotebookPath: string;
+	voiceLocale: string;
 	reverseEnabled: boolean;
 	/** Giờ nhắc học hằng ngày (0-23), -1 = tắt */
 	reminderHour: number;
@@ -28,9 +36,27 @@ export const DEFAULT_SETTINGS: VocabForgeSettings = {
 	dailyPracticeGoal: 10,
 	highlightEnabled: true,
 	grokPath: "grok",
+	aiProvider: "auto",
+	claudePath: "claude",
+	codexPath: "codex",
+	geminiPath: "gemini",
+	learningGoal: "business",
+	dailyMinutes: 10,
+	errorNotebookPath: "5. Toolbox/English/My English Errors.md",
+	voiceLocale: "en-US",
 	reverseEnabled: true,
 	reminderHour: 20,
 };
+
+export type AiCliProvider = "auto" | "grok" | "claude" | "codex" | "gemini";
+
+export type LearningGoal =
+	| "business"
+	| "daily"
+	| "ielts"
+	| "content"
+	| "ai-tech"
+	| "cambridge";
 
 export type CardType =
 	| "word"
@@ -131,6 +157,16 @@ export interface VocabForgeData {
 	badges: Record<string, string>;
 	/** ngày cuối đã bắn reminder */
 	lastReminder: string;
+	/** Tiến độ các kỹ năng production, cập nhật từ dictation/shadowing/writing. */
+	skillStats: Record<LearningSkill, SkillStat>;
+}
+
+export type LearningSkill = "memory" | "listening" | "speaking" | "writing";
+
+export interface SkillStat {
+	attempts: number;
+	totalScore: number;
+	lastAt: string;
 }
 
 /** Mỗi level cần 300 XP */

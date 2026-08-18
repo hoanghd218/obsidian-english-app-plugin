@@ -1,12 +1,18 @@
-# 🎓 Vocab Forge — English Learning App for Obsidian
+# 🎓 Vocab Forge 2.0 — English Fluency OS for Obsidian
 
-Learn English vocabulary **from the YouTube videos you actually watch** — right inside Obsidian, with a real app-like UI and the **FSRS** spaced-repetition algorithm (the same modern scheduler used by new Anki).
+Turn the YouTube videos and notes you already consume into a complete learning loop: **capture → remember → listen → speak → improve**. Everything stays in your Obsidian vault and AI features run through your signed-in local CLI; the plugin never asks for or passes an API key.
 
 > Học từ vựng tiếng Anh từ chính các video YouTube bạn xem — ngay trong Obsidian, giao diện như app thật, thuật toán lặp lại ngắt quãng FSRS.
 
 ## ✨ Features
 
 - **App shell with sidebar navigation** — Dashboard · Study · Decks · Add card · Settings, with a streak badge. Narrow panes collapse the sidebar into a mobile-style bottom bar.
+- **YouTube Smart Capture** — paste a URL and let `yt-dlp` fetch English subtitles, or paste/use an active-note transcript. A selected local AI CLI extracts useful expressions, previews them, blocks hallucinations/duplicates, and creates timestamped cards.
+- **Fluency Lab** — source-video clip loop, blind listening, dictation scoring with word-level diff/WER, microphone recording, shadowing playback and transparent accuracy/completeness/fluency scores.
+- **Voice Roleplay** — answer by microphone or keyboard, hear the AI partner speak, track target expressions, receive end-of-session feedback, and save it to a personal Markdown error notebook.
+- **Adaptive Today Coach** — balances due reviews, weak skills, listening, shadowing and new cards inside a configurable 5–30 minute daily session.
+- **Video Comprehension Score** — estimates vocabulary coverage and CEFR difficulty, ranks unknown words, and sends the transcript directly to Smart Capture.
+- **Local AI CLI router** — choose Claude CLI, Codex CLI, Gemini CLI or Grok CLI, or let Auto select an installed/signed-in provider. API-key environment variables are deliberately removed from child processes.
 - **Two-sided flashcards** — front: word/phrase/sentence + IPA + auto text-to-speech; back: English + Vietnamese meaning, the **verbatim quote from the source video** (highlighted), collocations, an illustration image, and a link that opens YouTube **at the exact timestamp**.
 - **FSRS scheduling** via [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs) — 4 rating buttons (Again / Hard / Good / Easy) with interval previews, daily new-card limit, "again" cards return within the session.
 - **Decks by category** — group cards into decks (business, startup, content, idiom, ielts, …). Study everything or one deck at a time.
@@ -16,13 +22,28 @@ Learn English vocabulary **from the YouTube videos you actually watch** — righ
 - **Quick capture** — add-card modal, or select text in any note → right-click → *Create vocab card* (source note + video URL auto-filled).
 - **In-app settings** — new cards/day, target retention, TTS voice & speed, cards folder.
 
+## 🤖 Local AI setup — no API key
+
+Install and sign in to at least one supported CLI using its normal subscription/OAuth login:
+
+```bash
+claude --version
+codex --version
+gemini --version
+grok --version
+```
+
+Open **Vocab Forge → Settings → AI CLI**, select `Auto` or a provider, and press **Kiểm tra**. The plugin uses `execFile` without a shell, disables provider tools/write access for learning prompts, and does not pass common API-key environment variables.
+
+For automatic YouTube subtitles, install `yt-dlp` and ensure `yt-dlp --version` works. Smart Capture still supports pasted transcripts and active notes when `yt-dlp` is unavailable.
+
 ## 📦 Install (manual)
 
 1. Download/clone this repo into your vault:
    ```
    <your-vault>/.obsidian/plugins/vocab-forge/
    ```
-   The three files Obsidian needs are `main.js`, `manifest.json`, `styles.css` (pre-built `main.js` is committed).
+   Keep `main.js`, `manifest.json`, `styles.css`, and `assets/vocab-forge-hero.jpg` together in the plugin folder (pre-built `main.js` is committed).
 2. Reload Obsidian → **Settings → Community plugins → enable "Vocab Forge"**.
 3. Click the 🎓 ribbon icon.
 
