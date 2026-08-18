@@ -1,5 +1,6 @@
 import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
 import type VocabForgePlugin from "./main";
+import { AboutModal } from "./aboutModal";
 import { formatInterval, Rating, State, type Grade } from "./srs";
 import {
 	categoryEmoji,
@@ -166,10 +167,20 @@ export class VocabReviewView extends ItemView {
 	private renderNav(app: HTMLElement): void {
 		const nav = app.createDiv({ cls: "vf-nav" });
 		const brand = nav.createDiv({ cls: "vf-brand" });
-		brand.createSpan({ text: "🎓", cls: "vf-brand-icon" });
-		brand.createSpan({ text: "Vocab Forge", cls: "vf-brand-name" });
+		const brandLeft = brand.createDiv({ cls: "vf-brand-left" });
+		brandLeft.createSpan({ text: "🎓", cls: "vf-brand-icon" });
+		brandLeft.createSpan({ text: "Vocab Forge", cls: "vf-brand-name" });
+		const infoBtn = brand.createEl("button", {
+			text: "ℹ️",
+			cls: "vf-brand-info-btn",
+			attr: { "aria-label": "Thông tin tác giả", title: "Thông tin tác giả Tony Hoang" },
+		});
+		infoBtn.onclick = (e) => {
+			e.stopPropagation();
+			new AboutModal(this.app, this.plugin).open();
+		};
 
-		const items: Array<{ id: Section | "study" | "add"; icon: string; label: string }> = [
+		const items: Array<{ id: Section | "study" | "add" | "about"; icon: string; label: string }> = [
 			{ id: "dashboard", icon: "🏠", label: "Dashboard" },
 			{ id: "study", icon: "▶️", label: "Học ngay" },
 			{ id: "practice", icon: "🎯", label: "Luyện tập" },
@@ -177,6 +188,7 @@ export class VocabReviewView extends ItemView {
 			{ id: "decks", icon: "🗂️", label: "Bộ thẻ" },
 			{ id: "add", icon: "➕", label: "Thêm thẻ" },
 			{ id: "settings", icon: "⚙️", label: "Cài đặt" },
+			{ id: "about", icon: "ℹ️", label: "Thông tin" },
 		];
 		for (const it of items) {
 			const active =
@@ -190,6 +202,7 @@ export class VocabReviewView extends ItemView {
 			el.onclick = () => {
 				if (it.id === "study") this.startSession(null);
 				else if (it.id === "add") this.plugin.openAddCardModal();
+				else if (it.id === "about") new AboutModal(this.app, this.plugin).open();
 				else {
 					this.section = it.id;
 					this.render();
@@ -1258,7 +1271,7 @@ export class VocabReviewView extends ItemView {
 			}
 			const b = opts.createEl("button", { cls });
 			b.createSpan({ text: `${idx + 1}`, cls: "vf-choice-num" });
-			b.createSpan({ text: opt });
+			b.createSpan({ text: opt, cls: "vf-choice-text" });
 			b.onclick = () => {
 				if (this.practicePhase !== "question") return;
 				this.practiceResolve(idx === item.correctIndex);
@@ -1462,6 +1475,18 @@ export class VocabReviewView extends ItemView {
 		const c7 = group("Đường dẫn lệnh grok", "Dùng cho mẹo nhớ, chấm câu, giải thích ngữ pháp, story");
 		const gp = c7.createEl("input", { attr: { type: "text", value: s.grokPath }, cls: "vf-input" });
 		gp.onchange = async () => { s.grokPath = gp.value.trim() || "grok"; await this.plugin.saveAll(); };
+
+		// thông tin tác giả
+		main.createEl("h4", { text: "Thông tin & Tác giả" });
+		const authorGroup = main.createDiv({ cls: "vf-setting vf-author-card" });
+		const authorInfo = authorGroup.createDiv({ cls: "vf-setting-info" });
+		authorInfo.createDiv({ text: "👤 Tony Hoang (Trần Văn Hoàng)", cls: "vf-setting-name" });
+		authorInfo.createDiv({ text: "✉️ tony@tranvanhoang.com · Vocab Forge v1.6.1", cls: "vf-setting-desc" });
+		const authorCtrl = authorGroup.createDiv({ cls: "vf-setting-control" });
+		const infoModalBtn = authorCtrl.createEl("button", { text: "ℹ️ Thông tin", cls: "vf-btn-icon" });
+		infoModalBtn.onclick = () => new AboutModal(this.app, this.plugin).open();
+		const contactBtn = authorCtrl.createEl("button", { text: "✉️ Gửi Email", cls: "vf-btn-icon" });
+		contactBtn.onclick = () => window.open("mailto:tony@tranvanhoang.com");
 	}
 
 	// ================================================================ MISC

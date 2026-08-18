@@ -1,5 +1,6 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import type VocabForgePlugin from "./main";
+import { AboutModal } from "./aboutModal";
 
 export class VocabForgeSettingTab extends PluginSettingTab {
 	constructor(app: App, private plugin: VocabForgePlugin) {
@@ -76,5 +77,19 @@ export class VocabForgeSettingTab extends PluginSettingTab {
 					await this.plugin.saveAll();
 				});
 			});
+
+		new Setting(containerEl)
+			.setName("Thông tin & Tác giả")
+			.setDesc("Tony Hoang (Trần Văn Hoàng) · Email: tony@tranvanhoang.com")
+			.addButton((b) =>
+				b.setButtonText("ℹ️ Thông tin plugin").onClick(() => {
+					new AboutModal(this.app, this.plugin).open();
+				})
+			)
+			.addButton((b) =>
+				b.setButtonText("✉️ Gửi Email").onClick(() => {
+					window.open("mailto:tony@tranvanhoang.com");
+				})
+			);
 	}
 }

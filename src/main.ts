@@ -10,6 +10,7 @@ import {
 } from "obsidian";
 import { generateImage } from "./ai";
 import { AddCardModal, type AddCardPrefill } from "./addCardModal";
+import { AboutModal } from "./aboutModal";
 import { VocabReviewView, VIEW_TYPE_VOCAB } from "./reviewView";
 import { makeScheduler } from "./srs";
 import type { FSRS } from "ts-fsrs";
@@ -66,6 +67,11 @@ export default class VocabForgePlugin extends Plugin {
 			id: "add-card",
 			name: "Thêm thẻ mới",
 			callback: () => this.openAddCardModal(),
+		});
+		this.addCommand({
+			id: "open-about",
+			name: "Thông tin tác giả & plugin (About)",
+			callback: () => this.openAboutModal(),
 		});
 		this.addCommand({
 			id: "card-from-selection",
@@ -142,6 +148,10 @@ export default class VocabForgePlugin extends Plugin {
 
 	openAddCardModal(prefill?: AddCardPrefill): void {
 		new AddCardModal(this.app, this, prefill).open();
+	}
+
+	openAboutModal(): void {
+		new AboutModal(this.app, this).open();
 	}
 
 	private cardFromSelection(editor: Editor, view: MarkdownView): void {

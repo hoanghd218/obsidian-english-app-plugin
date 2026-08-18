@@ -17,7 +17,7 @@
     "english",
     "vocabulary"
   ],
-  "author": "Trần Văn Hoàng (hoanghd218)",
+  "author": "Tony Hoang <tony@tranvanhoang.com>",
   "license": "MIT",
   "devDependencies": {
     "esbuild": "^0.24.0",
