@@ -325,8 +325,9 @@ export default class VocabForgePlugin extends Plugin {
 	refreshStatusBar(): void {
 		if (!this.statusEl) return;
 		try {
-			const due = this.store.getDueCards().length;
-			const newAvail = Math.min(this.store.getNewCards().length, this.newRemainingToday());
+			const due = this.store.getDueEntries(this.settings.reverseEnabled).length;
+			const revNew = this.settings.reverseEnabled ? this.store.getRevNewCards().length : 0;
+			const newAvail = Math.min(this.store.getNewCards().length + revNew, this.newRemainingToday());
 			this.statusEl.setText(due + newAvail > 0 ? `📚 ${due} due · ${newAvail} mới` : "📚 xong ✓");
 		} catch {
 			// vault chưa sẵn sàng — bỏ qua

@@ -41,7 +41,8 @@ var DEFAULT_SETTINGS = {
   dailyNewGoal: 5,
   dailyPracticeGoal: 10,
   highlightEnabled: true,
-  grokPath: "grok"
+  grokPath: "grok",
+  reverseEnabled: true
 };
 var DEFAULT_CATEGORIES = [
   "business",
@@ -2033,9 +2034,9 @@ function makeScheduler(requestRetention) {
     })
   );
 }
-function fsrsFromFrontmatter(fm) {
+function fsrsFromFrontmatter(fm, prefix = "srs_") {
   const empty = createEmptyCard(/* @__PURE__ */ new Date());
-  if (fm.srs_due == null) return empty;
+  if (fm[`${prefix}due`] == null) return empty;
   const num = (v, fallback) => typeof v === "number" && isFinite(v) ? v : fallback;
   const date = (v) => {
     if (typeof v !== "string" && !(v instanceof Date)) return void 0;
@@ -2044,29 +2045,29 @@ function fsrsFromFrontmatter(fm) {
   };
   return {
     ...empty,
-    due: date(fm.srs_due) ?? empty.due,
-    stability: num(fm.srs_stability, 0),
-    difficulty: num(fm.srs_difficulty, 0),
-    elapsed_days: num(fm.srs_elapsed_days, 0),
-    scheduled_days: num(fm.srs_scheduled_days, 0),
-    reps: num(fm.srs_reps, 0),
-    lapses: num(fm.srs_lapses, 0),
-    learning_steps: num(fm.srs_learning_steps, 0),
-    state: num(fm.srs_state, State.New),
-    last_review: date(fm.srs_last_review)
+    due: date(fm[`${prefix}due`]) ?? empty.due,
+    stability: num(fm[`${prefix}stability`], 0),
+    difficulty: num(fm[`${prefix}difficulty`], 0),
+    elapsed_days: num(fm[`${prefix}elapsed_days`], 0),
+    scheduled_days: num(fm[`${prefix}scheduled_days`], 0),
+    reps: num(fm[`${prefix}reps`], 0),
+    lapses: num(fm[`${prefix}lapses`], 0),
+    learning_steps: num(fm[`${prefix}learning_steps`], 0),
+    state: num(fm[`${prefix}state`], State.New),
+    last_review: date(fm[`${prefix}last_review`])
   };
 }
-function fsrsToFrontmatter(card, fm) {
-  fm.srs_due = card.due.toISOString();
-  fm.srs_stability = round4(card.stability);
-  fm.srs_difficulty = round4(card.difficulty);
-  fm.srs_elapsed_days = card.elapsed_days;
-  fm.srs_scheduled_days = card.scheduled_days;
-  fm.srs_reps = card.reps;
-  fm.srs_lapses = card.lapses;
-  fm.srs_learning_steps = card.learning_steps;
-  fm.srs_state = card.state;
-  fm.srs_last_review = card.last_review ? card.last_review.toISOString() : "";
+function fsrsToFrontmatter(card, fm, prefix = "srs_") {
+  fm[`${prefix}due`] = card.due.toISOString();
+  fm[`${prefix}stability`] = round4(card.stability);
+  fm[`${prefix}difficulty`] = round4(card.difficulty);
+  fm[`${prefix}elapsed_days`] = card.elapsed_days;
+  fm[`${prefix}scheduled_days`] = card.scheduled_days;
+  fm[`${prefix}reps`] = card.reps;
+  fm[`${prefix}lapses`] = card.lapses;
+  fm[`${prefix}learning_steps`] = card.learning_steps;
+  fm[`${prefix}state`] = card.state;
+  fm[`${prefix}last_review`] = card.last_review ? card.last_review.toISOString() : "";
 }
 function round4(n) {
   return Math.round(n * 1e4) / 1e4;
@@ -2104,6 +2105,11 @@ var MODE_INFO = {
     icon: "\u2705",
     name: "Tr\u1EAFc nghi\u1EC7m (Choice)",
     desc: "Ch\u1ECDn ngh\u0129a \u0111\xFAng trong 4 \u0111\xE1p \xE1n"
+  },
+  match: {
+    icon: "\u{1F3B4}",
+    name: "N\u1ED1i c\u1EB7p (Match)",
+    desc: "N\u1ED1i t\u1EEB v\u1EDBi ngh\u0129a \u2014 6 c\u1EB7p m\u1ED7i v\xF2ng, ki\u1EC3u Quizlet"
   }
 };
 var normalize = (s) => s.toLowerCase().replace(/[’']/g, "'").replace(/[^a-z0-9' ]/g, " ").replace(/\s+/g, " ").trim();
@@ -2206,7 +2212,32 @@ function makeChoice(card, pool) {
   const options = shuffle([answer, ...distractors]);
   return { mode: "choice", card, options, correctIndex: options.indexOf(answer) };
 }
+var MATCH_PAIRS_PER_ROUND = 6;
+function makeMatchRounds(cards, size) {
+  const eligible = cards.filter(
+    (c) => c.type !== "sentence" && c.type !== "passage" && c.type !== "grammar" && (c.meaningVi || c.meaningEn)
+  );
+  const rounds = Math.max(1, Math.ceil(size / MATCH_PAIRS_PER_ROUND));
+  const need = rounds * MATCH_PAIRS_PER_ROUND;
+  const picked = sample(eligible, Math.min(need, eligible.length));
+  const items = [];
+  for (let r = 0; r * MATCH_PAIRS_PER_ROUND < picked.length; r++) {
+    const chunk = picked.slice(r * MATCH_PAIRS_PER_ROUND, (r + 1) * MATCH_PAIRS_PER_ROUND);
+    if (chunk.length < 3) break;
+    items.push({
+      mode: "match",
+      card: chunk[0],
+      pairs: chunk.map((c) => ({
+        card: c,
+        word: c.word,
+        meaning: (c.meaningVi || c.meaningEn).slice(0, 80)
+      }))
+    });
+  }
+  return items;
+}
 function buildPracticeQueue(mode, cards, size) {
+  if (mode === "match") return makeMatchRounds(cards, size);
   const learned = cards.filter((c) => c.fsrs.state !== State.New);
   const fresh = cards.filter((c) => c.fsrs.state === State.New);
   const ordered = [...shuffle(learned), ...shuffle(fresh)];
@@ -2340,6 +2371,12 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     this.aiResult = null;
     this.aiBusy = false;
     this.storyBusy = false;
+    // --- nối cặp (match)
+    this.matchSel = null;
+    this.matchDone = /* @__PURE__ */ new Set();
+    this.matchMistaken = /* @__PURE__ */ new Set();
+    this.matchWrongFlash = null;
+    this.matchLocked = false;
   }
   getViewType() {
     return VIEW_TYPE_VOCAB;
@@ -2440,9 +2477,10 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
   }
   // ============================================================ DASHBOARD
   renderDashboard(main) {
-    const due = this.plugin.store.getDueCards();
+    const due = this.plugin.store.getDueEntries(this.plugin.settings.reverseEnabled);
     const news = this.plugin.store.getNewCards();
-    const newAvailable = Math.min(news.length, this.plugin.newRemainingToday());
+    const revNews = this.plugin.settings.reverseEnabled ? this.plugin.store.getRevNewCards() : [];
+    const newAvailable = Math.min(news.length + revNews.length, this.plugin.newRemainingToday());
     const all = this.plugin.store.getAllCards();
     const learned = all.filter((c) => c.fsrs.state !== State.New).length;
     const today = this.plugin.data.stats[todayKey()];
@@ -2721,14 +2759,20 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
   // =============================================================== REVIEW
   startSession(category) {
     this.sessionCategory = category;
-    let due = this.plugin.store.getDueCards();
+    let due = this.plugin.store.getDueEntries(this.plugin.settings.reverseEnabled);
     let news = this.plugin.store.getNewCards();
+    let revNews = this.plugin.settings.reverseEnabled ? this.plugin.store.getRevNewCards() : [];
     if (category) {
-      due = due.filter((c) => c.category === category);
+      due = due.filter((e) => e.card.category === category);
       news = news.filter((c) => c.category === category);
+      revNews = revNews.filter((c) => c.category === category);
     }
-    news = news.slice(0, this.plugin.newRemainingToday());
-    this.queue = [...due, ...news];
+    const budget = this.plugin.newRemainingToday();
+    const newEntries = [
+      ...news.map((c) => ({ card: c, dir: "fwd" })),
+      ...revNews.map((c) => ({ card: c, dir: "rev" }))
+    ].slice(0, budget);
+    this.queue = [...due, ...newEntries];
     this.sessionTotal = this.queue.length;
     this.sessionDone = 0;
     if (!this.queue.length) {
@@ -2747,8 +2791,9 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
       return;
     }
     const now = Date.now();
+    const fsrsOf = (e) => e.dir === "fwd" ? e.card.fsrs : e.card.fsrsRev;
     let idx = this.queue.findIndex(
-      (c) => c.fsrs.state === State.New || c.fsrs.due.getTime() <= now
+      (e) => fsrsOf(e).state === State.New || fsrsOf(e).due.getTime() <= now
     );
     if (idx === -1) idx = 0;
     this.current = this.queue.splice(idx, 1)[0];
@@ -2854,12 +2899,15 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     }
   }
   renderCard(main) {
-    const card = this.current;
-    if (!card) {
+    const entry = this.current;
+    if (!entry) {
       this.section = "dashboard";
       this.render();
       return;
     }
+    const card = entry.card;
+    const dir = entry.dir;
+    const fsrs2 = dir === "fwd" ? card.fsrs : card.fsrsRev;
     main.addClass("vf-main-review");
     const top = main.createDiv({ cls: "vf-topbar" });
     const backBtn = top.createEl("button", { text: "\u2715", cls: "vf-btn-icon" });
@@ -2881,25 +2929,36 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     const badgeRow = front.createDiv({ cls: "vf-badge-row" });
     badgeRow.createSpan({ text: `${categoryEmoji(card.category)} ${card.category}`, cls: "vf-chip-cat" });
     badgeRow.createSpan({ text: TYPE_LABELS[card.type] ?? card.type, cls: "vf-chip-type" });
-    if (card.fsrs.state === State.New) badgeRow.createSpan({ text: "\u2728 m\u1EDBi", cls: "vf-chip-new" });
-    front.createDiv({
-      text: card.word,
-      cls: card.word.length > 60 ? "vf-word vf-word-long" : "vf-word"
-    });
-    if (card.ipa) front.createDiv({ text: card.ipa, cls: "vf-ipa" });
-    const speakBtn = front.createEl("button", { text: "\u{1F50A}", cls: "vf-btn-speak" });
-    speakBtn.onclick = (e) => {
-      e.stopPropagation();
-      this.plugin.speak(card.word);
-    };
+    if (dir === "rev") badgeRow.createSpan({ text: "\u{1F501} VI \u2192 EN", cls: "vf-chip-rev" });
+    if (fsrs2.state === State.New) badgeRow.createSpan({ text: "\u2728 m\u1EDBi", cls: "vf-chip-new" });
+    if (dir === "rev" && !this.flipped) {
+      front.createDiv({ text: card.meaningVi || card.meaningEn, cls: "vf-word vf-word-long vf-rev-meaning" });
+      if (card.meaningVi && card.meaningEn)
+        front.createDiv({ text: card.meaningEn, cls: "vf-hint" });
+      front.createDiv({
+        text: `\u2192 T\u1EEB ti\u1EBFng Anh n\xE0o? (${card.word.trim().split(/\s+/).length} t\u1EEB)`,
+        cls: "vf-hint vf-rev-prompt"
+      });
+    } else {
+      front.createDiv({
+        text: card.word,
+        cls: card.word.length > 60 ? "vf-word vf-word-long" : "vf-word"
+      });
+      if (card.ipa) front.createDiv({ text: card.ipa, cls: "vf-ipa" });
+      const speakBtn = front.createEl("button", { text: "\u{1F50A}", cls: "vf-btn-speak" });
+      speakBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.plugin.speak(card.word);
+      };
+    }
     if (!this.flipped) {
       const flipBtn = main.createEl("button", {
-        text: "L\u1EADt th\u1EBB \u{1F446}  \xB7  Space",
+        text: dir === "rev" ? "Xem \u0111\xE1p \xE1n \u{1F446}  \xB7  Space" : "L\u1EADt th\u1EBB \u{1F446}  \xB7  Space",
         cls: "vf-btn-flip"
       });
       flipBtn.onclick = () => this.flip();
       cardEl.onclick = () => this.flip();
-      this.plugin.speak(card.word);
+      if (dir === "fwd") this.plugin.speak(card.word);
       return;
     }
     const back = cardEl.createDiv({ cls: "vf-card-back" });
@@ -2923,6 +2982,11 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
       const chips = back.createDiv({ cls: "vf-chips" });
       for (const c of card.collocations) chips.createSpan({ text: c, cls: "vf-chip" });
     }
+    if (card.forms.length) {
+      const fr = back.createDiv({ cls: "vf-chips vf-forms-row" });
+      fr.createSpan({ text: "\u{1F524}", cls: "vf-forms-icon" });
+      for (const f of card.forms) fr.createSpan({ text: f, cls: "vf-chip vf-chip-form" });
+    }
     this.renderImage(back, card);
     const srcRow = back.createDiv({ cls: "vf-source-row" });
     const sourceName = card.source.replace(/^\[\[|\]\]$/g, "");
@@ -2942,7 +3006,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     }
     this.renderAiSection(back, card);
     const now = /* @__PURE__ */ new Date();
-    const preview = this.plugin.scheduler.repeat(card.fsrs, now);
+    const preview = this.plugin.scheduler.repeat(fsrs2, now);
     const btnRow = main.createDiv({ cls: "vf-rate-row" });
     const defs = [
       { grade: Rating.Again, label: "Qu\xEAn", key: "1", cls: "vf-rate-again" },
@@ -2991,21 +3055,27 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
   flip() {
     if (this.section !== "review" || this.flipped) return;
     this.flipped = true;
+    if (this.current?.dir === "rev") this.plugin.speak(this.current.card.word);
     this.render();
   }
   async rate(grade) {
-    const card = this.current;
-    if (!card || this.rating) return;
+    const entry = this.current;
+    if (!entry || this.rating) return;
+    const card = entry.card;
     this.rating = true;
     try {
-      const wasNew = card.fsrs.state === State.New;
-      const next = this.plugin.scheduler.repeat(card.fsrs, /* @__PURE__ */ new Date())[grade].card;
-      await this.plugin.store.saveFsrs(card, next);
+      const fsrs2 = entry.dir === "fwd" ? card.fsrs : card.fsrsRev;
+      const wasNew = fsrs2.state === State.New;
+      const next = this.plugin.scheduler.repeat(fsrs2, /* @__PURE__ */ new Date())[grade].card;
+      await this.plugin.store.saveFsrs(card, next, entry.dir);
       this.plugin.recordReview(wasNew);
       this.sessionDone++;
       if (next.due.getTime() <= endOfToday().getTime()) {
-        this.queue.push(card);
+        this.queue.push(entry);
         this.sessionTotal++;
+      }
+      if (grade === Rating.Again && next.lapses >= 4 && !card.mnemonic) {
+        new import_obsidian2.Notice(`\u{1F624} "${card.word}" \u0111\xE3 qu\xEAn ${next.lapses} l\u1EA7n \u2014 b\u1EA5m \u{1F9E0} T\u1EA1o m\u1EB9o nh\u1EDB \u1EDF m\u1EB7t sau th\u1EBB!`, 6e3);
       }
     } catch (e) {
       console.error("Vocab Forge: l\u1ED7i khi l\u01B0u th\u1EBB", e);
@@ -3123,6 +3193,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     if (item.mode === "cloze") this.renderClozeQ(cardEl, item);
     else if (item.mode === "typing") this.renderTypingQ(cardEl, item);
     else if (item.mode === "builder") this.renderBuilderQ(cardEl, item);
+    else if (item.mode === "match") this.renderMatchQ(cardEl, item);
     else this.renderChoiceQ(cardEl, item);
     if (this.practicePhase === "feedback") {
       const fb = main.createDiv({
@@ -3147,6 +3218,78 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     if (item.mode === "builder") return item.tokens.join(" ");
     if (item.mode === "choice") return item.options[item.correctIndex];
     return item.card.word;
+  }
+  // --- nối cặp (match)
+  renderMatchQ(cardEl, item) {
+    cardEl.addClass("vf-match-card");
+    cardEl.createDiv({
+      text: `N\u1ED1i t\u1EEB v\u1EDBi ngh\u0129a \u2014 c\xF2n ${item.pairs.length - this.matchDone.size} c\u1EB7p`,
+      cls: "vf-hint"
+    });
+    const board = cardEl.createDiv({ cls: "vf-match-board" });
+    const wordCol = board.createDiv({ cls: "vf-match-col" });
+    const meanCol = board.createDiv({ cls: "vf-match-col" });
+    const wordOrder = this.stableOrder(item.pairs.length, this.practiceIdx * 7 + 3);
+    const meanOrder = this.stableOrder(item.pairs.length, this.practiceIdx * 13 + 5);
+    const mkTile = (col, kind, pairIdx, text) => {
+      let cls = "vf-match-tile";
+      if (this.matchDone.has(pairIdx)) cls += " vf-match-done";
+      if (this.matchSel?.kind === kind && this.matchSel.idx === pairIdx) cls += " vf-match-sel";
+      if (this.matchWrongFlash && (kind === "w" && this.matchWrongFlash.w === pairIdx || kind === "m" && this.matchWrongFlash.m === pairIdx))
+        cls += " vf-match-wrong";
+      const b = col.createEl("button", { text, cls });
+      b.onclick = () => this.matchClick(item, kind, pairIdx);
+    };
+    for (const i of wordOrder) mkTile(wordCol, "w", i, item.pairs[i].word);
+    for (const i of meanOrder) mkTile(meanCol, "m", i, item.pairs[i].meaning);
+  }
+  stableOrder(n, seed) {
+    const arr = Array.from({ length: n }, (_, i) => i);
+    let s = seed;
+    for (let i = n - 1; i > 0; i--) {
+      s = (s * 9301 + 49297) % 233280;
+      const j = s % (i + 1);
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+  matchClick(item, kind, pairIdx) {
+    if (this.matchLocked || this.matchDone.has(pairIdx)) return;
+    if (!this.matchSel || this.matchSel.kind === kind) {
+      this.matchSel = { kind, idx: pairIdx };
+      this.render();
+      return;
+    }
+    const w = kind === "w" ? pairIdx : this.matchSel.idx;
+    const m = kind === "m" ? pairIdx : this.matchSel.idx;
+    this.matchSel = null;
+    if (w === m) {
+      this.matchDone.add(w);
+      this.plugin.speak(item.pairs[w].word);
+      if (this.matchDone.size === item.pairs.length) this.finishMatchRound(item);
+      this.render();
+    } else {
+      this.matchMistaken.add(w).add(m);
+      this.matchWrongFlash = { w, m };
+      this.render();
+      window.setTimeout(() => {
+        this.matchWrongFlash = null;
+        if (this.section === "practice-run") this.render();
+      }, 450);
+    }
+  }
+  finishMatchRound(item) {
+    this.matchLocked = true;
+    for (let i = 0; i < item.pairs.length; i++) {
+      const correct = !this.matchMistaken.has(i);
+      this.plugin.recordPractice(correct);
+      if (correct) this.practiceScore++;
+      else {
+        const retry = makeChoice(item.pairs[i].card, this.plugin.store.getAllCards());
+        if (retry) this.practiceWrong.push(retry);
+      }
+    }
+    window.setTimeout(() => this.practiceNext(), 700);
   }
   renderClozeQ(cardEl, item) {
     const c = item.card;
@@ -3268,10 +3411,10 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     if (!item || this.practicePhase !== "question") return;
     if (item.mode === "cloze") {
       const val = this.practiceInput?.value ?? "";
-      this.practiceResolve(fuzzyEqual(val, [item.surface, item.card.word]));
+      this.practiceResolve(fuzzyEqual(val, [item.surface, item.card.word, ...item.card.forms]));
     } else if (item.mode === "typing") {
       const val = this.practiceInput?.value ?? "";
-      this.practiceResolve(fuzzyEqual(val, [item.card.word]));
+      this.practiceResolve(fuzzyEqual(val, [item.card.word, ...item.card.forms]));
     }
   }
   practiceResolve(correct) {
@@ -3289,6 +3432,11 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     this.practiceIdx++;
     this.practicePhase = "question";
     this.builderPicked = [];
+    this.matchSel = null;
+    this.matchDone = /* @__PURE__ */ new Set();
+    this.matchMistaken = /* @__PURE__ */ new Set();
+    this.matchWrongFlash = null;
+    this.matchLocked = false;
     if (this.practiceIdx >= this.practiceQueue.length) this.section = "practice-done";
     this.render();
   }
@@ -3404,6 +3552,17 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
       s.highlightEnabled = chk.checked;
       this.plugin.invalidateKnownWords();
       await this.plugin.saveAll();
+    };
+    const c6b = group(
+      "H\u1ECDc chi\u1EC1u ng\u01B0\u1EE3c (VI \u2192 EN)",
+      "Th\u1EBB \u0111\xE3 thu\u1ED9c chi\u1EC1u xu\xF4i s\u1EBD v\xE0o h\u1ECDc chi\u1EC1u ng\u01B0\u1EE3c \u2014 nh\xECn ngh\u0129a nh\u1EDB ra t\u1EEB"
+    );
+    const chkRev = c6b.createEl("input", { attr: { type: "checkbox" } });
+    chkRev.checked = s.reverseEnabled;
+    chkRev.onchange = async () => {
+      s.reverseEnabled = chkRev.checked;
+      await this.plugin.saveAll();
+      this.plugin.refreshStatusBar();
     };
     main.createEl("h4", { text: "Nhi\u1EC7m v\u1EE5 h\u1EB1ng ng\xE0y" });
     const goals = [
@@ -3607,7 +3766,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
       return;
     }
     if (evt.key.toLowerCase() === "s" && this.current) {
-      this.plugin.speak(this.current.word);
+      this.plugin.speak(this.current.card.word);
     }
   }
 };
@@ -3658,7 +3817,9 @@ var CardStore = class {
       myExample: str(fm.my_example),
       mnemonic: str(fm.mnemonic),
       grammarNote: str(fm.grammar_note),
-      fsrs: fsrsFromFrontmatter(fm)
+      forms: list(fm.forms),
+      fsrs: fsrsFromFrontmatter(fm),
+      fsrsRev: fsrsFromFrontmatter(fm, "srs_rev_")
     };
   }
   /** Ghi một field phụ (my_example / mnemonic / grammar_note) vào frontmatter thẻ */
@@ -3670,20 +3831,43 @@ var CardStore = class {
       fm[key] = value;
     });
   }
-  /** Thẻ đến hạn ôn hôm nay (đã từng học), xếp theo hạn gần nhất trước */
+  /** Thẻ đến hạn ôn hôm nay (đã từng học), xếp theo hạn gần nhất trước — chỉ chiều xuôi */
   getDueCards() {
     const cutoff = endOfToday().getTime();
     return this.getAllCards().filter((c) => c.fsrs.state !== State.New && c.fsrs.due.getTime() <= cutoff).sort((a, b) => a.fsrs.due.getTime() - b.fsrs.due.getTime());
   }
-  /** Thẻ chưa học bao giờ, cũ trước mới sau */
+  /** Mọi lượt đến hạn hôm nay ở cả 2 chiều (rev chỉ tính khi bật) */
+  getDueEntries(reverseEnabled) {
+    const cutoff = endOfToday().getTime();
+    const out = [];
+    for (const c of this.getAllCards()) {
+      if (c.fsrs.state !== State.New && c.fsrs.due.getTime() <= cutoff)
+        out.push({ card: c, dir: "fwd" });
+      if (reverseEnabled && c.fsrsRev.state !== State.New && c.fsrsRev.due.getTime() <= cutoff)
+        out.push({ card: c, dir: "rev" });
+    }
+    return out.sort((a, b) => {
+      const da = a.dir === "fwd" ? a.card.fsrs.due : a.card.fsrsRev.due;
+      const db = b.dir === "fwd" ? b.card.fsrs.due : b.card.fsrsRev.due;
+      return da.getTime() - db.getTime();
+    });
+  }
+  /** Thẻ chưa học bao giờ (chiều xuôi), cũ trước mới sau */
   getNewCards() {
     return this.getAllCards().filter((c) => c.fsrs.state === State.New).sort((a, b) => a.file.stat.ctime - b.file.stat.ctime);
   }
-  /** Ghi trạng thái FSRS mới vào frontmatter của thẻ */
-  async saveFsrs(card, next) {
-    card.fsrs = next;
+  /** Thẻ đủ điều kiện bắt đầu chiều ngược: chiều xuôi đã vào Review, chiều ngược chưa học */
+  getRevNewCards() {
+    return this.getAllCards().filter(
+      (c) => c.type !== "sentence" && c.type !== "passage" && c.type !== "grammar" && c.fsrs.state === State.Review && c.fsrsRev.state === State.New
+    ).sort((a, b) => a.file.stat.ctime - b.file.stat.ctime);
+  }
+  /** Ghi trạng thái FSRS mới vào frontmatter của thẻ theo chiều học */
+  async saveFsrs(card, next, dir = "fwd") {
+    if (dir === "fwd") card.fsrs = next;
+    else card.fsrsRev = next;
     await this.app.fileManager.processFrontMatter(card.file, (fm) => {
-      fsrsToFrontmatter(next, fm);
+      fsrsToFrontmatter(next, fm, dir === "fwd" ? "srs_" : "srs_rev_");
     });
   }
   /** Tạo file thẻ mới trong folder thẻ. Trả về TFile vừa tạo. */
@@ -4071,8 +4255,9 @@ var VocabForgePlugin = class extends import_obsidian5.Plugin {
   refreshStatusBar() {
     if (!this.statusEl) return;
     try {
-      const due = this.store.getDueCards().length;
-      const newAvail = Math.min(this.store.getNewCards().length, this.newRemainingToday());
+      const due = this.store.getDueEntries(this.settings.reverseEnabled).length;
+      const revNew = this.settings.reverseEnabled ? this.store.getRevNewCards().length : 0;
+      const newAvail = Math.min(this.store.getNewCards().length + revNew, this.newRemainingToday());
       this.statusEl.setText(due + newAvail > 0 ? `\u{1F4DA} ${due} due \xB7 ${newAvail} m\u1EDBi` : "\u{1F4DA} xong \u2713");
     } catch {
     }

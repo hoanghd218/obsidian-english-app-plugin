@@ -1,7 +1,14 @@
 import { App, Notice, TFile, TFolder, normalizePath } from "obsidian";
 import { createEmptyCard } from "ts-fsrs";
 import { fsrsFromFrontmatter, fsrsToFrontmatter, State, type FsrsCard } from "./srs";
-import { endOfToday, type CardType, type VocabCard, type VocabForgeSettings } from "./types";
+import {
+	endOfToday,
+	type CardType,
+	type ReviewDir,
+	type ReviewEntry,
+	type VocabCard,
+	type VocabForgeSettings,
+} from "./types";
 
 export interface NewCardInput {
 	word: string;
@@ -64,7 +71,9 @@ export class CardStore {
 			myExample: str(fm.my_example),
 			mnemonic: str(fm.mnemonic),
 			grammarNote: str(fm.grammar_note),
+			forms: list(fm.forms),
 			fsrs: fsrsFromFrontmatter(fm),
+			fsrsRev: fsrsFromFrontmatter(fm, "srs_rev_"),
 		};
 	}
 
@@ -82,7 +91,7 @@ export class CardStore {
 		});
 	}
 
-	/** Thẻ đến hạn ôn hôm nay (đã từng học), xếp theo hạn gần nhất trước */
+	/** Thẻ đến hạn ôn hôm nay (đã từng học), xếp theo hạn gần nhất trước — chỉ chiều xuôi */
 	getDueCards(): VocabCard[] {
 		const cutoff = endOfToday().getTime();
 		return this.getAllCards()
@@ -90,18 +99,54 @@ export class CardStore {
 			.sort((a, b) => a.fsrs.due.getTime() - b.fsrs.due.getTime());
 	}
 
-	/** Thẻ chưa học bao giờ, cũ trước mới sau */
+	/** Mọi lượt đến hạn hôm nay ở cả 2 chiều (rev chỉ tính khi bật) */
+	getDueEntries(reverseEnabled: boolean): ReviewEntry[] {
+		const cutoff = endOfToday().getTime();
+		const out: ReviewEntry[] = [];
+		for (const c of this.getAllCards()) {
+			if (c.fsrs.state !== State.New && c.fsrs.due.getTime() <= cutoff)
+				out.push({ card: c, dir: "fwd" });
+			if (
+				reverseEnabled &&
+				c.fsrsRev.state !== State.New &&
+				c.fsrsRev.due.getTime() <= cutoff
+			)
+				out.push({ card: c, dir: "rev" });
+		}
+		return out.sort((a, b) => {
+			const da = a.dir === "fwd" ? a.card.fsrs.due : a.card.fsrsRev.due;
+			const db = b.dir === "fwd" ? b.card.fsrs.due : b.card.fsrsRev.due;
+			return da.getTime() - db.getTime();
+		});
+	}
+
+	/** Thẻ chưa học bao giờ (chiều xuôi), cũ trước mới sau */
 	getNewCards(): VocabCard[] {
 		return this.getAllCards()
 			.filter((c) => c.fsrs.state === State.New)
 			.sort((a, b) => a.file.stat.ctime - b.file.stat.ctime);
 	}
 
-	/** Ghi trạng thái FSRS mới vào frontmatter của thẻ */
-	async saveFsrs(card: VocabCard, next: FsrsCard): Promise<void> {
-		card.fsrs = next;
+	/** Thẻ đủ điều kiện bắt đầu chiều ngược: chiều xuôi đã vào Review, chiều ngược chưa học */
+	getRevNewCards(): VocabCard[] {
+		return this.getAllCards()
+			.filter(
+				(c) =>
+					c.type !== "sentence" &&
+					c.type !== "passage" &&
+					c.type !== "grammar" &&
+					c.fsrs.state === State.Review &&
+					c.fsrsRev.state === State.New
+			)
+			.sort((a, b) => a.file.stat.ctime - b.file.stat.ctime);
+	}
+
+	/** Ghi trạng thái FSRS mới vào frontmatter của thẻ theo chiều học */
+	async saveFsrs(card: VocabCard, next: FsrsCard, dir: ReviewDir = "fwd"): Promise<void> {
+		if (dir === "fwd") card.fsrs = next;
+		else card.fsrsRev = next;
 		await this.app.fileManager.processFrontMatter(card.file, (fm) => {
-			fsrsToFrontmatter(next, fm);
+			fsrsToFrontmatter(next, fm, dir === "fwd" ? "srs_" : "srs_rev_");
 		});
 	}
 

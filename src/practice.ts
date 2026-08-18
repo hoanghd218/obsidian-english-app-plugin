@@ -1,7 +1,7 @@
 import { State } from "./srs";
 import type { VocabCard } from "./types";
 
-export type PracticeMode = "cloze" | "typing" | "builder" | "choice";
+export type PracticeMode = "cloze" | "typing" | "builder" | "choice" | "match";
 
 export const MODE_INFO: Record<PracticeMode, { icon: string; name: string; desc: string }> = {
 	cloze: {
@@ -23,6 +23,11 @@ export const MODE_INFO: Record<PracticeMode, { icon: string; name: string; desc:
 		icon: "✅",
 		name: "Trắc nghiệm (Choice)",
 		desc: "Chọn nghĩa đúng trong 4 đáp án",
+	},
+	match: {
+		icon: "🎴",
+		name: "Nối cặp (Match)",
+		desc: "Nối từ với nghĩa — 6 cặp mỗi vòng, kiểu Quizlet",
 	},
 };
 
@@ -49,7 +54,12 @@ export interface ChoiceItem {
 	options: string[]; // 4 nghĩa, có 1 đúng
 	correctIndex: number;
 }
-export type PracticeItem = ClozeItem | TypingItem | BuilderItem | ChoiceItem;
+export interface MatchItem {
+	mode: "match";
+	card: VocabCard; // thẻ đại diện của vòng (để hiện trong danh sách sai)
+	pairs: Array<{ card: VocabCard; word: string; meaning: string }>;
+}
+export type PracticeItem = ClozeItem | TypingItem | BuilderItem | ChoiceItem | MatchItem;
 
 // ---------------------------------------------------------------- helpers
 
@@ -173,12 +183,44 @@ export function makeChoice(card: VocabCard, pool: VocabCard[]): ChoiceItem | nul
 	return { mode: "choice", card, options, correctIndex: options.indexOf(answer) };
 }
 
+const MATCH_PAIRS_PER_ROUND = 6;
+
+/** Vòng nối cặp: mỗi item = 1 bảng 6 cặp từ–nghĩa */
+function makeMatchRounds(cards: VocabCard[], size: number): MatchItem[] {
+	const eligible = cards.filter(
+		(c) =>
+			c.type !== "sentence" &&
+			c.type !== "passage" &&
+			c.type !== "grammar" &&
+			(c.meaningVi || c.meaningEn)
+	);
+	const rounds = Math.max(1, Math.ceil(size / MATCH_PAIRS_PER_ROUND));
+	const need = rounds * MATCH_PAIRS_PER_ROUND;
+	const picked = sample(eligible, Math.min(need, eligible.length));
+	const items: MatchItem[] = [];
+	for (let r = 0; r * MATCH_PAIRS_PER_ROUND < picked.length; r++) {
+		const chunk = picked.slice(r * MATCH_PAIRS_PER_ROUND, (r + 1) * MATCH_PAIRS_PER_ROUND);
+		if (chunk.length < 3) break;
+		items.push({
+			mode: "match",
+			card: chunk[0],
+			pairs: chunk.map((c) => ({
+				card: c,
+				word: c.word,
+				meaning: (c.meaningVi || c.meaningEn).slice(0, 80),
+			})),
+		});
+	}
+	return items;
+}
+
 /** Chọn thẻ cho phiên luyện: ưu tiên thẻ đã học, thiếu thì bổ sung thẻ mới */
 export function buildPracticeQueue(
 	mode: PracticeMode,
 	cards: VocabCard[],
 	size: number
 ): PracticeItem[] {
+	if (mode === "match") return makeMatchRounds(cards, size);
 	const learned = cards.filter((c) => c.fsrs.state !== State.New);
 	const fresh = cards.filter((c) => c.fsrs.state === State.New);
 	const ordered = [...shuffle(learned), ...shuffle(fresh)];

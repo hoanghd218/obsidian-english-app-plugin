@@ -1,13 +1,21 @@
 import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
 import type VocabForgePlugin from "./main";
 import { formatInterval, Rating, State, type Grade } from "./srs";
-import { categoryEmoji, endOfToday, todayKey, type VocabCard } from "./types";
+import {
+	categoryEmoji,
+	endOfToday,
+	todayKey,
+	type ReviewEntry,
+	type VocabCard,
+} from "./types";
 import {
 	buildPracticeQueue,
 	fuzzyEqual,
+	makeChoice,
 	MODE_INFO,
 	shuffle,
 	sample,
+	type MatchItem,
 	type PracticeItem,
 	type PracticeMode,
 } from "./practice";
@@ -59,8 +67,8 @@ export class VocabReviewView extends ItemView {
 	private deckSearch = "";
 	private deckLayout: "grid" | "list" = "grid";
 
-	private queue: VocabCard[] = [];
-	private current: VocabCard | null = null;
+	private queue: ReviewEntry[] = [];
+	private current: ReviewEntry | null = null;
 	private flipped = false;
 	private sessionDone = 0;
 	private sessionTotal = 0;
@@ -85,6 +93,13 @@ export class VocabReviewView extends ItemView {
 	private aiResult: SentenceCheck | null = null;
 	private aiBusy = false;
 	private storyBusy = false;
+
+	// --- nối cặp (match)
+	private matchSel: { kind: "w" | "m"; idx: number } | null = null;
+	private matchDone = new Set<number>();
+	private matchMistaken = new Set<number>();
+	private matchWrongFlash: { w: number; m: number } | null = null;
+	private matchLocked = false;
 
 	constructor(leaf: WorkspaceLeaf, private plugin: VocabForgePlugin) {
 		super(leaf);
@@ -183,9 +198,12 @@ export class VocabReviewView extends ItemView {
 	// ============================================================ DASHBOARD
 
 	private renderDashboard(main: HTMLElement): void {
-		const due = this.plugin.store.getDueCards();
+		const due = this.plugin.store.getDueEntries(this.plugin.settings.reverseEnabled);
 		const news = this.plugin.store.getNewCards();
-		const newAvailable = Math.min(news.length, this.plugin.newRemainingToday());
+		const revNews = this.plugin.settings.reverseEnabled
+			? this.plugin.store.getRevNewCards()
+			: [];
+		const newAvailable = Math.min(news.length + revNews.length, this.plugin.newRemainingToday());
 		const all = this.plugin.store.getAllCards();
 		const learned = all.filter((c) => c.fsrs.state !== State.New).length;
 		const today = this.plugin.data.stats[todayKey()];
@@ -479,14 +497,20 @@ export class VocabReviewView extends ItemView {
 
 	startSession(category: string | null): void {
 		this.sessionCategory = category;
-		let due = this.plugin.store.getDueCards();
+		let due = this.plugin.store.getDueEntries(this.plugin.settings.reverseEnabled);
 		let news = this.plugin.store.getNewCards();
+		let revNews = this.plugin.settings.reverseEnabled ? this.plugin.store.getRevNewCards() : [];
 		if (category) {
-			due = due.filter((c) => c.category === category);
+			due = due.filter((e) => e.card.category === category);
 			news = news.filter((c) => c.category === category);
+			revNews = revNews.filter((c) => c.category === category);
 		}
-		news = news.slice(0, this.plugin.newRemainingToday());
-		this.queue = [...due, ...news];
+		const budget = this.plugin.newRemainingToday();
+		const newEntries: ReviewEntry[] = [
+			...news.map((c): ReviewEntry => ({ card: c, dir: "fwd" })),
+			...revNews.map((c): ReviewEntry => ({ card: c, dir: "rev" })),
+		].slice(0, budget);
+		this.queue = [...due, ...newEntries];
 		this.sessionTotal = this.queue.length;
 		this.sessionDone = 0;
 		if (!this.queue.length) {
@@ -506,8 +530,9 @@ export class VocabReviewView extends ItemView {
 			return;
 		}
 		const now = Date.now();
+		const fsrsOf = (e: ReviewEntry) => (e.dir === "fwd" ? e.card.fsrs : e.card.fsrsRev);
 		let idx = this.queue.findIndex(
-			(c) => c.fsrs.state === State.New || c.fsrs.due.getTime() <= now
+			(e) => fsrsOf(e).state === State.New || fsrsOf(e).due.getTime() <= now
 		);
 		if (idx === -1) idx = 0;
 		this.current = this.queue.splice(idx, 1)[0];
@@ -625,12 +650,15 @@ export class VocabReviewView extends ItemView {
 	}
 
 	private renderCard(main: HTMLElement): void {
-		const card = this.current;
-		if (!card) {
+		const entry = this.current;
+		if (!entry) {
 			this.section = "dashboard";
 			this.render();
 			return;
 		}
+		const card = entry.card;
+		const dir = entry.dir;
+		const fsrs = dir === "fwd" ? card.fsrs : card.fsrsRev;
 		main.addClass("vf-main-review");
 
 		// --- top bar
@@ -654,26 +682,39 @@ export class VocabReviewView extends ItemView {
 		const badgeRow = front.createDiv({ cls: "vf-badge-row" });
 		badgeRow.createSpan({ text: `${categoryEmoji(card.category)} ${card.category}`, cls: "vf-chip-cat" });
 		badgeRow.createSpan({ text: TYPE_LABELS[card.type] ?? card.type, cls: "vf-chip-type" });
-		if (card.fsrs.state === State.New) badgeRow.createSpan({ text: "✨ mới", cls: "vf-chip-new" });
-		front.createDiv({
-			text: card.word,
-			cls: card.word.length > 60 ? "vf-word vf-word-long" : "vf-word",
-		});
-		if (card.ipa) front.createDiv({ text: card.ipa, cls: "vf-ipa" });
-		const speakBtn = front.createEl("button", { text: "🔊", cls: "vf-btn-speak" });
-		speakBtn.onclick = (e) => {
-			e.stopPropagation();
-			this.plugin.speak(card.word);
-		};
+		if (dir === "rev") badgeRow.createSpan({ text: "🔁 VI → EN", cls: "vf-chip-rev" });
+		if (fsrs.state === State.New) badgeRow.createSpan({ text: "✨ mới", cls: "vf-chip-new" });
+
+		if (dir === "rev" && !this.flipped) {
+			// mặt trước chiều ngược: hiện nghĩa, đố từ
+			front.createDiv({ text: card.meaningVi || card.meaningEn, cls: "vf-word vf-word-long vf-rev-meaning" });
+			if (card.meaningVi && card.meaningEn)
+				front.createDiv({ text: card.meaningEn, cls: "vf-hint" });
+			front.createDiv({
+				text: `→ Từ tiếng Anh nào? (${card.word.trim().split(/\s+/).length} từ)`,
+				cls: "vf-hint vf-rev-prompt",
+			});
+		} else {
+			front.createDiv({
+				text: card.word,
+				cls: card.word.length > 60 ? "vf-word vf-word-long" : "vf-word",
+			});
+			if (card.ipa) front.createDiv({ text: card.ipa, cls: "vf-ipa" });
+			const speakBtn = front.createEl("button", { text: "🔊", cls: "vf-btn-speak" });
+			speakBtn.onclick = (e) => {
+				e.stopPropagation();
+				this.plugin.speak(card.word);
+			};
+		}
 
 		if (!this.flipped) {
 			const flipBtn = main.createEl("button", {
-				text: "Lật thẻ 👆  ·  Space",
+				text: dir === "rev" ? "Xem đáp án 👆  ·  Space" : "Lật thẻ 👆  ·  Space",
 				cls: "vf-btn-flip",
 			});
 			flipBtn.onclick = () => this.flip();
 			cardEl.onclick = () => this.flip();
-			this.plugin.speak(card.word);
+			if (dir === "fwd") this.plugin.speak(card.word);
 			return;
 		}
 
@@ -699,6 +740,11 @@ export class VocabReviewView extends ItemView {
 			const chips = back.createDiv({ cls: "vf-chips" });
 			for (const c of card.collocations) chips.createSpan({ text: c, cls: "vf-chip" });
 		}
+		if (card.forms.length) {
+			const fr = back.createDiv({ cls: "vf-chips vf-forms-row" });
+			fr.createSpan({ text: "🔤", cls: "vf-forms-icon" });
+			for (const f of card.forms) fr.createSpan({ text: f, cls: "vf-chip vf-chip-form" });
+		}
 		this.renderImage(back, card);
 		const srcRow = back.createDiv({ cls: "vf-source-row" });
 		const sourceName = card.source.replace(/^\[\[|\]\]$/g, "");
@@ -720,7 +766,7 @@ export class VocabReviewView extends ItemView {
 
 		// --- rating
 		const now = new Date();
-		const preview = this.plugin.scheduler.repeat(card.fsrs, now);
+		const preview = this.plugin.scheduler.repeat(fsrs, now);
 		const btnRow = main.createDiv({ cls: "vf-rate-row" });
 		const defs: Array<{ grade: Grade; label: string; key: string; cls: string }> = [
 			{ grade: Rating.Again, label: "Quên", key: "1", cls: "vf-rate-again" },
@@ -772,22 +818,29 @@ export class VocabReviewView extends ItemView {
 	private flip(): void {
 		if (this.section !== "review" || this.flipped) return;
 		this.flipped = true;
+		if (this.current?.dir === "rev") this.plugin.speak(this.current.card.word);
 		this.render();
 	}
 
 	private async rate(grade: Grade): Promise<void> {
-		const card = this.current;
-		if (!card || this.rating) return;
+		const entry = this.current;
+		if (!entry || this.rating) return;
+		const card = entry.card;
 		this.rating = true;
 		try {
-			const wasNew = card.fsrs.state === State.New;
-			const next = this.plugin.scheduler.repeat(card.fsrs, new Date())[grade].card;
-			await this.plugin.store.saveFsrs(card, next);
+			const fsrs = entry.dir === "fwd" ? card.fsrs : card.fsrsRev;
+			const wasNew = fsrs.state === State.New;
+			const next = this.plugin.scheduler.repeat(fsrs, new Date())[grade].card;
+			await this.plugin.store.saveFsrs(card, next, entry.dir);
 			this.plugin.recordReview(wasNew);
 			this.sessionDone++;
 			if (next.due.getTime() <= endOfToday().getTime()) {
-				this.queue.push(card);
+				this.queue.push(entry);
 				this.sessionTotal++;
+			}
+			// leech: quên quá nhiều lần → gợi ý mẹo nhớ
+			if (grade === Rating.Again && next.lapses >= 4 && !card.mnemonic) {
+				new Notice(`😤 "${card.word}" đã quên ${next.lapses} lần — bấm 🧠 Tạo mẹo nhớ ở mặt sau thẻ!`, 6000);
 			}
 		} catch (e) {
 			console.error("Vocab Forge: lỗi khi lưu thẻ", e);
@@ -916,6 +969,7 @@ export class VocabReviewView extends ItemView {
 		if (item.mode === "cloze") this.renderClozeQ(cardEl, item);
 		else if (item.mode === "typing") this.renderTypingQ(cardEl, item);
 		else if (item.mode === "builder") this.renderBuilderQ(cardEl, item);
+		else if (item.mode === "match") this.renderMatchQ(cardEl, item);
 		else this.renderChoiceQ(cardEl, item);
 
 		// feedback + nút
@@ -943,6 +997,93 @@ export class VocabReviewView extends ItemView {
 		if (item.mode === "builder") return item.tokens.join(" ");
 		if (item.mode === "choice") return item.options[item.correctIndex];
 		return item.card.word;
+	}
+
+	// --- nối cặp (match)
+
+	private renderMatchQ(cardEl: HTMLElement, item: MatchItem): void {
+		cardEl.addClass("vf-match-card");
+		cardEl.createDiv({
+			text: `Nối từ với nghĩa — còn ${item.pairs.length - this.matchDone.size} cặp`,
+			cls: "vf-hint",
+		});
+		const board = cardEl.createDiv({ cls: "vf-match-board" });
+		const wordCol = board.createDiv({ cls: "vf-match-col" });
+		const meanCol = board.createDiv({ cls: "vf-match-col" });
+
+		// thứ tự cố định theo vòng: xáo bằng seed đơn giản từ index để không đổi chỗ mỗi lần render
+		const wordOrder = this.stableOrder(item.pairs.length, this.practiceIdx * 7 + 3);
+		const meanOrder = this.stableOrder(item.pairs.length, this.practiceIdx * 13 + 5);
+
+		const mkTile = (col: HTMLElement, kind: "w" | "m", pairIdx: number, text: string) => {
+			let cls = "vf-match-tile";
+			if (this.matchDone.has(pairIdx)) cls += " vf-match-done";
+			if (this.matchSel?.kind === kind && this.matchSel.idx === pairIdx) cls += " vf-match-sel";
+			if (
+				this.matchWrongFlash &&
+				((kind === "w" && this.matchWrongFlash.w === pairIdx) ||
+					(kind === "m" && this.matchWrongFlash.m === pairIdx))
+			)
+				cls += " vf-match-wrong";
+			const b = col.createEl("button", { text, cls });
+			b.onclick = () => this.matchClick(item, kind, pairIdx);
+		};
+		for (const i of wordOrder) mkTile(wordCol, "w", i, item.pairs[i].word);
+		for (const i of meanOrder) mkTile(meanCol, "m", i, item.pairs[i].meaning);
+	}
+
+	private stableOrder(n: number, seed: number): number[] {
+		const arr = Array.from({ length: n }, (_, i) => i);
+		// xáo trộn tất định theo seed (giữ nguyên giữa các lần render trong 1 vòng)
+		let s = seed;
+		for (let i = n - 1; i > 0; i--) {
+			s = (s * 9301 + 49297) % 233280;
+			const j = s % (i + 1);
+			[arr[i], arr[j]] = [arr[j], arr[i]];
+		}
+		return arr;
+	}
+
+	private matchClick(item: MatchItem, kind: "w" | "m", pairIdx: number): void {
+		if (this.matchLocked || this.matchDone.has(pairIdx)) return;
+		if (!this.matchSel || this.matchSel.kind === kind) {
+			this.matchSel = { kind, idx: pairIdx };
+			this.render();
+			return;
+		}
+		// đã chọn 1 bên khác loại → kiểm tra cặp
+		const w = kind === "w" ? pairIdx : this.matchSel.idx;
+		const m = kind === "m" ? pairIdx : this.matchSel.idx;
+		this.matchSel = null;
+		if (w === m) {
+			this.matchDone.add(w);
+			this.plugin.speak(item.pairs[w].word);
+			if (this.matchDone.size === item.pairs.length) this.finishMatchRound(item);
+			this.render();
+		} else {
+			this.matchMistaken.add(w).add(m);
+			this.matchWrongFlash = { w, m };
+			this.render();
+			window.setTimeout(() => {
+				this.matchWrongFlash = null;
+				if (this.section === "practice-run") this.render();
+			}, 450);
+		}
+	}
+
+	private finishMatchRound(item: MatchItem): void {
+		this.matchLocked = true;
+		for (let i = 0; i < item.pairs.length; i++) {
+			const correct = !this.matchMistaken.has(i);
+			this.plugin.recordPractice(correct);
+			if (correct) this.practiceScore++;
+			else {
+				// câu sai → tạo item trắc nghiệm để luyện lại
+				const retry = makeChoice(item.pairs[i].card, this.plugin.store.getAllCards());
+				if (retry) this.practiceWrong.push(retry);
+			}
+		}
+		window.setTimeout(() => this.practiceNext(), 700);
 	}
 
 	private renderClozeQ(cardEl: HTMLElement, item: PracticeItem & { mode: "cloze" }): void {
@@ -1074,10 +1215,10 @@ export class VocabReviewView extends ItemView {
 		if (!item || this.practicePhase !== "question") return;
 		if (item.mode === "cloze") {
 			const val = this.practiceInput?.value ?? "";
-			this.practiceResolve(fuzzyEqual(val, [item.surface, item.card.word]));
+			this.practiceResolve(fuzzyEqual(val, [item.surface, item.card.word, ...item.card.forms]));
 		} else if (item.mode === "typing") {
 			const val = this.practiceInput?.value ?? "";
-			this.practiceResolve(fuzzyEqual(val, [item.card.word]));
+			this.practiceResolve(fuzzyEqual(val, [item.card.word, ...item.card.forms]));
 		}
 	}
 
@@ -1097,6 +1238,11 @@ export class VocabReviewView extends ItemView {
 		this.practiceIdx++;
 		this.practicePhase = "question";
 		this.builderPicked = [];
+		this.matchSel = null;
+		this.matchDone = new Set();
+		this.matchMistaken = new Set();
+		this.matchWrongFlash = null;
+		this.matchLocked = false;
 		if (this.practiceIdx >= this.practiceQueue.length) this.section = "practice-done";
 		this.render();
 	}
@@ -1200,6 +1346,19 @@ export class VocabReviewView extends ItemView {
 		const chk = c6.createEl("input", { attr: { type: "checkbox" } });
 		chk.checked = s.highlightEnabled;
 		chk.onchange = async () => { s.highlightEnabled = chk.checked; this.plugin.invalidateKnownWords(); await this.plugin.saveAll(); };
+
+		// chiều ngược
+		const c6b = group(
+			"Học chiều ngược (VI → EN)",
+			"Thẻ đã thuộc chiều xuôi sẽ vào học chiều ngược — nhìn nghĩa nhớ ra từ"
+		);
+		const chkRev = c6b.createEl("input", { attr: { type: "checkbox" } });
+		chkRev.checked = s.reverseEnabled;
+		chkRev.onchange = async () => {
+			s.reverseEnabled = chkRev.checked;
+			await this.plugin.saveAll();
+			this.plugin.refreshStatusBar();
+		};
 
 		// mục tiêu ngày
 		main.createEl("h4", { text: "Nhiệm vụ hằng ngày" });
@@ -1417,7 +1576,7 @@ export class VocabReviewView extends ItemView {
 			return;
 		}
 		if (evt.key.toLowerCase() === "s" && this.current) {
-			this.plugin.speak(this.current.word);
+			this.plugin.speak(this.current.card.word);
 		}
 	}
 }

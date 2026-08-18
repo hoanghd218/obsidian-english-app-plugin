@@ -12,6 +12,7 @@ export interface VocabForgeSettings {
 	dailyPracticeGoal: number;
 	highlightEnabled: boolean;
 	grokPath: string;
+	reverseEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: VocabForgeSettings = {
@@ -25,6 +26,7 @@ export const DEFAULT_SETTINGS: VocabForgeSettings = {
 	dailyPracticeGoal: 10,
 	highlightEnabled: true,
 	grokPath: "grok",
+	reverseEnabled: true,
 };
 
 export type CardType =
@@ -77,7 +79,17 @@ export interface VocabCard {
 	myExample: string;
 	mnemonic: string;
 	grammarNote: string;
+	forms: string[];
 	fsrs: FsrsCard;
+	/** Trạng thái FSRS chiều ngược VI→EN (production) */
+	fsrsRev: FsrsCard;
+}
+
+/** Một lượt ôn: thẻ + chiều học. fwd = EN→nghĩa, rev = nghĩa→EN */
+export type ReviewDir = "fwd" | "rev";
+export interface ReviewEntry {
+	card: VocabCard;
+	dir: ReviewDir;
 }
 
 /** Thống kê theo ngày, key = YYYY-MM-DD (giờ địa phương) */

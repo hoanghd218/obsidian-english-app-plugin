@@ -21,10 +21,10 @@ export function makeScheduler(requestRetention: number): FSRS {
 	);
 }
 
-/** Đọc trạng thái FSRS từ frontmatter (thiếu field nào thì coi là thẻ mới) */
-export function fsrsFromFrontmatter(fm: Record<string, unknown>): FsrsCard {
+/** Đọc trạng thái FSRS từ frontmatter (thiếu field nào thì coi là thẻ mới). prefix: "srs_" (xuôi) hoặc "srs_rev_" (VI→EN) */
+export function fsrsFromFrontmatter(fm: Record<string, unknown>, prefix = "srs_"): FsrsCard {
 	const empty = createEmptyCard(new Date());
-	if (fm.srs_due == null) return empty;
+	if (fm[`${prefix}due`] == null) return empty;
 	const num = (v: unknown, fallback: number) =>
 		typeof v === "number" && isFinite(v) ? v : fallback;
 	const date = (v: unknown): Date | undefined => {
@@ -34,31 +34,31 @@ export function fsrsFromFrontmatter(fm: Record<string, unknown>): FsrsCard {
 	};
 	return {
 		...empty,
-		due: date(fm.srs_due) ?? empty.due,
-		stability: num(fm.srs_stability, 0),
-		difficulty: num(fm.srs_difficulty, 0),
-		elapsed_days: num(fm.srs_elapsed_days, 0),
-		scheduled_days: num(fm.srs_scheduled_days, 0),
-		reps: num(fm.srs_reps, 0),
-		lapses: num(fm.srs_lapses, 0),
-		learning_steps: num(fm.srs_learning_steps, 0),
-		state: num(fm.srs_state, State.New) as State,
-		last_review: date(fm.srs_last_review),
+		due: date(fm[`${prefix}due`]) ?? empty.due,
+		stability: num(fm[`${prefix}stability`], 0),
+		difficulty: num(fm[`${prefix}difficulty`], 0),
+		elapsed_days: num(fm[`${prefix}elapsed_days`], 0),
+		scheduled_days: num(fm[`${prefix}scheduled_days`], 0),
+		reps: num(fm[`${prefix}reps`], 0),
+		lapses: num(fm[`${prefix}lapses`], 0),
+		learning_steps: num(fm[`${prefix}learning_steps`], 0),
+		state: num(fm[`${prefix}state`], State.New) as State,
+		last_review: date(fm[`${prefix}last_review`]),
 	};
 }
 
 /** Ghi trạng thái FSRS vào object frontmatter (mutate tại chỗ, dùng trong processFrontMatter) */
-export function fsrsToFrontmatter(card: FsrsCard, fm: Record<string, unknown>): void {
-	fm.srs_due = card.due.toISOString();
-	fm.srs_stability = round4(card.stability);
-	fm.srs_difficulty = round4(card.difficulty);
-	fm.srs_elapsed_days = card.elapsed_days;
-	fm.srs_scheduled_days = card.scheduled_days;
-	fm.srs_reps = card.reps;
-	fm.srs_lapses = card.lapses;
-	fm.srs_learning_steps = card.learning_steps;
-	fm.srs_state = card.state;
-	fm.srs_last_review = card.last_review ? card.last_review.toISOString() : "";
+export function fsrsToFrontmatter(card: FsrsCard, fm: Record<string, unknown>, prefix = "srs_"): void {
+	fm[`${prefix}due`] = card.due.toISOString();
+	fm[`${prefix}stability`] = round4(card.stability);
+	fm[`${prefix}difficulty`] = round4(card.difficulty);
+	fm[`${prefix}elapsed_days`] = card.elapsed_days;
+	fm[`${prefix}scheduled_days`] = card.scheduled_days;
+	fm[`${prefix}reps`] = card.reps;
+	fm[`${prefix}lapses`] = card.lapses;
+	fm[`${prefix}learning_steps`] = card.learning_steps;
+	fm[`${prefix}state`] = card.state;
+	fm[`${prefix}last_review`] = card.last_review ? card.last_review.toISOString() : "";
 }
 
 function round4(n: number): number {

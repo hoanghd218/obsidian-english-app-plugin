@@ -851,6 +851,69 @@
 }
 .vf-wrong-list { width: 100%; max-width: 420px; }
 
+/* ---------------- REVERSE / FORMS ---------------- */
+.vf-chip-rev {
+	font-size: 0.72em;
+	font-weight: 700;
+	border-radius: 20px;
+	padding: 3px 12px;
+	background: rgba(255, 180, 61, 0.18);
+	color: #b97b17;
+}
+.vf-rev-meaning { font-size: 1.4em !important; text-align: center; }
+.vf-rev-prompt { font-weight: 700; color: #0e7c8b; }
+.vf-forms-row { align-items: center; }
+.vf-forms-icon { font-size: 0.9em; }
+.vf-chip-form {
+	background: rgba(14, 124, 139, 0.1);
+	color: #0e7c8b;
+	font-family: var(--font-monospace);
+	font-size: 0.78em;
+}
+
+/* ---------------- MATCH GAME ---------------- */
+.vf-match-card { cursor: default; }
+.vf-match-board {
+	display: grid;
+	grid-template-columns: 1fr 1.4fr;
+	gap: 12px;
+}
+.vf-match-col { display: flex; flex-direction: column; gap: 8px; }
+.vf-match-tile {
+	border: 1.5px solid var(--background-modifier-border);
+	background: var(--background-primary);
+	border-radius: 12px;
+	padding: 11px 12px;
+	font-size: 0.88em;
+	text-align: left;
+	cursor: pointer;
+	transition: all 0.12s ease;
+	line-height: 1.35;
+}
+.vf-match-tile:hover { border-color: #0e7c8b; }
+.vf-match-sel {
+	border-color: #0e7c8b;
+	background: rgba(14, 124, 139, 0.12);
+	transform: scale(1.02);
+}
+.vf-match-done {
+	opacity: 0.35;
+	border-color: #57d6c6;
+	background: rgba(87, 214, 198, 0.1);
+	pointer-events: none;
+	text-decoration: line-through;
+}
+.vf-match-wrong {
+	border-color: #da3c0c;
+	background: rgba(218, 60, 12, 0.1);
+	animation: vf-shake 0.35s ease;
+}
+@keyframes vf-shake {
+	0%, 100% { transform: translateX(0); }
+	25% { transform: translateX(-5px); }
+	75% { transform: translateX(5px); }
+}
+
 /* ---------------- LEVEL / XP / FREEZE (sidebar) ---------------- */
 .vf-nav-level { padding: 8px 6px 4px; }
 .vf-nav-level-name { color: #ffb43d; font-weight: 800; font-size: 0.85em; }
