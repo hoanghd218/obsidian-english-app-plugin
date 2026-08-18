@@ -1,6 +1,7 @@
 import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
 import type VocabForgePlugin from "./main";
 import { AboutModal } from "./aboutModal";
+import { ImageModal } from "./imageModal";
 import { formatInterval, Rating, State, type Grade } from "./srs";
 import {
 	categoryEmoji,
@@ -848,7 +849,16 @@ export class VocabReviewView extends ItemView {
 			if (!f) return;
 			src = this.app.vault.getResourcePath(f);
 		}
-		parent.createEl("img", { cls: "vf-image", attr: { src } });
+		const box = parent.createDiv({ cls: "vf-image-box" });
+		box.createEl("img", {
+			cls: "vf-image",
+			attr: { src, alt: card.word, title: "🔍 Bấm để xem ảnh phóng to" },
+		});
+		box.createSpan({ text: "🔍 Phóng to", cls: "vf-image-zoom-badge" });
+		box.onclick = (e) => {
+			e.stopPropagation();
+			new ImageModal(this.app, src, card.word).open();
+		};
 	}
 
 	private flip(): void {

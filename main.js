@@ -25,7 +25,7 @@ __export(main_exports, {
   default: () => VocabForgePlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian6 = require("obsidian");
+var import_obsidian7 = require("obsidian");
 
 // src/ai.ts
 function nodeRequire(mod) {
@@ -508,7 +508,48 @@ var AboutModal = class extends import_obsidian2.Modal {
 };
 
 // src/reviewView.ts
+var import_obsidian4 = require("obsidian");
+
+// src/imageModal.ts
 var import_obsidian3 = require("obsidian");
+var ImageModal = class extends import_obsidian3.Modal {
+  constructor(app, src, title = "") {
+    super(app);
+    this.src = src;
+    this.title = title;
+  }
+  onOpen() {
+    const { contentEl, modalEl } = this;
+    contentEl.empty();
+    modalEl.addClass("vf-image-modal");
+    contentEl.addClass("vf-image-modal-content");
+    if (this.title) {
+      const head = contentEl.createDiv({ cls: "vf-image-modal-head" });
+      head.createSpan({ text: `\u{1F5BC}\uFE0F ${this.title}`, cls: "vf-image-modal-title" });
+      const closeBtn = head.createEl("button", {
+        text: "\u2715",
+        cls: "vf-btn-icon vf-image-modal-close",
+        attr: { "aria-label": "\u0110\xF3ng (Esc)" }
+      });
+      closeBtn.onclick = () => this.close();
+    }
+    const imgWrapper = contentEl.createDiv({ cls: "vf-image-modal-wrapper" });
+    const img = imgWrapper.createEl("img", {
+      cls: "vf-image-modal-img",
+      attr: { src: this.src, alt: this.title || "Illustration", title: "B\u1EA5m \u0111\u1EC3 \u0111\xF3ng" }
+    });
+    img.onclick = () => this.close();
+    imgWrapper.onclick = () => this.close();
+    const hint = contentEl.createDiv({
+      text: "B\u1EA5m v\xE0o \u1EA3nh ho\u1EB7c ph\xEDm Esc \u0111\u1EC3 \u0111\xF3ng",
+      cls: "vf-image-modal-hint"
+    });
+    hint.onclick = () => this.close();
+  }
+  onClose() {
+    this.contentEl.empty();
+  }
+};
 
 // node_modules/ts-fsrs/dist/index.mjs
 var FSRSError = class _FSRSError extends Error {
@@ -2729,7 +2770,7 @@ var STATE_LABELS = {
   [State.Review]: "\xD4n t\u1EADp",
   [State.Relearning]: "H\u1ECDc l\u1EA1i"
 };
-var VocabReviewView = class _VocabReviewView extends import_obsidian3.ItemView {
+var VocabReviewView = class _VocabReviewView extends import_obsidian4.ItemView {
   constructor(leaf, plugin) {
     super(leaf);
     this.plugin = plugin;
@@ -3193,7 +3234,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian3.ItemView {
     if (!this.queue.length) {
       this.section = "dashboard";
       this.render();
-      new import_obsidian3.Notice("Kh\xF4ng c\xF2n th\u1EBB \u0111\u1EC3 h\u1ECDc \u{1F389}");
+      new import_obsidian4.Notice("Kh\xF4ng c\xF2n th\u1EBB \u0111\u1EC3 h\u1ECDc \u{1F389}");
       return;
     }
     this.section = "review";
@@ -3268,7 +3309,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian3.ItemView {
     const checkBtn = writeBox.createEl("button", { text: "AI ch\u1EA5m", cls: "vf-btn-icon vf-btn-ai" });
     checkBtn.onclick = () => void this.aiAction(checkBtn, async () => {
       if (!this.aiSentence.trim()) {
-        new import_obsidian3.Notice("G\xF5 c\xE2u c\u1EE7a b\u1EA1n tr\u01B0\u1EDBc \u0111\xE3");
+        new import_obsidian4.Notice("G\xF5 c\xE2u c\u1EE7a b\u1EA1n tr\u01B0\u1EDBc \u0111\xE3");
         return;
       }
       const raw = await runGrok(
@@ -3276,7 +3317,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian3.ItemView {
         this.plugin.settings.grokPath
       );
       this.aiResult = extractJson(raw);
-      if (!this.aiResult) new import_obsidian3.Notice("AI tr\u1EA3 l\u1EDDi kh\xF4ng \u0111\xFAng \u0111\u1ECBnh d\u1EA1ng \u2014 th\u1EED l\u1EA1i");
+      if (!this.aiResult) new import_obsidian4.Notice("AI tr\u1EA3 l\u1EDDi kh\xF4ng \u0111\xFAng \u0111\u1ECBnh d\u1EA1ng \u2014 th\u1EED l\u1EA1i");
     });
     if (this.aiResult) {
       const r = this.aiResult;
@@ -3290,7 +3331,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian3.ItemView {
       save.onclick = async () => {
         const sentence = (r.score >= 7 ? this.aiSentence : r.corrected).trim();
         await this.plugin.store.saveExtraField(card, "my_example", sentence);
-        new import_obsidian3.Notice("\u0110\xE3 l\u01B0u c\xE2u c\u1EE7a b\u1EA1n v\xE0o th\u1EBB \u270D\uFE0F");
+        new import_obsidian4.Notice("\u0110\xE3 l\u01B0u c\xE2u c\u1EE7a b\u1EA1n v\xE0o th\u1EBB \u270D\uFE0F");
         this.render();
       };
     }
@@ -3305,7 +3346,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian3.ItemView {
       await fn();
     } catch (e) {
       console.error("Vocab Forge AI:", e);
-      new import_obsidian3.Notice("L\u1ED7i g\u1ECDi Grok CLI \u2014 ki\u1EC3m tra \u0111\u01B0\u1EDDng d\u1EABn grok trong C\xE0i \u0111\u1EB7t");
+      new import_obsidian4.Notice("L\u1ED7i g\u1ECDi Grok CLI \u2014 ki\u1EC3m tra \u0111\u01B0\u1EDDng d\u1EABn grok trong C\xE0i \u0111\u1EB7t");
     } finally {
       this.aiBusy = false;
       btn.disabled = false;
@@ -3466,7 +3507,16 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian3.ItemView {
       if (!f) return;
       src = this.app.vault.getResourcePath(f);
     }
-    parent.createEl("img", { cls: "vf-image", attr: { src } });
+    const box = parent.createDiv({ cls: "vf-image-box" });
+    box.createEl("img", {
+      cls: "vf-image",
+      attr: { src, alt: card.word, title: "\u{1F50D} B\u1EA5m \u0111\u1EC3 xem \u1EA3nh ph\xF3ng to" }
+    });
+    box.createSpan({ text: "\u{1F50D} Ph\xF3ng to", cls: "vf-image-zoom-badge" });
+    box.onclick = (e) => {
+      e.stopPropagation();
+      new ImageModal(this.app, src, card.word).open();
+    };
   }
   flip() {
     if (this.section !== "review" || this.flipped) return;
@@ -3502,11 +3552,11 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian3.ItemView {
         this.sessionTotal++;
       }
       if (grade === Rating.Again && next.lapses >= 4 && !card.mnemonic) {
-        new import_obsidian3.Notice(`\u{1F624} "${card.word}" \u0111\xE3 qu\xEAn ${next.lapses} l\u1EA7n \u2014 b\u1EA5m \u{1F9E0} T\u1EA1o m\u1EB9o nh\u1EDB \u1EDF m\u1EB7t sau th\u1EBB!`, 6e3);
+        new import_obsidian4.Notice(`\u{1F624} "${card.word}" \u0111\xE3 qu\xEAn ${next.lapses} l\u1EA7n \u2014 b\u1EA5m \u{1F9E0} T\u1EA1o m\u1EB9o nh\u1EDB \u1EDF m\u1EB7t sau th\u1EBB!`, 6e3);
       }
     } catch (e) {
       console.error("Vocab Forge: l\u1ED7i khi l\u01B0u th\u1EBB", e);
-      new import_obsidian3.Notice("Vocab Forge: kh\xF4ng l\u01B0u \u0111\u01B0\u1EE3c th\u1EBB \u2014 xem console");
+      new import_obsidian4.Notice("Vocab Forge: kh\xF4ng l\u01B0u \u0111\u01B0\u1EE3c th\u1EBB \u2014 xem console");
     } finally {
       this.rating = false;
     }
@@ -3578,7 +3628,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian3.ItemView {
     if (this.practiceDeck) cards = cards.filter((c) => c.category === this.practiceDeck);
     const queue = mode === "mix" ? buildMixedQueue(cards, this.practiceSize) : buildPracticeQueue(mode, cards, this.practiceSize);
     if (queue.length < 3) {
-      new import_obsidian3.Notice("Deck n\xE0y ch\u01B0a \u0111\u1EE7 th\u1EBB ph\xF9 h\u1EE3p cho ch\u1EBF \u0111\u1ED9 \u0111\xF3 (c\u1EA7n \u2265 3)");
+      new import_obsidian4.Notice("Deck n\xE0y ch\u01B0a \u0111\u1EE7 th\u1EBB ph\xF9 h\u1EE3p cho ch\u1EBF \u0111\u1ED9 \u0111\xF3 (c\u1EA7n \u2265 3)");
       return;
     }
     this.practiceMode = mode;
@@ -4234,7 +4284,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian3.ItemView {
   async startChat() {
     this.chatWords = this.pickChatWords();
     if (this.chatWords.length < 2) {
-      new import_obsidian3.Notice("Ch\u01B0a \u0111\u1EE7 th\u1EBB \u0111\u1EC3 t\u1EA1o h\u1ED9i tho\u1EA1i");
+      new import_obsidian4.Notice("Ch\u01B0a \u0111\u1EE7 th\u1EBB \u0111\u1EC3 t\u1EA1o h\u1ED9i tho\u1EA1i");
       return;
     }
     this.chatMsgs = [];
@@ -4253,7 +4303,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian3.ItemView {
       this.plugin.speak(first.trim());
     } catch (e) {
       console.error("Vocab Forge chat:", e);
-      new import_obsidian3.Notice("Kh\xF4ng b\u1EAFt \u0111\u1EA7u \u0111\u01B0\u1EE3c h\u1ED9i tho\u1EA1i \u2014 ki\u1EC3m tra Grok CLI");
+      new import_obsidian4.Notice("Kh\xF4ng b\u1EAFt \u0111\u1EA7u \u0111\u01B0\u1EE3c h\u1ED9i tho\u1EA1i \u2014 ki\u1EC3m tra Grok CLI");
     } finally {
       this.chatBusy = false;
       this.render();
@@ -4272,7 +4322,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian3.ItemView {
       this.plugin.speak(reply.trim());
     } catch (e) {
       console.error("Vocab Forge chat:", e);
-      new import_obsidian3.Notice("L\u1ED7i g\u1EEDi tin \u2014 th\u1EED l\u1EA1i");
+      new import_obsidian4.Notice("L\u1ED7i g\u1EEDi tin \u2014 th\u1EED l\u1EA1i");
       this.chatMsgs.pop();
       this.chatInput = text;
     } finally {
@@ -4295,7 +4345,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian3.ItemView {
       this.chatSession = "";
     } catch (e) {
       console.error("Vocab Forge chat:", e);
-      new import_obsidian3.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c nh\u1EADn x\xE9t");
+      new import_obsidian4.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c nh\u1EADn x\xE9t");
     } finally {
       this.chatBusy = false;
       this.render();
@@ -4362,7 +4412,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian3.ItemView {
     if (pool.length < 3)
       pool = this.plugin.store.getAllCards().filter((c) => c.type !== "sentence" && c.type !== "passage" && c.type !== "grammar");
     if (pool.length < 3) {
-      new import_obsidian3.Notice("Ch\u01B0a \u0111\u1EE7 th\u1EBB \u0111\u1EC3 t\u1EA1o story");
+      new import_obsidian4.Notice("Ch\u01B0a \u0111\u1EE7 th\u1EBB \u0111\u1EC3 t\u1EA1o story");
       return;
     }
     const picked = sample(pool, 7);
@@ -4380,7 +4430,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian3.ItemView {
       await this.plugin.saveAll();
     } catch (e) {
       console.error("Vocab Forge story:", e);
-      new import_obsidian3.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c story \u2014 ki\u1EC3m tra Grok CLI");
+      new import_obsidian4.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c story \u2014 ki\u1EC3m tra Grok CLI");
     } finally {
       this.storyBusy = false;
       this.render();
@@ -4447,14 +4497,14 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian3.ItemView {
 };
 
 // src/store.ts
-var import_obsidian4 = require("obsidian");
+var import_obsidian5 = require("obsidian");
 var CardStore = class {
   constructor(app, getSettings) {
     this.app = app;
     this.getSettings = getSettings;
   }
   get folder() {
-    return (0, import_obsidian4.normalizePath)(this.getSettings().cardsFolder);
+    return (0, import_obsidian5.normalizePath)(this.getSettings().cardsFolder);
   }
   /** Đọc toàn bộ thẻ trong folder (dựa vào metadataCache nên rất nhanh) */
   getAllCards() {
@@ -4551,10 +4601,10 @@ var CardStore = class {
     const targetFolder = `${this.folder}/${category}`;
     await this.ensureFolder(targetFolder);
     const base = sanitizeFilename(input.word) || "card";
-    let path = (0, import_obsidian4.normalizePath)(`${targetFolder}/${base}.md`);
+    let path = (0, import_obsidian5.normalizePath)(`${targetFolder}/${base}.md`);
     let i = 1;
     while (this.app.vault.getAbstractFileByPath(path)) {
-      path = (0, import_obsidian4.normalizePath)(`${targetFolder}/${base} ${++i}.md`);
+      path = (0, import_obsidian5.normalizePath)(`${targetFolder}/${base} ${++i}.md`);
     }
     const empty = createEmptyCard(/* @__PURE__ */ new Date());
     const yaml = buildCardYaml(input, empty);
@@ -4578,8 +4628,8 @@ Ngu\u1ED3n: ${input.source || "_(ch\u01B0a r\xF5)_"}
           await this.app.vault.createFolder(cur);
         } catch (e) {
         }
-      } else if (!(existing instanceof import_obsidian4.TFolder)) {
-        new import_obsidian4.Notice(`Vocab Forge: "${cur}" \u0111\xE3 t\u1ED3n t\u1EA1i nh\u01B0ng kh\xF4ng ph\u1EA3i folder`);
+      } else if (!(existing instanceof import_obsidian5.TFolder)) {
+        new import_obsidian5.Notice(`Vocab Forge: "${cur}" \u0111\xE3 t\u1ED3n t\u1EA1i nh\u01B0ng kh\xF4ng ph\u1EA3i folder`);
         throw new Error("cards folder path conflict");
       }
     }
@@ -4625,8 +4675,8 @@ function buildCardYaml(input, fsrsCard) {
 }
 
 // src/settingsTab.ts
-var import_obsidian5 = require("obsidian");
-var VocabForgeSettingTab = class extends import_obsidian5.PluginSettingTab {
+var import_obsidian6 = require("obsidian");
+var VocabForgeSettingTab = class extends import_obsidian6.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.plugin = plugin;
@@ -4635,32 +4685,32 @@ var VocabForgeSettingTab = class extends import_obsidian5.PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.createEl("h2", { text: "Vocab Forge" });
-    new import_obsidian5.Setting(containerEl).setName("Folder ch\u1EE9a th\u1EBB").setDesc("M\u1ED7i th\u1EBB l\xE0 m\u1ED9t file .md trong folder n\xE0y").addText(
+    new import_obsidian6.Setting(containerEl).setName("Folder ch\u1EE9a th\u1EBB").setDesc("M\u1ED7i th\u1EBB l\xE0 m\u1ED9t file .md trong folder n\xE0y").addText(
       (t) => t.setValue(this.plugin.settings.cardsFolder).onChange(async (v) => {
         this.plugin.settings.cardsFolder = v.trim() || "5. Toolbox/English/Cards";
         await this.plugin.saveAll();
       })
     );
-    new import_obsidian5.Setting(containerEl).setName("S\u1ED1 th\u1EBB m\u1EDBi m\u1ED7i ng\xE0y").setDesc("Gi\u1EDBi h\u1EA1n th\u1EBB m\u1EDBi \u0111\u01B0a v\xE0o h\u1ECDc m\u1ED7i ng\xE0y (ki\u1EC3u Anki)").addSlider(
+    new import_obsidian6.Setting(containerEl).setName("S\u1ED1 th\u1EBB m\u1EDBi m\u1ED7i ng\xE0y").setDesc("Gi\u1EDBi h\u1EA1n th\u1EBB m\u1EDBi \u0111\u01B0a v\xE0o h\u1ECDc m\u1ED7i ng\xE0y (ki\u1EC3u Anki)").addSlider(
       (s) => s.setLimits(0, 50, 1).setValue(this.plugin.settings.newPerDay).setDynamicTooltip().onChange(async (v) => {
         this.plugin.settings.newPerDay = v;
         await this.plugin.saveAll();
       })
     );
-    new import_obsidian5.Setting(containerEl).setName("M\u1EE9c ghi nh\u1EDB m\u1EE5c ti\xEAu (retention)").setDesc("FSRS x\u1EBFp l\u1ECBch \u0111\u1EC3 b\u1EA1n nh\u1EDB \u0111\u01B0\u1EE3c ~t\u1EF7 l\u1EC7 n\xE0y khi \xF4n. 0.9 = c\xE2n b\u1EB1ng t\u1ED1t; cao h\u01A1n = \xF4n d\xE0y h\u01A1n").addSlider(
+    new import_obsidian6.Setting(containerEl).setName("M\u1EE9c ghi nh\u1EDB m\u1EE5c ti\xEAu (retention)").setDesc("FSRS x\u1EBFp l\u1ECBch \u0111\u1EC3 b\u1EA1n nh\u1EDB \u0111\u01B0\u1EE3c ~t\u1EF7 l\u1EC7 n\xE0y khi \xF4n. 0.9 = c\xE2n b\u1EB1ng t\u1ED1t; cao h\u01A1n = \xF4n d\xE0y h\u01A1n").addSlider(
       (s) => s.setLimits(0.8, 0.97, 0.01).setValue(this.plugin.settings.requestRetention).setDynamicTooltip().onChange(async (v) => {
         this.plugin.settings.requestRetention = v;
         this.plugin.rebuildScheduler();
         await this.plugin.saveAll();
       })
     );
-    new import_obsidian5.Setting(containerEl).setName("T\u1ED1c \u0111\u1ED9 \u0111\u1ECDc (TTS)").addSlider(
+    new import_obsidian6.Setting(containerEl).setName("T\u1ED1c \u0111\u1ED9 \u0111\u1ECDc (TTS)").addSlider(
       (s) => s.setLimits(0.5, 1.5, 0.05).setValue(this.plugin.settings.ttsRate).setDynamicTooltip().onChange(async (v) => {
         this.plugin.settings.ttsRate = v;
         await this.plugin.saveAll();
       })
     );
-    new import_obsidian5.Setting(containerEl).setName("Gi\u1ECDng \u0111\u1ECDc").setDesc("Ch\u1ECDn gi\u1ECDng ti\u1EBFng Anh c\u1EE7a h\u1EC7 th\u1ED1ng").addDropdown((d) => {
+    new import_obsidian6.Setting(containerEl).setName("Gi\u1ECDng \u0111\u1ECDc").setDesc("Ch\u1ECDn gi\u1ECDng ti\u1EBFng Anh c\u1EE7a h\u1EC7 th\u1ED1ng").addDropdown((d) => {
       d.addOption("", "\u2014 T\u1EF1 \u0111\u1ED9ng (en) \u2014");
       for (const v of window.speechSynthesis.getVoices()) {
         if (v.lang.startsWith("en")) d.addOption(v.name, `${v.name} (${v.lang})`);
@@ -4670,7 +4720,7 @@ var VocabForgeSettingTab = class extends import_obsidian5.PluginSettingTab {
         await this.plugin.saveAll();
       });
     });
-    new import_obsidian5.Setting(containerEl).setName("Th\xF4ng tin & T\xE1c gi\u1EA3").setDesc("Tony Hoang (Tr\u1EA7n V\u0103n Ho\xE0ng) \xB7 Email: tony@tranvanhoang.com").addButton(
+    new import_obsidian6.Setting(containerEl).setName("Th\xF4ng tin & T\xE1c gi\u1EA3").setDesc("Tony Hoang (Tr\u1EA7n V\u0103n Ho\xE0ng) \xB7 Email: tony@tranvanhoang.com").addButton(
       (b) => b.setButtonText("\u2139\uFE0F Th\xF4ng tin plugin").onClick(() => {
         new AboutModal(this.app, this.plugin).open();
       })
@@ -4683,7 +4733,7 @@ var VocabForgeSettingTab = class extends import_obsidian5.PluginSettingTab {
 };
 
 // src/main.ts
-var VocabForgePlugin = class extends import_obsidian6.Plugin {
+var VocabForgePlugin = class extends import_obsidian7.Plugin {
   constructor() {
     super(...arguments);
     // --------------------------------------------------- HIGHLIGHT (immersion)
@@ -4749,7 +4799,7 @@ var VocabForgePlugin = class extends import_obsidian6.Plugin {
     this.statusEl = this.addStatusBarItem();
     this.statusEl.addClass("vf-statusbar", "mod-clickable");
     this.statusEl.onclick = () => void this.activateView();
-    const refresh = (0, import_obsidian6.debounce)(() => {
+    const refresh = (0, import_obsidian7.debounce)(() => {
       this.invalidateKnownWords();
       this.refreshStatusBar();
     }, 2e3, true);
@@ -4850,7 +4900,7 @@ var VocabForgePlugin = class extends import_obsidian6.Plugin {
         { data: this.data, cards: this.store.getAllCards(), streak: this.computeStreak() },
         todayKey()
       );
-      for (const b of fresh) new import_obsidian6.Notice(`${b.icon} Huy hi\u1EC7u m\u1EDBi: ${b.name} \u2014 ${b.desc}!`, 7e3);
+      for (const b of fresh) new import_obsidian7.Notice(`${b.icon} Huy hi\u1EC7u m\u1EDBi: ${b.name} \u2014 ${b.desc}!`, 7e3);
     } catch (e) {
       console.error("Vocab Forge badges:", e);
     }
@@ -4868,7 +4918,7 @@ var VocabForgePlugin = class extends import_obsidian6.Plugin {
       if (due === 0) return;
       this.data.lastReminder = key;
       void this.saveAll();
-      new import_obsidian6.Notice(`\u{1F4DA} Vocab Forge: ${due} th\u1EBB \u0111ang ch\u1EDD \xF4n \u2014 gi\u1EEF chu\u1ED7i ${this.computeStreak()} ng\xE0y \u{1F525}`, 1e4);
+      new import_obsidian7.Notice(`\u{1F4DA} Vocab Forge: ${due} th\u1EBB \u0111ang ch\u1EDD \xF4n \u2014 gi\u1EEF chu\u1ED7i ${this.computeStreak()} ng\xE0y \u{1F525}`, 1e4);
       if (typeof Notification !== "undefined" && Notification.permission !== "denied") {
         const fire = () => new Notification("Vocab Forge \u{1F393}", {
           body: `${due} th\u1EBB \u0111ang ch\u1EDD \xF4n h\xF4m nay \u2014 v\xE0o h\u1ECDc th\xF4i!`
@@ -4902,7 +4952,7 @@ var VocabForgePlugin = class extends import_obsidian6.Plugin {
     this.data.questRewardDates.push(todayKey());
     this.data.xp += 50;
     if (this.data.freezes < MAX_FREEZES) this.data.freezes++;
-    new import_obsidian6.Notice("\u{1F3C6} Ho\xE0n th\xE0nh nhi\u1EC7m v\u1EE5 ng\xE0y! +50 XP, +1 \u{1F9CA} streak freeze");
+    new import_obsidian7.Notice("\u{1F3C6} Ho\xE0n th\xE0nh nhi\u1EC7m v\u1EE5 ng\xE0y! +50 XP, +1 \u{1F9CA} streak freeze");
   }
   /** Tự dùng streak freeze để vá các ngày nghỉ (nếu đủ freeze vá kín) */
   autoFreeze() {
@@ -4917,7 +4967,7 @@ var VocabForgePlugin = class extends import_obsidian6.Plugin {
         if (gap.length > 0 && gap.length <= this.data.freezes) {
           this.data.frozenDays.push(...gap);
           this.data.freezes -= gap.length;
-          new import_obsidian6.Notice(`\u{1F9CA} \u0110\xE3 d\xF9ng ${gap.length} streak freeze \u0111\u1EC3 gi\u1EEF chu\u1ED7i ng\xE0y!`);
+          new import_obsidian7.Notice(`\u{1F9CA} \u0110\xE3 d\xF9ng ${gap.length} streak freeze \u0111\u1EC3 gi\u1EEF chu\u1ED7i ng\xE0y!`);
           void this.saveAll();
         }
         return;
@@ -5024,15 +5074,15 @@ var VocabForgePlugin = class extends import_obsidian6.Plugin {
       const fs = req("fs");
       const data = fs.readFileSync(tmp);
       const folder = "5. Toolbox/Attachments/Vocab";
-      if (!this.app.vault.getAbstractFileByPath((0, import_obsidian6.normalizePath)(folder))) {
+      if (!this.app.vault.getAbstractFileByPath((0, import_obsidian7.normalizePath)(folder))) {
         try {
-          await this.app.vault.createFolder((0, import_obsidian6.normalizePath)(folder));
+          await this.app.vault.createFolder((0, import_obsidian7.normalizePath)(folder));
         } catch {
         }
       }
       const imgName = `${file.basename}.png`;
       await this.app.vault.adapter.writeBinary(
-        (0, import_obsidian6.normalizePath)(`${folder}/${imgName}`),
+        (0, import_obsidian7.normalizePath)(`${folder}/${imgName}`),
         data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
       );
       await this.app.fileManager.processFrontMatter(file, (fm) => {

@@ -629,12 +629,59 @@ button.vf-btn-flip:hover {
 	padding: 4px 13px;
 	font-size: 0.83em;
 }
+.vf-image-box {
+	position: relative;
+	width: 100%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 16px;
+	padding: 10px;
+	margin: 6px 0;
+	cursor: zoom-in;
+	overflow: hidden;
+	box-sizing: border-box;
+	box-shadow: 0 4px 16px rgba(6, 26, 43, 0.08);
+	transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.vf-image-box:hover {
+	border-color: #57d6c6;
+	box-shadow: 0 8px 24px rgba(14, 124, 139, 0.18);
+	transform: translateY(-2px);
+}
 .vf-image {
+	width: 100%;
 	max-width: 100%;
-	max-height: 260px;
-	border-radius: 12px;
+	max-height: 440px;
+	border-radius: 10px;
 	object-fit: contain;
-	align-self: center;
+	display: block;
+	transition: transform 0.2s ease;
+}
+.vf-image-box:hover .vf-image {
+	transform: scale(1.015);
+}
+.vf-image-zoom-badge {
+	position: absolute;
+	bottom: 14px;
+	right: 14px;
+	background: rgba(6, 26, 43, 0.78);
+	color: #57d6c6;
+	font-size: 0.75em;
+	font-weight: 700;
+	padding: 4px 10px;
+	border-radius: 20px;
+	backdrop-filter: blur(6px);
+	border: 1px solid rgba(87, 214, 198, 0.35);
+	opacity: 0.85;
+	transition: opacity 0.15s ease, transform 0.15s ease;
+	pointer-events: none;
+}
+.vf-image-box:hover .vf-image-zoom-badge {
+	opacity: 1;
+	transform: scale(1.05);
 }
 .vf-source-row { display: flex; gap: 16px; flex-wrap: wrap; }
 .vf-source-link { font-size: 0.83em; }
@@ -1507,6 +1554,76 @@ button.vf-seg-btn.vf-seg-on {
 	display: flex;
 	justify-content: flex-end;
 	margin-top: 16px;
+}
+
+/* ---------------- IMAGE ZOOM MODAL (LIGHTBOX) ---------------- */
+.modal.vf-image-modal {
+	max-width: 94vw !important;
+	width: auto !important;
+	max-height: 94vh !important;
+	background: rgba(6, 26, 43, 0.95) !important;
+	border: 1px solid rgba(87, 214, 198, 0.3) !important;
+	border-radius: 20px !important;
+	box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
+	padding: 16px 20px 20px !important;
+	backdrop-filter: blur(12px);
+}
+.vf-image-modal-content {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 0 !important;
+}
+.vf-image-modal-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	margin-bottom: 12px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid rgba(232, 239, 242, 0.15);
+}
+.vf-image-modal-title {
+	font-size: 1.15em;
+	font-weight: 800;
+	color: #57d6c6;
+	letter-spacing: 0.01em;
+}
+.vf-image-modal-close {
+	background: rgba(232, 239, 242, 0.12) !important;
+	color: #e8eff2 !important;
+	border: 1px solid rgba(232, 239, 242, 0.25) !important;
+	font-size: 1.1em;
+	padding: 4px 10px;
+	border-radius: 8px;
+	cursor: pointer;
+}
+.vf-image-modal-close:hover {
+	background: rgba(218, 60, 12, 0.8) !important;
+	border-color: #da3c0c !important;
+}
+.vf-image-modal-wrapper {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: zoom-out;
+	max-width: 100%;
+}
+.vf-image-modal-img {
+	max-width: 90vw;
+	max-height: 78vh;
+	object-fit: contain;
+	border-radius: 12px;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+	animation: vf-pop 0.22s cubic-bezier(0.34, 1.4, 0.64, 1);
+	cursor: zoom-out;
+}
+.vf-image-modal-hint {
+	margin-top: 10px;
+	font-size: 0.78em;
+	color: rgba(232, 239, 242, 0.55);
+	cursor: pointer;
+	text-align: center;
 }
 
 /* ---------------- STATUS BAR ---------------- */
