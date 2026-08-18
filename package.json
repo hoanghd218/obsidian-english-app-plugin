@@ -1,6 +1,6 @@
 {
   "name": "vocab-forge",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Obsidian plugin: learn English vocabulary from YouTube videos with FSRS spaced repetition — every flashcard is a plain Markdown note in your vault.",
   "main": "main.js",
   "type": "module",

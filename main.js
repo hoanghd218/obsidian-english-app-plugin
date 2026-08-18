@@ -2658,6 +2658,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     this.queue = [];
     this.current = null;
     this.flipped = false;
+    this.justFlipped = false;
     this.sessionDone = 0;
     this.sessionTotal = 0;
     this.sessionCategory = null;
@@ -3244,7 +3245,8 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     });
     const editBtn = top.createEl("button", { text: "\u270F\uFE0F", cls: "vf-btn-icon" });
     editBtn.onclick = () => this.app.workspace.openLinkText(card.file.path, "", true);
-    const cardEl = main.createDiv({ cls: "vf-card vf-anim-pop" });
+    const cardEl = main.createDiv({ cls: `vf-card ${this.justFlipped ? "vf-flip-in" : "vf-anim-pop"}` });
+    this.justFlipped = false;
     const front = cardEl.createDiv({ cls: "vf-card-front" });
     const badgeRow = front.createDiv({ cls: "vf-badge-row" });
     badgeRow.createSpan({ text: `${categoryEmoji(card.category)} ${card.category}`, cls: "vf-chip-cat" });
@@ -3374,9 +3376,19 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
   }
   flip() {
     if (this.section !== "review" || this.flipped) return;
-    this.flipped = true;
-    if (this.current?.dir === "rev") this.plugin.speak(this.current.card.word);
-    this.render();
+    const doFlip = () => {
+      this.flipped = true;
+      this.justFlipped = true;
+      if (this.current?.dir === "rev") this.plugin.speak(this.current.card.word);
+      this.render();
+    };
+    const cardEl = this.contentEl.querySelector(".vf-card");
+    if (cardEl) {
+      cardEl.addClass("vf-flip-out");
+      window.setTimeout(doFlip, 150);
+    } else {
+      doFlip();
+    }
   }
   async rate(grade) {
     const entry = this.current;

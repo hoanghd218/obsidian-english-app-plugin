@@ -371,7 +371,18 @@ button.vf-btn-hero-ghost { color: #e8eff2 !important; }
 	flex-direction: column;
 	max-width: 640px;
 	margin: 0 auto;
+	perspective: 1600px;
 }
+@keyframes vf-flip-out {
+	from { transform: rotateY(0deg) scale(1); }
+	to { transform: rotateY(90deg) scale(0.97); }
+}
+@keyframes vf-flip-in {
+	from { transform: rotateY(-90deg) scale(0.97); }
+	to { transform: rotateY(0deg) scale(1); }
+}
+.vf-flip-out { animation: vf-flip-out 0.15s cubic-bezier(0.4, 0, 1, 1) forwards; }
+.vf-flip-in { animation: vf-flip-in 0.22s cubic-bezier(0, 0, 0.2, 1); }
 .vf-topbar {
 	display: flex;
 	align-items: center;
@@ -469,7 +480,7 @@ button.vf-btn-hero-ghost { color: #e8eff2 !important; }
 
 button.vf-btn-flip {
 	margin-top: 18px;
-	background: linear-gradient(120deg, #0e7c8b, #57d6c6) !important;
+	background: #57d6c6 !important;
 	color: #04222b !important;
 	text-shadow: none;
 	border: none;
@@ -480,9 +491,10 @@ button.vf-btn-flip {
 	letter-spacing: 0.01em;
 	cursor: pointer;
 	box-shadow: 0 8px 22px rgba(14, 124, 139, 0.35);
-	transition: transform 0.12s ease, box-shadow 0.12s ease;
+	transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
 }
 button.vf-btn-flip:hover {
+	background: #7ae4d6 !important;
 	transform: translateY(-2px);
 	box-shadow: 0 12px 28px rgba(14, 124, 139, 0.45);
 }
