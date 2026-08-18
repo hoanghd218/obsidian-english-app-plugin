@@ -9,7 +9,7 @@ Turn the YouTube videos and notes you already consume into a complete learning l
 - **App shell with sidebar navigation** — Dashboard · Study · Decks · Add card · Settings, with a streak badge. Narrow panes collapse the sidebar into a mobile-style bottom bar.
 - **YouTube Smart Capture** — paste a URL and let `yt-dlp` fetch English subtitles, or paste/use an active-note transcript. A selected local AI CLI extracts useful expressions, previews them, blocks hallucinations/duplicates, and creates timestamped cards.
 - **Fluency Lab** — source-video clip loop, blind listening, dictation scoring with word-level diff/WER, microphone recording, shadowing playback and transparent accuracy/completeness/fluency scores.
-- **Voice Roleplay** — answer by microphone or keyboard, hear the AI partner speak, track target expressions, receive end-of-session feedback, and save it to a personal Markdown error notebook.
+- **Voice Roleplay** — answer by microphone or keyboard, hear the AI partner speak, track target expressions, and receive end-of-session feedback. Writing corrections from card practice are saved to a personal Markdown error notebook.
 - **Adaptive Today Coach** — balances due reviews, weak skills, listening, shadowing and new cards inside a configurable 5–30 minute daily session.
 - **Video Comprehension Score** — estimates vocabulary coverage and CEFR difficulty, ranks unknown words, and sends the transcript directly to Smart Capture.
 - **Local AI CLI router** — choose Claude CLI, Codex CLI, Gemini CLI or Grok CLI, or let Auto select an installed/signed-in provider. API-key environment variables are deliberately removed from child processes.
@@ -22,7 +22,7 @@ Turn the YouTube videos and notes you already consume into a complete learning l
 - **Quick capture** — add-card modal, or select text in any note → right-click → *Create vocab card* (source note + video URL auto-filled).
 - **In-app settings** — new cards/day, target retention, TTS voice & speed, cards folder.
 
-## 🤖 Local AI setup — no API key
+## 🤖 Local AI setup — plugin does not request an API key
 
 Install and sign in to at least one supported CLI using its normal subscription/OAuth login:
 

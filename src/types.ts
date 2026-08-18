@@ -167,6 +167,8 @@ export interface SkillStat {
 	attempts: number;
 	totalScore: number;
 	lastAt: string;
+	/** Exponentially weighted recent score, so the Coach reacts to improvement quickly. */
+	recentScore?: number;
 }
 
 /** Mỗi level cần 300 XP */

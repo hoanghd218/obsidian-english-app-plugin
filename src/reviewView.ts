@@ -463,13 +463,13 @@ export class VocabReviewView extends ItemView {
 		const grid = main.createDiv({ cls: "vf-coach-grid" });
 		const coach = grid.createDiv({ cls: "vf-coach-card" });
 		coach.createDiv({ text: "Adaptive Today Coach", cls: "vf-eyebrow" });
-		coach.createDiv({ text: `Phiên ${Math.max(1, Math.round(plan.totalMinutes))} phút dành riêng cho bạn`, cls: "vf-coach-title" });
+		coach.createDiv({ text: `Lộ trình ${Math.max(1, Math.round(plan.totalMinutes))} phút dành riêng cho bạn`, cls: "vf-coach-title" });
 		coach.createDiv({ text: plan.weakReason, cls: "vf-muted" });
 		const chips = coach.createDiv({ cls: "vf-coach-plan" });
 		for (const block of plan.blocks.slice(0, 5)) {
 			chips.createSpan({ text: `${this.skillIcon(block.skill)} ${block.count} ${this.skillName(block.skill)}`, cls: "vf-plan-chip" });
 		}
-		const start = coach.createEl("button", { text: "Bắt đầu phiên đề xuất →", cls: "vf-btn-hero vf-btn-hero-small" });
+		const start = coach.createEl("button", { text: "Bắt đầu bước ưu tiên →", cls: "vf-btn-hero vf-btn-hero-small" });
 		start.onclick = () => {
 			if ((plan.weakSkill === "listening" || plan.weakSkill === "shadowing") && cards.some((c) => c.quote)) {
 				this.labMode = plan.weakSkill === "shadowing" ? "shadowing" : "dictation";
@@ -485,7 +485,7 @@ export class VocabReviewView extends ItemView {
 		goal.createDiv({ text: this.goalStep(cards), cls: "vf-goal-step" });
 		for (const [skill, label] of [["memory", "Ghi nhớ"], ["listening", "Nghe"], ["speaking", "Nói"], ["writing", "Viết"]] as const) {
 			const stat = this.plugin.data.skillStats[skill];
-			const avg = stat.attempts ? Math.round(stat.totalScore / stat.attempts) : 0;
+			const avg = stat.attempts ? Math.round(stat.recentScore ?? stat.totalScore / stat.attempts) : 0;
 			const row = goal.createDiv({ cls: "vf-skill-row" });
 			row.createSpan({ text: label });
 			const track = row.createDiv({ cls: "vf-skill-track" });
@@ -499,7 +499,7 @@ export class VocabReviewView extends ItemView {
 		return {
 			attempts: stat.attempts,
 			correct: stat.totalScore / 100,
-			recentAccuracy: stat.attempts ? stat.totalScore / stat.attempts / 100 : undefined,
+			recentAccuracy: stat.attempts ? (stat.recentScore ?? stat.totalScore / stat.attempts) / 100 : undefined,
 			lastPracticed: stat.lastAt || undefined,
 		};
 	}
@@ -1688,11 +1688,11 @@ export class VocabReviewView extends ItemView {
 		const minRange = cgMinutes.createEl("input", { attr: { type: "range", min: "5", max: "30", step: "5", value: String(s.dailyMinutes) } });
 		minRange.oninput = () => minValue.setText(`${minRange.value} phút`);
 		minRange.onchange = async () => { s.dailyMinutes = Number(minRange.value); await this.plugin.saveAll(); };
-		const errorPath = group("Sổ lỗi cá nhân", "Lưu lỗi AI phát hiện thành note Markdown có thể ôn lại");
+		const errorPath = group("Sổ lỗi cá nhân", "Lưu lỗi viết đã được AI sửa thành note Markdown có thể ôn lại");
 		const ep = errorPath.createEl("input", { attr: { type: "text", value: s.errorNotebookPath }, cls: "vf-input" });
 		ep.onchange = async () => { s.errorNotebookPath = ep.value.trim() || "5. Toolbox/English/My English Errors.md"; await this.plugin.saveAll(); };
 
-		main.createEl("h4", { text: "AI CLI · không dùng API key" });
+		main.createEl("h4", { text: "AI CLI local · plugin không yêu cầu API key" });
 		const c7 = group("AI mặc định", "Auto ưu tiên Claude → Grok → Gemini → Codex đã đăng nhập trên máy");
 		const provider = c7.createEl("select", { cls: "dropdown" });
 		for (const [value, label] of [["auto", "Tự động"], ["claude", "Claude CLI"], ["codex", "Codex CLI"], ["gemini", "Gemini CLI"], ["grok", "Grok CLI"]] as const)
@@ -1834,8 +1834,12 @@ export class VocabReviewView extends ItemView {
 		capture.onclick = () => this.plugin.openSmartCapture();
 
 		const tabs = main.createDiv({ cls: "vf-lab-tabs" });
+		tabs.setAttr("role", "tablist");
+		tabs.setAttr("aria-label", "Chế độ Fluency Lab");
 		for (const [mode, label] of [["dictation", "🎧 Listening & Dictation"], ["shadowing", "🎙️ Shadowing"], ["coverage", "📊 Video Score"]] as const) {
 			const tab = tabs.createEl("button", { text: label, cls: `vf-lab-tab ${this.labMode === mode ? "vf-lab-tab-on" : ""}` });
+			tab.setAttr("role", "tab");
+			tab.setAttr("aria-selected", String(this.labMode === mode));
 			tab.onclick = () => {
 				this.labMode = mode;
 				this.resetLabAttempt();
@@ -1991,7 +1995,8 @@ export class VocabReviewView extends ItemView {
 		} catch (e) {
 			console.error("Vocab Forge recorder:", e);
 			this.audioRecorder.cancel();
-			if (this.section === "lab") new Notice("Không mở được microphone — kiểm tra quyền microphone của Obsidian");
+			const cancelled = e instanceof Error && e.message.includes("cancelled");
+			if (this.section === "lab" && !cancelled) new Notice("Không mở được microphone — kiểm tra quyền microphone của Obsidian");
 		} finally {
 			this.labStarting = false;
 			if (this.section === "lab") this.render();

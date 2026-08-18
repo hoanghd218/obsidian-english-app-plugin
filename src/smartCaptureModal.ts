@@ -129,18 +129,22 @@ export function buildSmartCapturePrompt(context: SmartCaptureContext): string {
 
 function extractJsonArray(raw: string): unknown[] | null {
 	const cleaned = raw.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
+	let emptyArray: unknown[] | null = null;
 	for (let start = cleaned.indexOf("["); start !== -1; start = cleaned.indexOf("[", start + 1)) {
 		for (let end = cleaned.length; end > start; end--) {
 			if (cleaned[end - 1] !== "]") continue;
 			try {
 				const parsed = JSON.parse(cleaned.slice(start, end)) as unknown;
-				if (Array.isArray(parsed)) return parsed;
+				if (Array.isArray(parsed)) {
+					if (!parsed.length) emptyArray = parsed;
+					else if (parsed.some((item) => item && typeof item === "object" && "word" in item)) return parsed;
+				}
 			} catch {
 				// Status prefixes can contain brackets; scan the next possible array.
 			}
 		}
 	}
-	return null;
+	return emptyArray;
 }
 
 /** Parse and validate loose CLI output before it reaches the preview UI. */
@@ -364,6 +368,9 @@ export class SmartCaptureModal extends Modal {
 				category: this.category,
 				maxCandidates,
 			};
+			if (context.transcript.length > 36_000) {
+				this.status = "Transcript dài: AI phân tích 36.000 ký tự đầu. Có thể tách note thành phần nhỏ để bao phủ toàn bộ.";
+			}
 			let suggestions: SmartCaptureSuggestion[];
 			if (this.options.extractor) {
 				try {
@@ -383,6 +390,9 @@ export class SmartCaptureModal extends Modal {
 			if (!suggestions.length) throw new Error("Không tìm thấy nội dung phù hợp để tạo thẻ");
 			this.preparePreview(suggestions);
 			if (!this.previewCards.length) throw new Error("AI không trả về cụm nào thực sự có trong transcript");
+			if (this.status.startsWith("AI CLI đang")) {
+				this.status = `Đã đối chiếu ${this.previewCards.length} thẻ với transcript nguồn.`;
+			}
 			extracted = true;
 		} catch (error) {
 			console.error("Vocab Forge Smart Capture:", error);
@@ -437,6 +447,7 @@ export class SmartCaptureModal extends Modal {
 
 	private renderPreview(): void {
 		this.renderHeader();
+		if (this.status) this.contentEl.createDiv({ cls: "vf-muted vf-smart-status", text: this.status });
 		const selected = this.previewCards.filter((card) => card.selected).length;
 		this.contentEl.createEl("h3", { text: `Xem trước · ${selected}/${this.previewCards.length} thẻ được chọn` });
 
@@ -464,7 +475,7 @@ export class SmartCaptureModal extends Modal {
 					: `${card.input.type} · ${card.input.category}${card.timestampSeconds == null ? "" : ` · ${Math.floor(card.timestampSeconds)}s`}`
 			);
 			heading.addToggle((toggle) =>
-				toggle.setValue(card.selected).setDisabled(this.busy).onChange((value) => {
+				toggle.setValue(card.selected).setDisabled(this.busy || card.duplicate).onChange((value) => {
 					this.previewCards[index].selected = value;
 					this.renderPreview();
 				})
@@ -476,6 +487,28 @@ export class SmartCaptureModal extends Modal {
 			if (card.input.collocations.length) {
 				item.createDiv({ cls: "vf-muted", text: `Collocations: ${card.input.collocations.join(" · ")}` });
 			}
+			const editor = item.createEl("details", { cls: "vf-smart-editor" });
+			editor.createEl("summary", { text: "Chỉnh thẻ trước khi lưu" });
+			const fields = editor.createDiv({ cls: "vf-smart-editor-grid" });
+			for (const [label, key] of [
+				["Cụm từ", "word"],
+				["Deck", "category"],
+				["Nghĩa Việt", "meaningVi"],
+				["Nghĩa Anh", "meaningEn"],
+			] as const) {
+				const field = fields.createEl("label");
+				field.createSpan({ text: label });
+				const input = field.createEl("input", { attr: { type: "text" } });
+				input.value = card.input[key];
+				input.disabled = this.busy;
+				input.oninput = () => { this.previewCards[index].input[key] = input.value.trim(); };
+			}
+			const quoteField = fields.createEl("label", { cls: "vf-smart-editor-wide" });
+			quoteField.createSpan({ text: "Câu nguồn" });
+			const quoteInput = quoteField.createEl("textarea", { attr: { rows: "2" } });
+			quoteInput.value = card.input.quote;
+			quoteInput.disabled = this.busy;
+			quoteInput.oninput = () => { this.previewCards[index].input.quote = quoteInput.value.trim(); };
 		});
 
 		const actions = new Setting(this.contentEl);
@@ -496,9 +529,14 @@ export class SmartCaptureModal extends Modal {
 		this.renderPreview();
 		let created = 0;
 		const failed: string[] = [];
+		const existing = new Set(this.store.getAllCards().map((card) => normalizedWords(card.word)));
 		for (const card of selected) {
+			if (this.closed) break;
 			try {
+				const key = normalizedWords(card.input.word);
+				if (!key || existing.has(key)) throw new Error("Thẻ trống hoặc đã tồn tại");
 				await this.store.createCard(card.input);
+				existing.add(key);
 				created++;
 			} catch (error) {
 				console.error(`Vocab Forge: cannot create Smart Capture card "${card.input.word}"`, error);
