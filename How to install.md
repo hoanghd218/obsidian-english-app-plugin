@@ -141,12 +141,21 @@ Nếu người dùng muốn cấu hình sẵn đường dẫn thẻ hoặc mục
 }
 ```
 
-### Bước 6: Bật Smart Capture và AI local
+### Bước 6: Bật Smart Capture và AI
+
+**Cách A — AI CLI local (desktop, không cần API key):**
 
 - Cài `yt-dlp` nếu muốn plugin tự tải subtitle YouTube, rồi kiểm tra bằng `yt-dlp --version`.
 - Cài và đăng nhập ít nhất một trong các CLI: Claude, Codex, Gemini hoặc Grok. Plugin gọi tài khoản local đã đăng nhập và không yêu cầu/truyền API key.
-- Trong **Vocab Forge → Cài đặt → AI CLI**, chọn **Tự động** rồi bấm **Kiểm tra**. Có thể nhập đường dẫn tuyệt đối hoặc đường dẫn bắt đầu bằng `~/` nếu Obsidian không tìm thấy binary trong `PATH`.
-- AI CLI là tính năng desktop; Smart Capture trên mobile vẫn nhận transcript/note và tự tạo thẻ câu bằng fallback cục bộ.
+- Trong **Vocab Forge → Cài đặt → AI**, để chế độ **Tự động** rồi bấm **Kiểm tra**. Có thể nhập đường dẫn tuyệt đối hoặc đường dẫn bắt đầu bằng `~/` nếu Obsidian không tìm thấy binary trong `PATH`.
+
+**Cách B — API key (dùng được trên iPhone/iPad):**
+
+- iPhone/iPad không chạy được CLI, nên hãy dùng API: trong **Vocab Forge → Cài đặt → AI**, chọn chế độ **Chỉ API** (hoặc giữ **Tự động** — trên mobile plugin tự dùng API, trên desktop sẽ ưu tiên CLI rồi fallback sang API khi CLI lỗi).
+- Chọn nhà cung cấp: **DeepSeek, MiniMax, OpenAI, Claude (Anthropic), Gemini (Google) hoặc OpenRouter**, bấm **🔑 Lấy key** để mở trang tạo key, dán key vào rồi chọn model (hoặc chọn "Khác" để tự nhập tên model bất kỳ).
+- Bấm **⚡ Test** để xác nhận key hoạt động.
+- Lưu ý: key được lưu dạng plaintext trong `data.json` của plugin trong vault — cẩn thận khi sync/chia sẻ vault.
+- Smart Capture trên mobile: nếu chưa cấu hình API, plugin vẫn nhận transcript/note và tự tạo thẻ câu bằng fallback cục bộ.
 
 ---
 

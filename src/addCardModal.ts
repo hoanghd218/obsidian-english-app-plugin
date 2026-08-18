@@ -82,7 +82,7 @@ export class AddCardModal extends Modal {
 	// --- chế độ tự động: chỉ nhập từ, AI điền hết
 	private displayAutoEntry(contentEl: HTMLElement): void {
 		contentEl.createDiv({
-				text: "Nhập từ / cụm từ — AI CLI đã chọn sẽ điền IPA, nghĩa Anh–Việt, ví dụ, collocations, word family và chủ đề.",
+				text: "Nhập từ / cụm từ — AI (CLI hoặc API) sẽ điền IPA, nghĩa Anh–Việt, ví dụ, collocations, word family và chủ đề.",
 			cls: "vf-muted vf-auto-desc",
 		});
 		const input = contentEl.createEl("input", {
@@ -97,7 +97,7 @@ export class AddCardModal extends Modal {
 
 		new Setting(contentEl)
 			.setName("🖼 Sinh ảnh minh hoạ sau khi tạo thẻ")
-				.setDesc("Tuỳ chọn riêng cho Grok CLI đã đăng nhập; plugin không truyền API key")
+				.setDesc("Chỉ khả dụng với Grok CLI đã đăng nhập trên desktop (chế độ API chưa hỗ trợ sinh ảnh)")
 			.addToggle((t) => t.setValue(this.makeImage).onChange((v) => (this.makeImage = v)));
 
 		const btn = contentEl.createEl("button", {

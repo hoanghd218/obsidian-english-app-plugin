@@ -1,5 +1,12 @@
 import { TFile } from "obsidian";
 import type { Card as FsrsCard } from "ts-fsrs";
+import { AI_API_PROVIDERS, AI_API_PROVIDER_IDS, type AiApiProvider } from "./aiApi";
+
+/**
+ * Cách chạy AI: "auto" = CLI trên desktop rồi tự chuyển sang API khi CLI lỗi
+ * (mobile luôn dùng API); "cli" = chỉ CLI local; "api" = chỉ API key.
+ */
+export type AiMode = "auto" | "cli" | "api";
 
 export interface VocabForgeSettings {
 	cardsFolder: string;
@@ -16,6 +23,13 @@ export interface VocabForgeSettings {
 	claudePath: string;
 	codexPath: string;
 	geminiPath: string;
+	aiMode: AiMode;
+	/** Nhà cung cấp đang chọn khi chạy qua API */
+	apiProvider: AiApiProvider;
+	/** API key theo từng nhà cung cấp — lưu plaintext trong data.json của vault */
+	apiKeys: Record<AiApiProvider, string>;
+	/** Model theo từng nhà cung cấp; rỗng = model mặc định */
+	apiModels: Record<AiApiProvider, string>;
 	learningGoal: LearningGoal;
 	dailyMinutes: number;
 	errorNotebookPath: string;
@@ -40,6 +54,12 @@ export const DEFAULT_SETTINGS: VocabForgeSettings = {
 	claudePath: "claude",
 	codexPath: "codex",
 	geminiPath: "gemini",
+	aiMode: "auto",
+	apiProvider: "deepseek",
+	apiKeys: Object.fromEntries(AI_API_PROVIDER_IDS.map((p) => [p, ""])) as Record<AiApiProvider, string>,
+	apiModels: Object.fromEntries(
+		AI_API_PROVIDER_IDS.map((p) => [p, AI_API_PROVIDERS[p].defaultModel])
+	) as Record<AiApiProvider, string>,
 	learningGoal: "business",
 	dailyMinutes: 10,
 	errorNotebookPath: "5. Toolbox/English/My English Errors.md",

@@ -14,7 +14,7 @@ export class AboutModal extends Modal {
 		const header = contentEl.createDiv({ cls: "vf-about-header" });
 		header.createDiv({ text: "🎓", cls: "vf-about-icon" });
 		header.createEl("h2", { text: "Vocab Forge", cls: "vf-about-title" });
-		header.createSpan({ text: "v2.0.0", cls: "vf-about-version" });
+		header.createSpan({ text: "v2.1.0", cls: "vf-about-version" });
 		header.createDiv({
 			text: "English Fluency OS: từ video thật đến ghi nhớ, nghe, nói và viết",
 			cls: "vf-about-subtitle",
@@ -68,9 +68,9 @@ export class AboutModal extends Modal {
 
 		const feats = [
 			{ icon: "🧠", title: "FSRS Spaced Repetition", desc: "Thuật toán lặp lại ngắt quãng hiện đại tối ưu khả năng ghi nhớ dài hạn." },
-			{ icon: "✨", title: "YouTube Smart Capture", desc: "Dán URL hoặc transcript, AI CLI chọn cụm hữu dụng và tạo thẻ đúng timestamp." },
+			{ icon: "✨", title: "YouTube Smart Capture", desc: "Dán URL hoặc transcript, AI chọn cụm hữu dụng và tạo thẻ đúng timestamp." },
 			{ icon: "🎙️", title: "Fluency Lab", desc: "Listening, dictation, ghi âm shadowing, word-level diff và Video Comprehension Score." },
-			{ icon: "🤖", title: "AI CLI local", desc: "Dùng tài khoản Claude, Codex, Gemini hoặc Grok CLI đã đăng nhập; plugin không yêu cầu API key." },
+			{ icon: "🤖", title: "AI linh hoạt: CLI local hoặc API key", desc: "Desktop: dùng Claude, Codex, Gemini, Grok CLI đã đăng nhập (không cần key). iPhone/iPad: nhập API key DeepSeek, MiniMax, OpenAI, Claude, Gemini hoặc OpenRouter và tự chọn model." },
 			{ icon: "🎯", title: "Nhiều chế độ luyện tập", desc: "Trắc nghiệm, nối từ, điền từ vào câu, xếp từ & tìm lỗi sai." },
 			{ icon: "📝", title: "100% Markdown Vault Native", desc: "Toàn bộ từ vựng được lưu trữ an toàn dưới dạng file Markdown trong Vault của bạn." },
 		];

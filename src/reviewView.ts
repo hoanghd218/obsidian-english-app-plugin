@@ -35,6 +35,7 @@ import {
 	type SentenceCheck,
 } from "./ai";
 import { XP_PER_LEVEL } from "./types";
+import { AI_API_PROVIDERS, AI_API_PROVIDER_IDS } from "./aiApi";
 import { BADGES } from "./badges";
 import type { ErrorItem } from "./practice";
 import {
@@ -988,7 +989,7 @@ export class VocabReviewView extends ItemView {
 			await fn();
 		} catch (e) {
 			console.error("Vocab Forge AI:", e);
-			new Notice("Lỗi gọi AI CLI — kiểm tra provider và trạng thái đăng nhập trong Cài đặt");
+			new Notice("Lỗi gọi AI — kiểm tra CLI/API key và model trong Cài đặt → AI");
 		} finally {
 			this.aiBusy = false;
 			btn.disabled = false;
@@ -1746,6 +1747,9 @@ export class VocabReviewView extends ItemView {
 
 	// ============================================================= SETTINGS
 
+	/** Đang nhập model API tuỳ chỉnh (thay vì chọn từ danh sách gợi ý) */
+	private apiModelCustom = false;
+
 	private renderSettings(main: HTMLElement): void {
 		main.createEl("h3", { text: "⚙️ Cài đặt" });
 		const s = this.plugin.settings;
@@ -1858,32 +1862,108 @@ export class VocabReviewView extends ItemView {
 		const ep = errorPath.createEl("input", { attr: { type: "text", value: s.errorNotebookPath }, cls: "vf-input" });
 		ep.onchange = async () => { s.errorNotebookPath = ep.value.trim() || "5. Toolbox/English/My English Errors.md"; await this.plugin.saveAll(); };
 
-		main.createEl("h4", { text: "AI CLI local · plugin không yêu cầu API key" });
-		const c7 = group("AI mặc định", "Auto ưu tiên Claude → Grok → Gemini → Codex đã đăng nhập trên máy");
-		const provider = c7.createEl("select", { cls: "dropdown" });
-		for (const [value, label] of [["auto", "Tự động"], ["claude", "Claude CLI"], ["codex", "Codex CLI"], ["gemini", "Gemini CLI"], ["grok", "Grok CLI"]] as const)
-			provider.createEl("option", { text: label, attr: { value } });
-		provider.value = s.aiProvider;
-		provider.onchange = async () => {
-			s.aiProvider = provider.value as typeof s.aiProvider;
+		main.createEl("h4", { text: "🤖 AI — CLI local hoặc API key (iPhone/iPad dùng API)" });
+		const cMode = group("Chế độ AI", "Tự động: CLI trên desktop, tự chuyển sang API khi CLI lỗi hoặc trên mobile");
+		const modeSel = cMode.createEl("select", { cls: "dropdown" });
+		for (const [value, label] of [["auto", "Tự động (CLI → API)"], ["cli", "Chỉ CLI (desktop)"], ["api", "Chỉ API (iPhone/iPad)"]] as const)
+			modeSel.createEl("option", { text: label, attr: { value } });
+		modeSel.value = s.aiMode;
+		modeSel.onchange = async () => {
+			s.aiMode = modeSel.value as typeof s.aiMode;
 			this.plugin.resetAiProvider();
 			await this.plugin.saveAll();
+			this.render();
 		};
-		const checkAi = c7.createEl("button", { text: "Kiểm tra", cls: "vf-btn-icon" });
+		const checkAi = cMode.createEl("button", { text: "Kiểm tra", cls: "vf-btn-icon" });
 		checkAi.onclick = async () => {
 			checkAi.disabled = true;
 			checkAi.setText("Đang kiểm tra…");
 			try { new Notice(await this.plugin.aiStatusSummary(), 9000); }
 			finally { checkAi.disabled = false; checkAi.setText("Kiểm tra"); }
 		};
-		const cliPaths: Array<[string, "claudePath" | "codexPath" | "geminiPath" | "grokPath", string]> = [
-			["Claude CLI", "claudePath", "claude"], ["Codex CLI", "codexPath", "codex"],
-			["Gemini CLI", "geminiPath", "gemini"], ["Grok CLI", "grokPath", "grok"],
-		];
-		for (const [label, key, fallback] of cliPaths) {
-			const ctrl = group(label, "Đường dẫn binary; để tên lệnh nếu đã có trong PATH");
-			const input = ctrl.createEl("input", { attr: { type: "text", value: s[key] }, cls: "vf-input" });
-			input.onchange = async () => { s[key] = input.value.trim() || fallback; this.plugin.resetAiProvider(); await this.plugin.saveAll(); };
+
+		if (s.aiMode !== "cli") {
+			const info = AI_API_PROVIDERS[s.apiProvider];
+			const cProv = group("Nhà cung cấp API", "Key lưu trong data.json của vault — cẩn thận khi sync/chia sẻ vault");
+			const provSel = cProv.createEl("select", { cls: "dropdown" });
+			for (const p of AI_API_PROVIDER_IDS)
+				provSel.createEl("option", { text: AI_API_PROVIDERS[p].label, attr: { value: p } });
+			provSel.value = s.apiProvider;
+			provSel.onchange = async () => {
+				s.apiProvider = provSel.value as typeof s.apiProvider;
+				this.apiModelCustom = false;
+				await this.plugin.saveAll();
+				this.render();
+			};
+
+			const cKey = group(`API key ${info.label}`, `Tạo key tại: ${info.keyUrl}`);
+			const keyInput = cKey.createEl("input", {
+				attr: { type: "password", value: s.apiKeys[s.apiProvider] ?? "", placeholder: "sk-…" },
+				cls: "vf-input",
+			});
+			keyInput.onchange = async () => { s.apiKeys[s.apiProvider] = keyInput.value.trim(); await this.plugin.saveAll(); };
+			const keyBtn = cKey.createEl("button", { text: "🔑", cls: "vf-btn-icon" });
+			keyBtn.onclick = () => window.open(info.keyUrl);
+
+			const currentModel = (s.apiModels[s.apiProvider] ?? "").trim() || info.defaultModel;
+			const customModel = this.apiModelCustom || !info.models.includes(currentModel);
+			const cModel = group("Model AI", `Mặc định: ${info.defaultModel}`);
+			if (customModel) {
+				const mInput = cModel.createEl("input", {
+					attr: { type: "text", value: s.apiModels[s.apiProvider] ?? "", placeholder: info.defaultModel },
+					cls: "vf-input",
+				});
+				mInput.onchange = async () => { s.apiModels[s.apiProvider] = mInput.value.trim(); await this.plugin.saveAll(); };
+				const backBtn = cModel.createEl("button", { text: "↩ Danh sách", cls: "vf-btn-icon" });
+				backBtn.onclick = async () => {
+					this.apiModelCustom = false;
+					s.apiModels[s.apiProvider] = info.defaultModel;
+					await this.plugin.saveAll();
+					this.render();
+				};
+			} else {
+				const mSel = cModel.createEl("select", { cls: "dropdown" });
+				for (const m of info.models) mSel.createEl("option", { text: m, attr: { value: m } });
+				mSel.createEl("option", { text: "Khác (tự nhập)…", attr: { value: "__custom__" } });
+				mSel.value = currentModel;
+				mSel.onchange = async () => {
+					if (mSel.value === "__custom__") { this.apiModelCustom = true; this.render(); return; }
+					s.apiModels[s.apiProvider] = mSel.value;
+					await this.plugin.saveAll();
+				};
+			}
+
+			const cTest = group("Kiểm tra kết nối API", "Gửi một câu ngắn tới model đã chọn để xác nhận key hoạt động");
+			const testBtn = cTest.createEl("button", { text: "⚡ Test", cls: "vf-btn-icon" });
+			testBtn.onclick = async () => {
+				testBtn.disabled = true;
+				testBtn.setText("Đang test…");
+				try { new Notice(`✅ ${info.label} OK: ${await this.plugin.testAiApi()}`); }
+				catch (e) { new Notice(`❌ ${e instanceof Error ? e.message : String(e)}`, 8000); }
+				finally { testBtn.disabled = false; testBtn.setText("⚡ Test"); }
+			};
+		}
+
+		if (s.aiMode !== "api") {
+			const c7 = group("CLI mặc định", "Auto ưu tiên Claude → Grok → Gemini → Codex đã đăng nhập trên máy");
+			const provider = c7.createEl("select", { cls: "dropdown" });
+			for (const [value, label] of [["auto", "Tự động"], ["claude", "Claude CLI"], ["codex", "Codex CLI"], ["gemini", "Gemini CLI"], ["grok", "Grok CLI"]] as const)
+				provider.createEl("option", { text: label, attr: { value } });
+			provider.value = s.aiProvider;
+			provider.onchange = async () => {
+				s.aiProvider = provider.value as typeof s.aiProvider;
+				this.plugin.resetAiProvider();
+				await this.plugin.saveAll();
+			};
+			const cliPaths: Array<[string, "claudePath" | "codexPath" | "geminiPath" | "grokPath", string]> = [
+				["Claude CLI", "claudePath", "claude"], ["Codex CLI", "codexPath", "codex"],
+				["Gemini CLI", "geminiPath", "gemini"], ["Grok CLI", "grokPath", "grok"],
+			];
+			for (const [label, key, fallback] of cliPaths) {
+				const ctrl = group(label, "Đường dẫn binary; để tên lệnh nếu đã có trong PATH");
+				const input = ctrl.createEl("input", { attr: { type: "text", value: s[key] }, cls: "vf-input" });
+				input.onchange = async () => { s[key] = input.value.trim() || fallback; this.plugin.resetAiProvider(); await this.plugin.saveAll(); };
+			}
 		}
 
 		// thông tin tác giả
@@ -1891,7 +1971,7 @@ export class VocabReviewView extends ItemView {
 		const authorGroup = main.createDiv({ cls: "vf-setting vf-author-card" });
 		const authorInfo = authorGroup.createDiv({ cls: "vf-setting-info" });
 		authorInfo.createDiv({ text: "👤 Tony Hoang (Trần Văn Hoàng)", cls: "vf-setting-name" });
-		authorInfo.createDiv({ text: "✉️ tony@tranvanhoang.com · Vocab Forge v2.0", cls: "vf-setting-desc" });
+		authorInfo.createDiv({ text: "✉️ tony@tranvanhoang.com · Vocab Forge v2.1", cls: "vf-setting-desc" });
 		const authorCtrl = authorGroup.createDiv({ cls: "vf-setting-control" });
 		const infoModalBtn = authorCtrl.createEl("button", { text: "ℹ️ Thông tin", cls: "vf-btn-icon" });
 		infoModalBtn.onclick = () => new AboutModal(this.app, this.plugin).open();
@@ -2449,7 +2529,7 @@ export class VocabReviewView extends ItemView {
 			this.plugin.speak(first.trim());
 		} catch (e) {
 			console.error("Vocab Forge chat:", e);
-			new Notice("Không bắt đầu được hội thoại — kiểm tra AI CLI");
+			new Notice("Không bắt đầu được hội thoại — kiểm tra AI (CLI hoặc API key) trong Cài đặt");
 		} finally {
 			this.chatBusy = false;
 			this.render();

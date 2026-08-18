@@ -25,7 +25,7 @@ __export(main_exports, {
   default: () => VocabForgePlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian10 = require("obsidian");
+var import_obsidian11 = require("obsidian");
 
 // src/ai.ts
 function nodeRequire(mod) {
@@ -111,7 +111,209 @@ function storyPrompt(words, categories) {
 }
 
 // src/addCardModal.ts
+var import_obsidian2 = require("obsidian");
+
+// src/aiApi.ts
 var import_obsidian = require("obsidian");
+var AI_API_PROVIDER_IDS = [
+  "deepseek",
+  "minimax",
+  "openai",
+  "claude",
+  "gemini",
+  "openrouter"
+];
+var AI_API_PROVIDERS = {
+  deepseek: {
+    label: "DeepSeek",
+    keyUrl: "https://platform.deepseek.com/api_keys",
+    defaultModel: "deepseek-chat",
+    models: ["deepseek-chat", "deepseek-reasoner"]
+  },
+  minimax: {
+    label: "MiniMax",
+    keyUrl: "https://platform.minimax.io",
+    defaultModel: "MiniMax-M2",
+    models: ["MiniMax-M2", "MiniMax-Text-01"]
+  },
+  openai: {
+    label: "OpenAI",
+    keyUrl: "https://platform.openai.com/api-keys",
+    defaultModel: "gpt-5-mini",
+    models: ["gpt-5-mini", "gpt-5.1", "gpt-5", "gpt-4o-mini"]
+  },
+  claude: {
+    label: "Claude (Anthropic)",
+    keyUrl: "https://console.anthropic.com/settings/keys",
+    defaultModel: "claude-opus-5",
+    models: ["claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5"]
+  },
+  gemini: {
+    label: "Gemini (Google)",
+    keyUrl: "https://aistudio.google.com/apikey",
+    defaultModel: "gemini-2.5-flash",
+    models: ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-3-pro-preview"]
+  },
+  openrouter: {
+    label: "OpenRouter",
+    keyUrl: "https://openrouter.ai/settings/keys",
+    defaultModel: "openrouter/auto",
+    models: [
+      "openrouter/auto",
+      "anthropic/claude-sonnet-4.5",
+      "openai/gpt-5-mini",
+      "google/gemini-2.5-flash",
+      "deepseek/deepseek-chat",
+      "minimax/minimax-m2"
+    ]
+  }
+};
+var AiApiError = class extends Error {
+  constructor(message, provider, status) {
+    super(message);
+    this.provider = provider;
+    this.status = status;
+    this.name = "AiApiError";
+  }
+};
+var OPENAI_COMPAT_URLS = {
+  openai: "https://api.openai.com/v1/chat/completions",
+  deepseek: "https://api.deepseek.com/chat/completions",
+  minimax: "https://api.minimax.io/v1/chat/completions",
+  openrouter: "https://openrouter.ai/api/v1/chat/completions"
+};
+async function requestWithTimeout(param, timeoutMs, provider) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = window.setTimeout(
+      () => reject(
+        new AiApiError(
+          `${AI_API_PROVIDERS[provider].label}: qu\xE1 th\u1EDDi gian ch\u1EDD ${Math.round(timeoutMs / 1e3)}s \u2014 ki\u1EC3m tra m\u1EA1ng ho\u1EB7c th\u1EED model nhanh h\u01A1n`,
+          provider
+        )
+      ),
+      timeoutMs
+    );
+  });
+  try {
+    return await Promise.race([(0, import_obsidian.requestUrl)({ ...param, throw: false }), timeout]);
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+function errorDetail(res) {
+  try {
+    const j = JSON.parse(res.text);
+    const err = j.error;
+    const baseResp = j.base_resp;
+    const msg = (typeof err === "object" && err ? err.message : typeof err === "string" ? err : void 0) ?? j.message ?? baseResp?.status_msg;
+    if (typeof msg === "string" && msg) return msg;
+  } catch {
+  }
+  return (res.text ?? "").slice(0, 200);
+}
+function httpError(provider, res) {
+  const label = AI_API_PROVIDERS[provider].label;
+  const detail = errorDetail(res);
+  const base = res.status === 401 || res.status === 403 ? `API key ${label} kh\xF4ng h\u1EE3p l\u1EC7 ho\u1EB7c thi\u1EBFu quy\u1EC1n` : res.status === 429 ? `${label} h\u1EBFt h\u1EA1n m\u1EE9c ho\u1EB7c qu\xE1 t\u1EA3i (429) \u2014 th\u1EED l\u1EA1i sau` : res.status === 404 ? `${label}: kh\xF4ng t\xECm th\u1EA5y model (ki\u1EC3m tra l\u1EA1i t\xEAn model)` : `${label} tr\u1EA3 l\u1ED7i HTTP ${res.status}`;
+  return new AiApiError(detail ? `${base} \u2014 ${detail}` : base, provider, res.status);
+}
+function stripThinking(text) {
+  return text.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+}
+async function callOpenAiCompat(provider, model, apiKey, messages, timeoutMs) {
+  const url = OPENAI_COMPAT_URLS[provider];
+  if (!url) throw new AiApiError(`Provider ${provider} ch\u01B0a \u0111\u01B0\u1EE3c h\u1ED7 tr\u1EE3`, provider);
+  const headers = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${apiKey}`
+  };
+  if (provider === "openrouter") headers["X-Title"] = "Vocab Forge (Obsidian)";
+  const res = await requestWithTimeout(
+    {
+      url,
+      method: "POST",
+      headers,
+      // Giữ body tối giản để tương thích mọi provider (các model GPT-5 từ chối
+      // max_tokens/temperature tuỳ biến)
+      body: JSON.stringify({ model, messages })
+    },
+    timeoutMs,
+    provider
+  );
+  if (res.status >= 400) throw httpError(provider, res);
+  const json = res.json;
+  if (json?.base_resp?.status_code && json.base_resp.status_code !== 0) {
+    throw new AiApiError(
+      `${AI_API_PROVIDERS[provider].label}: ${json.base_resp.status_msg ?? `l\u1ED7i ${json.base_resp.status_code}`}`,
+      provider,
+      res.status
+    );
+  }
+  const content = json?.choices?.[0]?.message?.content;
+  return stripThinking(typeof content === "string" ? content : "");
+}
+async function callClaude(model, apiKey, messages, timeoutMs) {
+  const res = await requestWithTimeout(
+    {
+      url: "https://api.anthropic.com/v1/messages",
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({ model, max_tokens: 8192, messages })
+    },
+    timeoutMs,
+    "claude"
+  );
+  if (res.status >= 400) throw httpError("claude", res);
+  const json = res.json;
+  if (json?.stop_reason === "refusal") {
+    throw new AiApiError("Claude t\u1EEB ch\u1ED1i y\xEAu c\u1EA7u n\xE0y (safety) \u2014 th\u1EED di\u1EC5n \u0111\u1EA1t l\u1EA1i ho\u1EB7c \u0111\u1ED5i model", "claude", res.status);
+  }
+  return (json?.content ?? []).filter((b) => b?.type === "text" && typeof b.text === "string").map((b) => b.text).join("\n").trim();
+}
+async function callGemini(model, apiKey, messages, timeoutMs) {
+  const res = await requestWithTimeout(
+    {
+      url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey
+      },
+      body: JSON.stringify({
+        contents: messages.map((m) => ({
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [{ text: m.content }]
+        }))
+      })
+    },
+    timeoutMs,
+    "gemini"
+  );
+  if (res.status >= 400) throw httpError("gemini", res);
+  const json = res.json;
+  const text = (json?.candidates?.[0]?.content?.parts ?? []).map((p) => typeof p?.text === "string" ? p.text : "").join("").trim();
+  if (!text && json?.promptFeedback?.blockReason) {
+    throw new AiApiError(`Gemini ch\u1EB7n y\xEAu c\u1EA7u: ${json.promptFeedback.blockReason}`, "gemini", res.status);
+  }
+  return text;
+}
+async function runAiApi(messages, options) {
+  const provider = options.provider;
+  const info = AI_API_PROVIDERS[provider];
+  const apiKey = options.apiKey.trim();
+  if (!apiKey) throw new AiApiError(`Ch\u01B0a nh\u1EADp API key cho ${info.label}`, provider);
+  const model = (options.model ?? "").trim() || info.defaultModel;
+  const timeoutMs = options.timeoutMs ?? 12e4;
+  const text = provider === "claude" ? await callClaude(model, apiKey, messages, timeoutMs) : provider === "gemini" ? await callGemini(model, apiKey, messages, timeoutMs) : await callOpenAiCompat(provider, model, apiKey, messages, timeoutMs);
+  if (!text) throw new AiApiError(`${info.label} kh\xF4ng tr\u1EA3 v\u1EC1 n\u1ED9i dung \u2014 th\u1EED l\u1EA1i ho\u1EB7c \u0111\u1ED5i model`, provider);
+  return text;
+}
 
 // src/types.ts
 var DEFAULT_SETTINGS = {
@@ -129,6 +331,12 @@ var DEFAULT_SETTINGS = {
   claudePath: "claude",
   codexPath: "codex",
   geminiPath: "gemini",
+  aiMode: "auto",
+  apiProvider: "deepseek",
+  apiKeys: Object.fromEntries(AI_API_PROVIDER_IDS.map((p) => [p, ""])),
+  apiModels: Object.fromEntries(
+    AI_API_PROVIDER_IDS.map((p) => [p, AI_API_PROVIDERS[p].defaultModel])
+  ),
   learningGoal: "business",
   dailyMinutes: 10,
   errorNotebookPath: "5. Toolbox/English/My English Errors.md",
@@ -179,7 +387,7 @@ function endOfToday() {
 }
 
 // src/addCardModal.ts
-var AddCardModal = class extends import_obsidian.Modal {
+var AddCardModal = class extends import_obsidian2.Modal {
   constructor(app, plugin, prefill) {
     super(app);
     this.plugin = plugin;
@@ -247,7 +455,7 @@ var AddCardModal = class extends import_obsidian.Modal {
   // --- chế độ tự động: chỉ nhập từ, AI điền hết
   displayAutoEntry(contentEl) {
     contentEl.createDiv({
-      text: "Nh\u1EADp t\u1EEB / c\u1EE5m t\u1EEB \u2014 AI CLI \u0111\xE3 ch\u1ECDn s\u1EBD \u0111i\u1EC1n IPA, ngh\u0129a Anh\u2013Vi\u1EC7t, v\xED d\u1EE5, collocations, word family v\xE0 ch\u1EE7 \u0111\u1EC1.",
+      text: "Nh\u1EADp t\u1EEB / c\u1EE5m t\u1EEB \u2014 AI (CLI ho\u1EB7c API) s\u1EBD \u0111i\u1EC1n IPA, ngh\u0129a Anh\u2013Vi\u1EC7t, v\xED d\u1EE5, collocations, word family v\xE0 ch\u1EE7 \u0111\u1EC1.",
       cls: "vf-muted vf-auto-desc"
     });
     const input = contentEl.createEl("input", {
@@ -259,7 +467,7 @@ var AddCardModal = class extends import_obsidian.Modal {
     input.onkeydown = (e) => {
       if (e.key === "Enter") void this.aiFill();
     };
-    new import_obsidian.Setting(contentEl).setName("\u{1F5BC} Sinh \u1EA3nh minh ho\u1EA1 sau khi t\u1EA1o th\u1EBB").setDesc("Tu\u1EF3 ch\u1ECDn ri\xEAng cho Grok CLI \u0111\xE3 \u0111\u0103ng nh\u1EADp; plugin kh\xF4ng truy\u1EC1n API key").addToggle((t) => t.setValue(this.makeImage).onChange((v) => this.makeImage = v));
+    new import_obsidian2.Setting(contentEl).setName("\u{1F5BC} Sinh \u1EA3nh minh ho\u1EA1 sau khi t\u1EA1o th\u1EBB").setDesc("Ch\u1EC9 kh\u1EA3 d\u1EE5ng v\u1EDBi Grok CLI \u0111\xE3 \u0111\u0103ng nh\u1EADp tr\xEAn desktop (ch\u1EBF \u0111\u1ED9 API ch\u01B0a h\u1ED7 tr\u1EE3 sinh \u1EA3nh)").addToggle((t) => t.setValue(this.makeImage).onChange((v) => this.makeImage = v));
     const btn = contentEl.createEl("button", {
       text: this.aiBusy ? "\u23F3 AI \u0111ang tra c\u1EE9u\u2026" : "\u2728 AI \u0111i\u1EC1n t\u1EA5t c\u1EA3",
       cls: "vf-btn-hero vf-btn-hero-small vf-auto-go"
@@ -271,7 +479,7 @@ var AddCardModal = class extends import_obsidian.Modal {
   async aiFill() {
     const word = this.input.word.trim();
     if (!word) {
-      new import_obsidian.Notice("Nh\u1EADp t\u1EEB/c\u1EE5m t\u1EEB tr\u01B0\u1EDBc \u0111\xE3");
+      new import_obsidian2.Notice("Nh\u1EADp t\u1EEB/c\u1EE5m t\u1EEB tr\u01B0\u1EDBc \u0111\xE3");
       return;
     }
     if (this.aiBusy) return;
@@ -291,10 +499,10 @@ var AddCardModal = class extends import_obsidian.Modal {
       this.input.quote = fill.example ?? "";
       this.input.category = (fill.category || "general").toLowerCase();
       this.aiFilled = true;
-      new import_obsidian.Notice("\u2728 AI \u0111\xE3 \u0111i\u1EC1n xong \u2014 ki\u1EC3m tra r\u1ED3i b\u1EA5m T\u1EA1o th\u1EBB");
+      new import_obsidian2.Notice("\u2728 AI \u0111\xE3 \u0111i\u1EC1n xong \u2014 ki\u1EC3m tra r\u1ED3i b\u1EA5m T\u1EA1o th\u1EBB");
     } catch (e) {
       console.error("Vocab Forge AI fill:", e);
-      new import_obsidian.Notice("AI \u0111i\u1EC1n th\u1EA5t b\u1EA1i \u2014 th\u1EED l\u1EA1i ho\u1EB7c d\xF9ng ch\u1EBF \u0111\u1ED9 th\u1EE7 c\xF4ng");
+      new import_obsidian2.Notice("AI \u0111i\u1EC1n th\u1EA5t b\u1EA1i \u2014 th\u1EED l\u1EA1i ho\u1EB7c d\xF9ng ch\u1EBF \u0111\u1ED9 th\u1EE7 c\xF4ng");
     } finally {
       this.aiBusy = false;
       this.display();
@@ -304,15 +512,15 @@ var AddCardModal = class extends import_obsidian.Modal {
   displayForm(contentEl) {
     if (this.aiFilled)
       contentEl.createDiv({ text: "\u2728 AI \u0111\xE3 \u0111i\u1EC1n \u2014 ki\u1EC3m tra v\xE0 ch\u1EC9nh n\u1EBFu c\u1EA7n:", cls: "vf-muted vf-auto-desc" });
-    new import_obsidian.Setting(contentEl).setName("T\u1EEB / c\u1EE5m / c\xE2u / \u0111o\u1EA1n").addTextArea((t) => {
+    new import_obsidian2.Setting(contentEl).setName("T\u1EEB / c\u1EE5m / c\xE2u / \u0111o\u1EA1n").addTextArea((t) => {
       t.setValue(this.input.word).onChange((v) => this.input.word = v);
       t.inputEl.rows = 2;
       t.inputEl.addClass("vf-input-wide");
     });
-    new import_obsidian.Setting(contentEl).setName("Lo\u1EA1i th\u1EBB").addDropdown((d) => {
+    new import_obsidian2.Setting(contentEl).setName("Lo\u1EA1i th\u1EBB").addDropdown((d) => {
       d.addOption("word", "T\u1EEB (word)").addOption("phrase", "C\u1EE5m t\u1EEB (phrase)").addOption("idiom", "Th\xE0nh ng\u1EEF (idiom)").addOption("collocation", "Collocation").addOption("sentence", "C\xE2u (sentence)").addOption("passage", "\u0110o\u1EA1n ng\u1EAFn (passage)").addOption("grammar", "Ng\u1EEF ph\xE1p (grammar)").setValue(this.input.type).onChange((v) => this.input.type = v);
     });
-    new import_obsidian.Setting(contentEl).setName("Ch\u1EE7 \u0111\u1EC1 (deck)").addDropdown((d) => {
+    new import_obsidian2.Setting(contentEl).setName("Ch\u1EE7 \u0111\u1EC1 (deck)").addDropdown((d) => {
       const cats = new Set(DEFAULT_CATEGORIES);
       for (const c of this.plugin.store.getAllCards()) cats.add(c.category);
       cats.add(this.input.category);
@@ -323,33 +531,33 @@ var AddCardModal = class extends import_obsidian.Modal {
         if (v.trim()) this.input.category = v.trim().toLowerCase();
       })
     );
-    new import_obsidian.Setting(contentEl).setName("IPA").addText((t) => t.setValue(this.input.ipa).onChange((v) => this.input.ipa = v));
-    new import_obsidian.Setting(contentEl).setName("Ngh\u0129a Anh\u2013Anh").addTextArea((t) => {
+    new import_obsidian2.Setting(contentEl).setName("IPA").addText((t) => t.setValue(this.input.ipa).onChange((v) => this.input.ipa = v));
+    new import_obsidian2.Setting(contentEl).setName("Ngh\u0129a Anh\u2013Anh").addTextArea((t) => {
       t.setValue(this.input.meaningEn).onChange((v) => this.input.meaningEn = v);
       t.inputEl.rows = 2;
       t.inputEl.addClass("vf-input-wide");
     });
-    new import_obsidian.Setting(contentEl).setName("Ngh\u0129a ti\u1EBFng Vi\u1EC7t").addTextArea((t) => {
+    new import_obsidian2.Setting(contentEl).setName("Ngh\u0129a ti\u1EBFng Vi\u1EC7t").addTextArea((t) => {
       t.setValue(this.input.meaningVi).onChange((v) => this.input.meaningVi = v);
       t.inputEl.rows = 2;
       t.inputEl.addClass("vf-input-wide");
     });
-    new import_obsidian.Setting(contentEl).setName("Quote \u2014 c\xE2u v\xED d\u1EE5 / ng\u1EEF c\u1EA3nh").addTextArea((t) => {
+    new import_obsidian2.Setting(contentEl).setName("Quote \u2014 c\xE2u v\xED d\u1EE5 / ng\u1EEF c\u1EA3nh").addTextArea((t) => {
       t.setValue(this.input.quote).onChange((v) => this.input.quote = v);
       t.inputEl.rows = 2;
       t.inputEl.addClass("vf-input-wide");
     });
-    new import_obsidian.Setting(contentEl).setName("Collocations").setDesc("C\xE1ch nhau d\u1EA5u ph\u1EA9y").addText(
+    new import_obsidian2.Setting(contentEl).setName("Collocations").setDesc("C\xE1ch nhau d\u1EA5u ph\u1EA9y").addText(
       (t) => t.setValue(this.input.collocations.join(", ")).onChange((v) => {
         this.input.collocations = v.split(",").map((s) => s.trim()).filter(Boolean);
       })
     );
-    new import_obsidian.Setting(contentEl).setName("Word family (forms)").setDesc("C\xE1c d\u1EA1ng bi\u1EBFn th\u1EC3, c\xE1ch nhau d\u1EA5u ph\u1EA9y").addText(
+    new import_obsidian2.Setting(contentEl).setName("Word family (forms)").setDesc("C\xE1c d\u1EA1ng bi\u1EBFn th\u1EC3, c\xE1ch nhau d\u1EA5u ph\u1EA9y").addText(
       (t) => t.setValue(this.input.forms.join(", ")).onChange((v) => {
         this.input.forms = v.split(",").map((s) => s.trim()).filter(Boolean);
       })
     );
-    const sourceSetting = new import_obsidian.Setting(contentEl).setName("Ngu\u1ED3n").setDesc("Wikilink note g\u1ED1c, vd [[T\xEAn clip]]").addText((t) => {
+    const sourceSetting = new import_obsidian2.Setting(contentEl).setName("Ngu\u1ED3n").setDesc("Wikilink note g\u1ED1c, vd [[T\xEAn clip]]").addText((t) => {
       t.setValue(this.input.source).onChange((v) => this.input.source = v);
       this.sourceText = t.inputEl;
     });
@@ -357,18 +565,18 @@ var AddCardModal = class extends import_obsidian.Modal {
       (b) => b.setButtonText("D\xF9ng note \u0111ang m\u1EDF").onClick(() => {
         const f = this.app.workspace.getActiveFile();
         if (!f) {
-          new import_obsidian.Notice("Kh\xF4ng c\xF3 note n\xE0o \u0111ang m\u1EDF");
+          new import_obsidian2.Notice("Kh\xF4ng c\xF3 note n\xE0o \u0111ang m\u1EDF");
           return;
         }
         this.fillFromFile(f);
       })
     );
-    new import_obsidian.Setting(contentEl).setName("Link video").addText((t) => {
+    new import_obsidian2.Setting(contentEl).setName("Link video").addText((t) => {
       t.setValue(this.input.sourceUrl).onChange((v) => this.input.sourceUrl = v);
       this.urlText = t.inputEl;
     });
-    new import_obsidian.Setting(contentEl).setName("\u{1F5BC} Sinh \u1EA3nh minh ho\u1EA1 (AI, ch\u1EA1y n\u1EC1n)").addToggle((t) => t.setValue(this.makeImage).onChange((v) => this.makeImage = v));
-    new import_obsidian.Setting(contentEl).addButton(
+    new import_obsidian2.Setting(contentEl).setName("\u{1F5BC} Sinh \u1EA3nh minh ho\u1EA1 (AI, ch\u1EA1y n\u1EC1n)").addToggle((t) => t.setValue(this.makeImage).onChange((v) => this.makeImage = v));
+    new import_obsidian2.Setting(contentEl).addButton(
       (b) => b.setButtonText("T\u1EA1o th\u1EBB").setCta().onClick(() => void this.submit())
     );
   }
@@ -384,24 +592,24 @@ var AddCardModal = class extends import_obsidian.Modal {
   }
   async submit() {
     if (!this.input.word.trim()) {
-      new import_obsidian.Notice("Ch\u01B0a nh\u1EADp n\u1ED9i dung c\u1EA7n h\u1ECDc");
+      new import_obsidian2.Notice("Ch\u01B0a nh\u1EADp n\u1ED9i dung c\u1EA7n h\u1ECDc");
       return;
     }
     this.input.word = this.input.word.trim();
     try {
       const file = await this.plugin.store.createCard(this.input);
-      new import_obsidian.Notice(`\u2705 \u0110\xE3 t\u1EA1o th\u1EBB: ${file.basename}`);
+      new import_obsidian2.Notice(`\u2705 \u0110\xE3 t\u1EA1o th\u1EBB: ${file.basename}`);
       this.plugin.refreshStatusBar();
       if (this.makeImage) {
-        new import_obsidian.Notice("\u{1F5BC} \u0110ang sinh \u1EA3nh minh ho\u1EA1 n\u1EC1n (~1 ph\xFAt)\u2026");
+        new import_obsidian2.Notice("\u{1F5BC} \u0110ang sinh \u1EA3nh minh ho\u1EA1 n\u1EC1n (~1 ph\xFAt)\u2026");
         void this.plugin.generateCardImage(file, this.input.word, this.input.meaningEn).then(
-          (ok) => new import_obsidian.Notice(ok ? `\u{1F5BC} \u1EA2nh cho "${file.basename}" \u0111\xE3 xong!` : `\u1EA2nh cho "${file.basename}" th\u1EA5t b\u1EA1i`)
+          (ok) => new import_obsidian2.Notice(ok ? `\u{1F5BC} \u1EA2nh cho "${file.basename}" \u0111\xE3 xong!` : `\u1EA2nh cho "${file.basename}" th\u1EA5t b\u1EA1i`)
         );
       }
       this.close();
     } catch (e) {
       console.error("Vocab Forge: l\u1ED7i t\u1EA1o th\u1EBB", e);
-      new import_obsidian.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c th\u1EBB \u2014 xem console");
+      new import_obsidian2.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c th\u1EBB \u2014 xem console");
     }
   }
   onClose() {
@@ -410,8 +618,8 @@ var AddCardModal = class extends import_obsidian.Modal {
 };
 
 // src/aboutModal.ts
-var import_obsidian2 = require("obsidian");
-var AboutModal = class extends import_obsidian2.Modal {
+var import_obsidian3 = require("obsidian");
+var AboutModal = class extends import_obsidian3.Modal {
   constructor(app, plugin) {
     super(app);
     this.plugin = plugin;
@@ -423,7 +631,7 @@ var AboutModal = class extends import_obsidian2.Modal {
     const header = contentEl.createDiv({ cls: "vf-about-header" });
     header.createDiv({ text: "\u{1F393}", cls: "vf-about-icon" });
     header.createEl("h2", { text: "Vocab Forge", cls: "vf-about-title" });
-    header.createSpan({ text: "v2.0.0", cls: "vf-about-version" });
+    header.createSpan({ text: "v2.1.0", cls: "vf-about-version" });
     header.createDiv({
       text: "English Fluency OS: t\u1EEB video th\u1EADt \u0111\u1EBFn ghi nh\u1EDB, nghe, n\xF3i v\xE0 vi\u1EBFt",
       cls: "vf-about-subtitle"
@@ -459,18 +667,18 @@ var AboutModal = class extends import_obsidian2.Modal {
     copyBtn.onclick = async () => {
       try {
         await navigator.clipboard.writeText("tony@tranvanhoang.com");
-        new import_obsidian2.Notice("\u2705 \u0110\xE3 sao ch\xE9p email: tony@tranvanhoang.com");
+        new import_obsidian3.Notice("\u2705 \u0110\xE3 sao ch\xE9p email: tony@tranvanhoang.com");
       } catch {
-        new import_obsidian2.Notice("tony@tranvanhoang.com");
+        new import_obsidian3.Notice("tony@tranvanhoang.com");
       }
     };
     const featBox = contentEl.createDiv({ cls: "vf-about-feat-box" });
     featBox.createEl("h4", { text: "\u2728 T\xCDNH N\u0102NG N\u1ED4I B\u1EACT", cls: "vf-about-section-title" });
     const feats = [
       { icon: "\u{1F9E0}", title: "FSRS Spaced Repetition", desc: "Thu\u1EADt to\xE1n l\u1EB7p l\u1EA1i ng\u1EAFt qu\xE3ng hi\u1EC7n \u0111\u1EA1i t\u1ED1i \u01B0u kh\u1EA3 n\u0103ng ghi nh\u1EDB d\xE0i h\u1EA1n." },
-      { icon: "\u2728", title: "YouTube Smart Capture", desc: "D\xE1n URL ho\u1EB7c transcript, AI CLI ch\u1ECDn c\u1EE5m h\u1EEFu d\u1EE5ng v\xE0 t\u1EA1o th\u1EBB \u0111\xFAng timestamp." },
+      { icon: "\u2728", title: "YouTube Smart Capture", desc: "D\xE1n URL ho\u1EB7c transcript, AI ch\u1ECDn c\u1EE5m h\u1EEFu d\u1EE5ng v\xE0 t\u1EA1o th\u1EBB \u0111\xFAng timestamp." },
       { icon: "\u{1F399}\uFE0F", title: "Fluency Lab", desc: "Listening, dictation, ghi \xE2m shadowing, word-level diff v\xE0 Video Comprehension Score." },
-      { icon: "\u{1F916}", title: "AI CLI local", desc: "D\xF9ng t\xE0i kho\u1EA3n Claude, Codex, Gemini ho\u1EB7c Grok CLI \u0111\xE3 \u0111\u0103ng nh\u1EADp; plugin kh\xF4ng y\xEAu c\u1EA7u API key." },
+      { icon: "\u{1F916}", title: "AI linh ho\u1EA1t: CLI local ho\u1EB7c API key", desc: "Desktop: d\xF9ng Claude, Codex, Gemini, Grok CLI \u0111\xE3 \u0111\u0103ng nh\u1EADp (kh\xF4ng c\u1EA7n key). iPhone/iPad: nh\u1EADp API key DeepSeek, MiniMax, OpenAI, Claude, Gemini ho\u1EB7c OpenRouter v\xE0 t\u1EF1 ch\u1ECDn model." },
       { icon: "\u{1F3AF}", title: "Nhi\u1EC1u ch\u1EBF \u0111\u1ED9 luy\u1EC7n t\u1EADp", desc: "Tr\u1EAFc nghi\u1EC7m, n\u1ED1i t\u1EEB, \u0111i\u1EC1n t\u1EEB v\xE0o c\xE2u, x\u1EBFp t\u1EEB & t\xECm l\u1ED7i sai." },
       { icon: "\u{1F4DD}", title: "100% Markdown Vault Native", desc: "To\xE0n b\u1ED9 t\u1EEB v\u1EF1ng \u0111\u01B0\u1EE3c l\u01B0u tr\u1EEF an to\xE0n d\u01B0\u1EDBi d\u1EA1ng file Markdown trong Vault c\u1EE7a b\u1EA1n." }
     ];
@@ -494,11 +702,11 @@ var AboutModal = class extends import_obsidian2.Modal {
 };
 
 // src/reviewView.ts
-var import_obsidian6 = require("obsidian");
+var import_obsidian7 = require("obsidian");
 
 // src/imageModal.ts
-var import_obsidian3 = require("obsidian");
-var ImageModal = class extends import_obsidian3.Modal {
+var import_obsidian4 = require("obsidian");
+var ImageModal = class extends import_obsidian4.Modal {
   constructor(app, src, title = "") {
     super(app);
     this.src = src;
@@ -538,8 +746,8 @@ var ImageModal = class extends import_obsidian3.Modal {
 };
 
 // src/cardDetailModal.ts
-var import_obsidian4 = require("obsidian");
-var CardDetailModal = class extends import_obsidian4.Modal {
+var import_obsidian5 = require("obsidian");
+var CardDetailModal = class extends import_obsidian5.Modal {
   constructor(app, card, options) {
     super(app);
     this.card = card;
@@ -2935,7 +3143,7 @@ function checkBadges(ctx, todayKey2) {
 }
 
 // src/learning.ts
-var import_obsidian5 = require("obsidian");
+var import_obsidian6 = require("obsidian");
 var ITEM_SECONDS = {
   review: 24,
   recall: 42,
@@ -3155,15 +3363,15 @@ var FUNCTION_WORDS = new Set(
   "a an the and or but if then than so because as at by for from in into of on onto to with is am are was were be been being do does did have has had i you he she it we they me him her us them my your his its our their this that these those who whom whose which what when where why how not no yes can could may might must shall should will would".split(" ")
 );
 async function appendErrorNotebookEntry(app, entry, options = {}) {
-  const path = (0, import_obsidian5.normalizePath)(options.path ?? "Vocab Forge/My English Errors.md");
+  const path = (0, import_obsidian6.normalizePath)(options.path ?? "Vocab Forge/My English Errors.md");
   const title = options.title ?? "My English Errors";
   const parent = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
   if (parent) await ensureVaultFolder(app, parent);
   const existing = app.vault.getAbstractFileByPath(path);
-  if (existing && !(existing instanceof import_obsidian5.TFile)) throw new Error(`Cannot write error notebook: ${path} is not a file`);
+  if (existing && !(existing instanceof import_obsidian6.TFile)) throw new Error(`Cannot write error notebook: ${path} is not a file`);
   const createdAt = entry.createdAt ?? /* @__PURE__ */ new Date();
   const block = formatErrorNotebookEntry(entry, createdAt);
-  if (existing instanceof import_obsidian5.TFile) {
+  if (existing instanceof import_obsidian6.TFile) {
     await app.vault.append(existing, `
 ${block}`);
     return existing;
@@ -3202,11 +3410,11 @@ function formatErrorNotebookEntry(entry, createdAt = entry.createdAt ?? /* @__PU
 }
 async function ensureVaultFolder(app, folderPath) {
   let current = "";
-  for (const part of (0, import_obsidian5.normalizePath)(folderPath).split("/").filter(Boolean)) {
+  for (const part of (0, import_obsidian6.normalizePath)(folderPath).split("/").filter(Boolean)) {
     current = current ? `${current}/${part}` : part;
     const existing = app.vault.getAbstractFileByPath(current);
     if (!existing) await app.vault.createFolder(current);
-    else if (!(existing instanceof import_obsidian5.TFolder)) throw new Error(`Cannot create folder: ${current} is a file`);
+    else if (!(existing instanceof import_obsidian6.TFolder)) throw new Error(`Cannot create folder: ${current} is a file`);
   }
 }
 function stableEntryId(entry, date) {
@@ -3577,7 +3785,7 @@ var STATE_LABELS = {
   [State.Review]: "\xD4n t\u1EADp",
   [State.Relearning]: "H\u1ECDc l\u1EA1i"
 };
-var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
+var VocabReviewView = class _VocabReviewView extends import_obsidian7.ItemView {
   constructor(leaf, plugin) {
     super(leaf);
     this.plugin = plugin;
@@ -3639,6 +3847,9 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
     this.matchMistaken = /* @__PURE__ */ new Set();
     this.matchWrongFlash = null;
     this.matchLocked = false;
+    // ============================================================= SETTINGS
+    /** Đang nhập model API tuỳ chỉnh (thay vì chọn từ danh sách gợi ý) */
+    this.apiModelCustom = false;
   }
   getViewType() {
     return VIEW_TYPE_VOCAB;
@@ -4277,7 +4488,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
       } else if (newEntries.length > 0) {
         const extraBatch = Math.min(this.plugin.settings.newPerDay || 5, newEntries.length);
         newEntries = newEntries.slice(0, extraBatch);
-        new import_obsidian6.Notice(`B\u1EAFt \u0111\u1EA7u h\u1ECDc th\xEAm ${newEntries.length} t\u1EEB m\u1EDBi \u2728`);
+        new import_obsidian7.Notice(`B\u1EAFt \u0111\u1EA7u h\u1ECDc th\xEAm ${newEntries.length} t\u1EEB m\u1EDBi \u2728`);
       } else {
         newEntries = [];
       }
@@ -4288,7 +4499,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
     if (!this.queue.length) {
       this.section = "dashboard";
       this.render();
-      new import_obsidian6.Notice("Kh\xF4ng c\xF2n th\u1EBB \u0111\u1EC3 h\u1ECDc \u{1F389}");
+      new import_obsidian7.Notice("Kh\xF4ng c\xF2n th\u1EBB \u0111\u1EC3 h\u1ECDc \u{1F389}");
       return;
     }
     this.section = "review";
@@ -4366,7 +4577,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
     const checkBtn = writeBox.createEl("button", { text: "AI ch\u1EA5m", cls: "vf-btn-icon vf-btn-ai" });
     checkBtn.onclick = () => void this.aiAction(checkBtn, async () => {
       if (!this.aiSentence.trim()) {
-        new import_obsidian6.Notice("G\xF5 c\xE2u c\u1EE7a b\u1EA1n tr\u01B0\u1EDBc \u0111\xE3");
+        new import_obsidian7.Notice("G\xF5 c\xE2u c\u1EE7a b\u1EA1n tr\u01B0\u1EDBc \u0111\xE3");
         return;
       }
       const raw = await this.plugin.runAI(
@@ -4374,7 +4585,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
         12e4
       );
       this.aiResult = extractJson(raw);
-      if (!this.aiResult) new import_obsidian6.Notice("AI tr\u1EA3 l\u1EDDi kh\xF4ng \u0111\xFAng \u0111\u1ECBnh d\u1EA1ng \u2014 th\u1EED l\u1EA1i");
+      if (!this.aiResult) new import_obsidian7.Notice("AI tr\u1EA3 l\u1EDDi kh\xF4ng \u0111\xFAng \u0111\u1ECBnh d\u1EA1ng \u2014 th\u1EED l\u1EA1i");
       else {
         this.plugin.recordSkill("writing", this.aiResult.score * 10);
         if (this.aiResult.corrected.trim() && this.aiResult.corrected.trim() !== this.aiSentence.trim()) {
@@ -4389,7 +4600,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
             }, { path: this.plugin.settings.errorNotebookPath });
           } catch (error) {
             console.warn("Vocab Forge: kh\xF4ng l\u01B0u \u0111\u01B0\u1EE3c S\u1ED5 l\u1ED7i", error);
-            new import_obsidian6.Notice("\u0110\xE3 ch\u1EA5m c\xE2u nh\u01B0ng ch\u01B0a l\u01B0u \u0111\u01B0\u1EE3c v\xE0o S\u1ED5 l\u1ED7i");
+            new import_obsidian7.Notice("\u0110\xE3 ch\u1EA5m c\xE2u nh\u01B0ng ch\u01B0a l\u01B0u \u0111\u01B0\u1EE3c v\xE0o S\u1ED5 l\u1ED7i");
           }
         }
       }
@@ -4411,7 +4622,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
       save.onclick = async () => {
         const sentence = (r.score >= 7 ? this.aiSentence : r.corrected).trim();
         await this.plugin.store.saveExtraField(card, "my_example", sentence);
-        new import_obsidian6.Notice("\u0110\xE3 l\u01B0u c\xE2u c\u1EE7a b\u1EA1n v\xE0o th\u1EBB \u270D\uFE0F");
+        new import_obsidian7.Notice("\u0110\xE3 l\u01B0u c\xE2u c\u1EE7a b\u1EA1n v\xE0o th\u1EBB \u270D\uFE0F");
         this.render();
       };
     }
@@ -4426,7 +4637,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
       await fn();
     } catch (e) {
       console.error("Vocab Forge AI:", e);
-      new import_obsidian6.Notice("L\u1ED7i g\u1ECDi AI CLI \u2014 ki\u1EC3m tra provider v\xE0 tr\u1EA1ng th\xE1i \u0111\u0103ng nh\u1EADp trong C\xE0i \u0111\u1EB7t");
+      new import_obsidian7.Notice("L\u1ED7i g\u1ECDi AI \u2014 ki\u1EC3m tra CLI/API key v\xE0 model trong C\xE0i \u0111\u1EB7t \u2192 AI");
     } finally {
       this.aiBusy = false;
       btn.disabled = false;
@@ -4632,11 +4843,11 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
         this.sessionTotal++;
       }
       if (grade === Rating.Again && next.lapses >= 4 && !card.mnemonic) {
-        new import_obsidian6.Notice(`\u{1F624} "${card.word}" \u0111\xE3 qu\xEAn ${next.lapses} l\u1EA7n \u2014 b\u1EA5m \u{1F9E0} T\u1EA1o m\u1EB9o nh\u1EDB \u1EDF m\u1EB7t sau th\u1EBB!`, 6e3);
+        new import_obsidian7.Notice(`\u{1F624} "${card.word}" \u0111\xE3 qu\xEAn ${next.lapses} l\u1EA7n \u2014 b\u1EA5m \u{1F9E0} T\u1EA1o m\u1EB9o nh\u1EDB \u1EDF m\u1EB7t sau th\u1EBB!`, 6e3);
       }
     } catch (e) {
       console.error("Vocab Forge: l\u1ED7i khi l\u01B0u th\u1EBB", e);
-      new import_obsidian6.Notice("Vocab Forge: kh\xF4ng l\u01B0u \u0111\u01B0\u1EE3c th\u1EBB \u2014 xem console");
+      new import_obsidian7.Notice("Vocab Forge: kh\xF4ng l\u01B0u \u0111\u01B0\u1EE3c th\u1EBB \u2014 xem console");
     } finally {
       this.rating = false;
     }
@@ -4755,7 +4966,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
     if (this.practiceDeck) cards = cards.filter((c) => c.category === this.practiceDeck);
     const queue = mode === "mix" ? buildMixedQueue(cards, this.practiceSize) : buildPracticeQueue(mode, cards, this.practiceSize);
     if (queue.length < 3) {
-      new import_obsidian6.Notice("Deck n\xE0y ch\u01B0a \u0111\u1EE7 th\u1EBB ph\xF9 h\u1EE3p cho ch\u1EBF \u0111\u1ED9 \u0111\xF3 (c\u1EA7n \u2265 3)");
+      new import_obsidian7.Notice("Deck n\xE0y ch\u01B0a \u0111\u1EE7 th\u1EBB ph\xF9 h\u1EE3p cho ch\u1EBF \u0111\u1ED9 \u0111\xF3 (c\u1EA7n \u2265 3)");
       return;
     }
     this.practiceMode = mode;
@@ -5115,7 +5326,6 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
       this.render();
     };
   }
-  // ============================================================= SETTINGS
   renderSettings(main) {
     main.createEl("h3", { text: "\u2699\uFE0F C\xE0i \u0111\u1EB7t" });
     const s = this.plugin.settings;
@@ -5250,48 +5460,134 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
       s.errorNotebookPath = ep.value.trim() || "5. Toolbox/English/My English Errors.md";
       await this.plugin.saveAll();
     };
-    main.createEl("h4", { text: "AI CLI local \xB7 plugin kh\xF4ng y\xEAu c\u1EA7u API key" });
-    const c7 = group("AI m\u1EB7c \u0111\u1ECBnh", "Auto \u01B0u ti\xEAn Claude \u2192 Grok \u2192 Gemini \u2192 Codex \u0111\xE3 \u0111\u0103ng nh\u1EADp tr\xEAn m\xE1y");
-    const provider = c7.createEl("select", { cls: "dropdown" });
-    for (const [value, label] of [["auto", "T\u1EF1 \u0111\u1ED9ng"], ["claude", "Claude CLI"], ["codex", "Codex CLI"], ["gemini", "Gemini CLI"], ["grok", "Grok CLI"]])
-      provider.createEl("option", { text: label, attr: { value } });
-    provider.value = s.aiProvider;
-    provider.onchange = async () => {
-      s.aiProvider = provider.value;
+    main.createEl("h4", { text: "\u{1F916} AI \u2014 CLI local ho\u1EB7c API key (iPhone/iPad d\xF9ng API)" });
+    const cMode = group("Ch\u1EBF \u0111\u1ED9 AI", "T\u1EF1 \u0111\u1ED9ng: CLI tr\xEAn desktop, t\u1EF1 chuy\u1EC3n sang API khi CLI l\u1ED7i ho\u1EB7c tr\xEAn mobile");
+    const modeSel = cMode.createEl("select", { cls: "dropdown" });
+    for (const [value, label] of [["auto", "T\u1EF1 \u0111\u1ED9ng (CLI \u2192 API)"], ["cli", "Ch\u1EC9 CLI (desktop)"], ["api", "Ch\u1EC9 API (iPhone/iPad)"]])
+      modeSel.createEl("option", { text: label, attr: { value } });
+    modeSel.value = s.aiMode;
+    modeSel.onchange = async () => {
+      s.aiMode = modeSel.value;
       this.plugin.resetAiProvider();
       await this.plugin.saveAll();
+      this.render();
     };
-    const checkAi = c7.createEl("button", { text: "Ki\u1EC3m tra", cls: "vf-btn-icon" });
+    const checkAi = cMode.createEl("button", { text: "Ki\u1EC3m tra", cls: "vf-btn-icon" });
     checkAi.onclick = async () => {
       checkAi.disabled = true;
       checkAi.setText("\u0110ang ki\u1EC3m tra\u2026");
       try {
-        new import_obsidian6.Notice(await this.plugin.aiStatusSummary(), 9e3);
+        new import_obsidian7.Notice(await this.plugin.aiStatusSummary(), 9e3);
       } finally {
         checkAi.disabled = false;
         checkAi.setText("Ki\u1EC3m tra");
       }
     };
-    const cliPaths = [
-      ["Claude CLI", "claudePath", "claude"],
-      ["Codex CLI", "codexPath", "codex"],
-      ["Gemini CLI", "geminiPath", "gemini"],
-      ["Grok CLI", "grokPath", "grok"]
-    ];
-    for (const [label, key, fallback] of cliPaths) {
-      const ctrl = group(label, "\u0110\u01B0\u1EDDng d\u1EABn binary; \u0111\u1EC3 t\xEAn l\u1EC7nh n\u1EBFu \u0111\xE3 c\xF3 trong PATH");
-      const input = ctrl.createEl("input", { attr: { type: "text", value: s[key] }, cls: "vf-input" });
-      input.onchange = async () => {
-        s[key] = input.value.trim() || fallback;
+    if (s.aiMode !== "cli") {
+      const info = AI_API_PROVIDERS[s.apiProvider];
+      const cProv = group("Nh\xE0 cung c\u1EA5p API", "Key l\u01B0u trong data.json c\u1EE7a vault \u2014 c\u1EA9n th\u1EADn khi sync/chia s\u1EBB vault");
+      const provSel = cProv.createEl("select", { cls: "dropdown" });
+      for (const p of AI_API_PROVIDER_IDS)
+        provSel.createEl("option", { text: AI_API_PROVIDERS[p].label, attr: { value: p } });
+      provSel.value = s.apiProvider;
+      provSel.onchange = async () => {
+        s.apiProvider = provSel.value;
+        this.apiModelCustom = false;
+        await this.plugin.saveAll();
+        this.render();
+      };
+      const cKey = group(`API key ${info.label}`, `T\u1EA1o key t\u1EA1i: ${info.keyUrl}`);
+      const keyInput = cKey.createEl("input", {
+        attr: { type: "password", value: s.apiKeys[s.apiProvider] ?? "", placeholder: "sk-\u2026" },
+        cls: "vf-input"
+      });
+      keyInput.onchange = async () => {
+        s.apiKeys[s.apiProvider] = keyInput.value.trim();
+        await this.plugin.saveAll();
+      };
+      const keyBtn = cKey.createEl("button", { text: "\u{1F511}", cls: "vf-btn-icon" });
+      keyBtn.onclick = () => window.open(info.keyUrl);
+      const currentModel = (s.apiModels[s.apiProvider] ?? "").trim() || info.defaultModel;
+      const customModel = this.apiModelCustom || !info.models.includes(currentModel);
+      const cModel = group("Model AI", `M\u1EB7c \u0111\u1ECBnh: ${info.defaultModel}`);
+      if (customModel) {
+        const mInput = cModel.createEl("input", {
+          attr: { type: "text", value: s.apiModels[s.apiProvider] ?? "", placeholder: info.defaultModel },
+          cls: "vf-input"
+        });
+        mInput.onchange = async () => {
+          s.apiModels[s.apiProvider] = mInput.value.trim();
+          await this.plugin.saveAll();
+        };
+        const backBtn = cModel.createEl("button", { text: "\u21A9 Danh s\xE1ch", cls: "vf-btn-icon" });
+        backBtn.onclick = async () => {
+          this.apiModelCustom = false;
+          s.apiModels[s.apiProvider] = info.defaultModel;
+          await this.plugin.saveAll();
+          this.render();
+        };
+      } else {
+        const mSel = cModel.createEl("select", { cls: "dropdown" });
+        for (const m of info.models) mSel.createEl("option", { text: m, attr: { value: m } });
+        mSel.createEl("option", { text: "Kh\xE1c (t\u1EF1 nh\u1EADp)\u2026", attr: { value: "__custom__" } });
+        mSel.value = currentModel;
+        mSel.onchange = async () => {
+          if (mSel.value === "__custom__") {
+            this.apiModelCustom = true;
+            this.render();
+            return;
+          }
+          s.apiModels[s.apiProvider] = mSel.value;
+          await this.plugin.saveAll();
+        };
+      }
+      const cTest = group("Ki\u1EC3m tra k\u1EBFt n\u1ED1i API", "G\u1EEDi m\u1ED9t c\xE2u ng\u1EAFn t\u1EDBi model \u0111\xE3 ch\u1ECDn \u0111\u1EC3 x\xE1c nh\u1EADn key ho\u1EA1t \u0111\u1ED9ng");
+      const testBtn = cTest.createEl("button", { text: "\u26A1 Test", cls: "vf-btn-icon" });
+      testBtn.onclick = async () => {
+        testBtn.disabled = true;
+        testBtn.setText("\u0110ang test\u2026");
+        try {
+          new import_obsidian7.Notice(`\u2705 ${info.label} OK: ${await this.plugin.testAiApi()}`);
+        } catch (e) {
+          new import_obsidian7.Notice(`\u274C ${e instanceof Error ? e.message : String(e)}`, 8e3);
+        } finally {
+          testBtn.disabled = false;
+          testBtn.setText("\u26A1 Test");
+        }
+      };
+    }
+    if (s.aiMode !== "api") {
+      const c7 = group("CLI m\u1EB7c \u0111\u1ECBnh", "Auto \u01B0u ti\xEAn Claude \u2192 Grok \u2192 Gemini \u2192 Codex \u0111\xE3 \u0111\u0103ng nh\u1EADp tr\xEAn m\xE1y");
+      const provider = c7.createEl("select", { cls: "dropdown" });
+      for (const [value, label] of [["auto", "T\u1EF1 \u0111\u1ED9ng"], ["claude", "Claude CLI"], ["codex", "Codex CLI"], ["gemini", "Gemini CLI"], ["grok", "Grok CLI"]])
+        provider.createEl("option", { text: label, attr: { value } });
+      provider.value = s.aiProvider;
+      provider.onchange = async () => {
+        s.aiProvider = provider.value;
         this.plugin.resetAiProvider();
         await this.plugin.saveAll();
       };
+      const cliPaths = [
+        ["Claude CLI", "claudePath", "claude"],
+        ["Codex CLI", "codexPath", "codex"],
+        ["Gemini CLI", "geminiPath", "gemini"],
+        ["Grok CLI", "grokPath", "grok"]
+      ];
+      for (const [label, key, fallback] of cliPaths) {
+        const ctrl = group(label, "\u0110\u01B0\u1EDDng d\u1EABn binary; \u0111\u1EC3 t\xEAn l\u1EC7nh n\u1EBFu \u0111\xE3 c\xF3 trong PATH");
+        const input = ctrl.createEl("input", { attr: { type: "text", value: s[key] }, cls: "vf-input" });
+        input.onchange = async () => {
+          s[key] = input.value.trim() || fallback;
+          this.plugin.resetAiProvider();
+          await this.plugin.saveAll();
+        };
+      }
     }
     main.createEl("h4", { text: "Th\xF4ng tin & T\xE1c gi\u1EA3" });
     const authorGroup = main.createDiv({ cls: "vf-setting vf-author-card" });
     const authorInfo = authorGroup.createDiv({ cls: "vf-setting-info" });
     authorInfo.createDiv({ text: "\u{1F464} Tony Hoang (Tr\u1EA7n V\u0103n Ho\xE0ng)", cls: "vf-setting-name" });
-    authorInfo.createDiv({ text: "\u2709\uFE0F tony@tranvanhoang.com \xB7 Vocab Forge v2.0", cls: "vf-setting-desc" });
+    authorInfo.createDiv({ text: "\u2709\uFE0F tony@tranvanhoang.com \xB7 Vocab Forge v2.1", cls: "vf-setting-desc" });
     const authorCtrl = authorGroup.createDiv({ cls: "vf-setting-control" });
     const infoModalBtn = authorCtrl.createEl("button", { text: "\u2139\uFE0F Th\xF4ng tin", cls: "vf-btn-icon" });
     infoModalBtn.onclick = () => new AboutModal(this.app, this.plugin).open();
@@ -5472,7 +5768,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
     const actions = box.createDiv({ cls: "vf-actions" });
     const check = actions.createEl("button", { text: "Ki\u1EC3m tra", cls: "vf-btn-hero vf-btn-hero-small" });
     check.onclick = () => {
-      if (!this.labAnswer.trim()) return new import_obsidian6.Notice("H\xE3y g\xF5 c\xE2u b\u1EA1n nghe \u0111\u01B0\u1EE3c tr\u01B0\u1EDBc");
+      if (!this.labAnswer.trim()) return new import_obsidian7.Notice("H\xE3y g\xF5 c\xE2u b\u1EA1n nghe \u0111\u01B0\u1EE3c tr\u01B0\u1EDBc");
       this.labDiff = diffTranscripts(card.quote, this.labAnswer);
       this.labReveal = true;
       this.plugin.recordSkill("listening", Math.round(this.labDiff.accuracy * 100));
@@ -5552,7 +5848,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
       console.error("Vocab Forge recorder:", e);
       this.audioRecorder.cancel();
       const cancelled = e instanceof Error && e.message.includes("cancelled");
-      if (this.section === "lab" && !cancelled) new import_obsidian6.Notice("Kh\xF4ng m\u1EDF \u0111\u01B0\u1EE3c microphone \u2014 ki\u1EC3m tra quy\u1EC1n microphone c\u1EE7a Obsidian");
+      if (this.section === "lab" && !cancelled) new import_obsidian7.Notice("Kh\xF4ng m\u1EDF \u0111\u01B0\u1EE3c microphone \u2014 ki\u1EC3m tra quy\u1EC1n microphone c\u1EE7a Obsidian");
     } finally {
       this.labStarting = false;
       if (this.section === "lab") this.render();
@@ -5576,10 +5872,10 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
       if (this.labShadowScore) {
         this.plugin.recordSkill("speaking", this.labShadowScore.overall);
         this.plugin.recordPractice(this.labShadowScore.overall >= 75);
-      } else new import_obsidian6.Notice("\u0110\xE3 ghi \xE2m \u2014 h\xE3y nghe l\u1EA1i b\u1EA3n thu \u0111\u1EC3 t\u1EF1 \u0111\u1ED1i chi\u1EBFu");
+      } else new import_obsidian7.Notice("\u0110\xE3 ghi \xE2m \u2014 h\xE3y nghe l\u1EA1i b\u1EA3n thu \u0111\u1EC3 t\u1EF1 \u0111\u1ED1i chi\u1EBFu");
     } catch (e) {
       console.error("Vocab Forge shadowing:", e);
-      new import_obsidian6.Notice("Kh\xF4ng ho\xE0n t\u1EA5t \u0111\u01B0\u1EE3c b\u1EA3n ghi \xE2m");
+      new import_obsidian7.Notice("Kh\xF4ng ho\xE0n t\u1EA5t \u0111\u01B0\u1EE3c b\u1EA3n ghi \xE2m");
     }
     this.render();
   }
@@ -5607,14 +5903,14 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
     const actions = card.createDiv({ cls: "vf-actions" });
     const analyze = actions.createEl("button", { text: "Ph\xE2n t\xEDch video", cls: "vf-btn-hero vf-btn-hero-small" });
     analyze.onclick = () => {
-      if (!this.coverageText.trim()) return new import_obsidian6.Notice("H\xE3y d\xE1n transcript tr\u01B0\u1EDBc");
+      if (!this.coverageText.trim()) return new import_obsidian7.Notice("H\xE3y d\xE1n transcript tr\u01B0\u1EDBc");
       this.coverageResult = analyzeVideoComprehension(this.cleanCoverageText(this.coverageText), this.plugin.store.getAllCards());
       this.render();
     };
     const active = actions.createEl("button", { text: "D\xF9ng note \u0111ang m\u1EDF", cls: "vf-btn-icon" });
     active.onclick = async () => {
       const file = this.app.workspace.getActiveFile();
-      if (!file) return new import_obsidian6.Notice("Kh\xF4ng c\xF3 note \u0111ang m\u1EDF");
+      if (!file) return new import_obsidian7.Notice("Kh\xF4ng c\xF3 note \u0111ang m\u1EDF");
       this.coverageText = await this.app.vault.read(file);
       this.coverageResult = analyzeVideoComprehension(this.cleanCoverageText(this.coverageText), this.plugin.store.getAllCards());
       this.render();
@@ -5754,14 +6050,14 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
         },
         onError: () => {
           this.chatListening = false;
-          new import_obsidian6.Notice("Kh\xF4ng nh\u1EADn \u0111\u01B0\u1EE3c gi\u1ECDng n\xF3i \u2014 ki\u1EC3m tra quy\u1EC1n microphone");
+          new import_obsidian7.Notice("Kh\xF4ng nh\u1EADn \u0111\u01B0\u1EE3c gi\u1ECDng n\xF3i \u2014 ki\u1EC3m tra quy\u1EC1n microphone");
           this.render();
         }
       });
       this.render();
     } catch {
       this.chatListening = false;
-      new import_obsidian6.Notice("Thi\u1EBFt b\u1ECB ch\u01B0a h\u1ED7 tr\u1EE3 speech recognition");
+      new import_obsidian7.Notice("Thi\u1EBFt b\u1ECB ch\u01B0a h\u1ED7 tr\u1EE3 speech recognition");
     }
   }
   pickChatWords() {
@@ -5784,7 +6080,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
     if (this.chatSession) this.plugin.clearAiSession(this.chatSession);
     this.chatWords = this.pickChatWords();
     if (this.chatWords.length < 2) {
-      new import_obsidian6.Notice("Ch\u01B0a \u0111\u1EE7 th\u1EBB \u0111\u1EC3 t\u1EA1o h\u1ED9i tho\u1EA1i");
+      new import_obsidian7.Notice("Ch\u01B0a \u0111\u1EE7 th\u1EBB \u0111\u1EC3 t\u1EA1o h\u1ED9i tho\u1EA1i");
       return;
     }
     this.chatMsgs = [];
@@ -5802,7 +6098,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
       this.plugin.speak(first.trim());
     } catch (e) {
       console.error("Vocab Forge chat:", e);
-      new import_obsidian6.Notice("Kh\xF4ng b\u1EAFt \u0111\u1EA7u \u0111\u01B0\u1EE3c h\u1ED9i tho\u1EA1i \u2014 ki\u1EC3m tra AI CLI");
+      new import_obsidian7.Notice("Kh\xF4ng b\u1EAFt \u0111\u1EA7u \u0111\u01B0\u1EE3c h\u1ED9i tho\u1EA1i \u2014 ki\u1EC3m tra AI (CLI ho\u1EB7c API key) trong C\xE0i \u0111\u1EB7t");
     } finally {
       this.chatBusy = false;
       this.render();
@@ -5821,7 +6117,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
       this.plugin.speak(reply.trim());
     } catch (e) {
       console.error("Vocab Forge chat:", e);
-      new import_obsidian6.Notice("L\u1ED7i g\u1EEDi tin \u2014 th\u1EED l\u1EA1i");
+      new import_obsidian7.Notice("L\u1ED7i g\u1EEDi tin \u2014 th\u1EED l\u1EA1i");
       this.chatMsgs.pop();
       this.chatInput = text;
     } finally {
@@ -5846,7 +6142,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
       this.chatSession = "";
     } catch (e) {
       console.error("Vocab Forge chat:", e);
-      new import_obsidian6.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c nh\u1EADn x\xE9t");
+      new import_obsidian7.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c nh\u1EADn x\xE9t");
     } finally {
       this.chatBusy = false;
       this.render();
@@ -5913,7 +6209,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
     if (pool.length < 3)
       pool = this.plugin.store.getAllCards().filter((c) => c.type !== "sentence" && c.type !== "passage" && c.type !== "grammar");
     if (pool.length < 3) {
-      new import_obsidian6.Notice("Ch\u01B0a \u0111\u1EE7 th\u1EBB \u0111\u1EC3 t\u1EA1o story");
+      new import_obsidian7.Notice("Ch\u01B0a \u0111\u1EE7 th\u1EBB \u0111\u1EC3 t\u1EA1o story");
       return;
     }
     const picked = sample(pool, 7);
@@ -5931,7 +6227,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
       await this.plugin.saveAll();
     } catch (e) {
       console.error("Vocab Forge story:", e);
-      new import_obsidian6.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c story \u2014 ki\u1EC3m tra AI CLI");
+      new import_obsidian7.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c story \u2014 ki\u1EC3m tra AI CLI");
     } finally {
       this.storyBusy = false;
       this.render();
@@ -5998,14 +6294,14 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
 };
 
 // src/store.ts
-var import_obsidian7 = require("obsidian");
+var import_obsidian8 = require("obsidian");
 var CardStore = class {
   constructor(app, getSettings) {
     this.app = app;
     this.getSettings = getSettings;
   }
   get folder() {
-    return (0, import_obsidian7.normalizePath)(this.getSettings().cardsFolder);
+    return (0, import_obsidian8.normalizePath)(this.getSettings().cardsFolder);
   }
   /** Đọc toàn bộ thẻ trong folder (dựa vào metadataCache nên rất nhanh) */
   getAllCards() {
@@ -6102,10 +6398,10 @@ var CardStore = class {
     const targetFolder = `${this.folder}/${category}`;
     await this.ensureFolder(targetFolder);
     const base = sanitizeFilename(input.word) || "card";
-    let path = (0, import_obsidian7.normalizePath)(`${targetFolder}/${base}.md`);
+    let path = (0, import_obsidian8.normalizePath)(`${targetFolder}/${base}.md`);
     let i = 1;
     while (this.app.vault.getAbstractFileByPath(path)) {
-      path = (0, import_obsidian7.normalizePath)(`${targetFolder}/${base} ${++i}.md`);
+      path = (0, import_obsidian8.normalizePath)(`${targetFolder}/${base} ${++i}.md`);
     }
     const empty = createEmptyCard(/* @__PURE__ */ new Date());
     const yaml = buildCardYaml(input, empty);
@@ -6129,8 +6425,8 @@ Ngu\u1ED3n: ${input.source || "_(ch\u01B0a r\xF5)_"}
           await this.app.vault.createFolder(cur);
         } catch (e) {
         }
-      } else if (!(existing instanceof import_obsidian7.TFolder)) {
-        new import_obsidian7.Notice(`Vocab Forge: "${cur}" \u0111\xE3 t\u1ED3n t\u1EA1i nh\u01B0ng kh\xF4ng ph\u1EA3i folder`);
+      } else if (!(existing instanceof import_obsidian8.TFolder)) {
+        new import_obsidian8.Notice(`Vocab Forge: "${cur}" \u0111\xE3 t\u1ED3n t\u1EA1i nh\u01B0ng kh\xF4ng ph\u1EA3i folder`);
         throw new Error("cards folder path conflict");
       }
     }
@@ -6176,42 +6472,44 @@ function buildCardYaml(input, fsrsCard) {
 }
 
 // src/settingsTab.ts
-var import_obsidian8 = require("obsidian");
-var VocabForgeSettingTab = class extends import_obsidian8.PluginSettingTab {
+var import_obsidian9 = require("obsidian");
+var VocabForgeSettingTab = class extends import_obsidian9.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.plugin = plugin;
+    /** Đang nhập model tuỳ chỉnh (thay vì chọn từ danh sách gợi ý) */
+    this.apiModelCustom = false;
   }
   display() {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.createEl("h2", { text: "Vocab Forge" });
-    new import_obsidian8.Setting(containerEl).setName("Folder ch\u1EE9a th\u1EBB").setDesc("M\u1ED7i th\u1EBB l\xE0 m\u1ED9t file .md trong folder n\xE0y").addText(
+    new import_obsidian9.Setting(containerEl).setName("Folder ch\u1EE9a th\u1EBB").setDesc("M\u1ED7i th\u1EBB l\xE0 m\u1ED9t file .md trong folder n\xE0y").addText(
       (t) => t.setValue(this.plugin.settings.cardsFolder).onChange(async (v) => {
         this.plugin.settings.cardsFolder = v.trim() || "5. Toolbox/English/Cards";
         await this.plugin.saveAll();
       })
     );
-    new import_obsidian8.Setting(containerEl).setName("S\u1ED1 th\u1EBB m\u1EDBi m\u1ED7i ng\xE0y").setDesc("Gi\u1EDBi h\u1EA1n th\u1EBB m\u1EDBi \u0111\u01B0a v\xE0o h\u1ECDc m\u1ED7i ng\xE0y (ki\u1EC3u Anki)").addSlider(
+    new import_obsidian9.Setting(containerEl).setName("S\u1ED1 th\u1EBB m\u1EDBi m\u1ED7i ng\xE0y").setDesc("Gi\u1EDBi h\u1EA1n th\u1EBB m\u1EDBi \u0111\u01B0a v\xE0o h\u1ECDc m\u1ED7i ng\xE0y (ki\u1EC3u Anki)").addSlider(
       (s) => s.setLimits(0, 50, 1).setValue(this.plugin.settings.newPerDay).setDynamicTooltip().onChange(async (v) => {
         this.plugin.settings.newPerDay = v;
         await this.plugin.saveAll();
       })
     );
-    new import_obsidian8.Setting(containerEl).setName("M\u1EE9c ghi nh\u1EDB m\u1EE5c ti\xEAu (retention)").setDesc("FSRS x\u1EBFp l\u1ECBch \u0111\u1EC3 b\u1EA1n nh\u1EDB \u0111\u01B0\u1EE3c ~t\u1EF7 l\u1EC7 n\xE0y khi \xF4n. 0.9 = c\xE2n b\u1EB1ng t\u1ED1t; cao h\u01A1n = \xF4n d\xE0y h\u01A1n").addSlider(
+    new import_obsidian9.Setting(containerEl).setName("M\u1EE9c ghi nh\u1EDB m\u1EE5c ti\xEAu (retention)").setDesc("FSRS x\u1EBFp l\u1ECBch \u0111\u1EC3 b\u1EA1n nh\u1EDB \u0111\u01B0\u1EE3c ~t\u1EF7 l\u1EC7 n\xE0y khi \xF4n. 0.9 = c\xE2n b\u1EB1ng t\u1ED1t; cao h\u01A1n = \xF4n d\xE0y h\u01A1n").addSlider(
       (s) => s.setLimits(0.8, 0.97, 0.01).setValue(this.plugin.settings.requestRetention).setDynamicTooltip().onChange(async (v) => {
         this.plugin.settings.requestRetention = v;
         this.plugin.rebuildScheduler();
         await this.plugin.saveAll();
       })
     );
-    new import_obsidian8.Setting(containerEl).setName("T\u1ED1c \u0111\u1ED9 \u0111\u1ECDc (TTS)").addSlider(
+    new import_obsidian9.Setting(containerEl).setName("T\u1ED1c \u0111\u1ED9 \u0111\u1ECDc (TTS)").addSlider(
       (s) => s.setLimits(0.5, 1.5, 0.05).setValue(this.plugin.settings.ttsRate).setDynamicTooltip().onChange(async (v) => {
         this.plugin.settings.ttsRate = v;
         await this.plugin.saveAll();
       })
     );
-    new import_obsidian8.Setting(containerEl).setName("Gi\u1ECDng \u0111\u1ECDc").setDesc("Ch\u1ECDn gi\u1ECDng ti\u1EBFng Anh c\u1EE7a h\u1EC7 th\u1ED1ng").addDropdown((d) => {
+    new import_obsidian9.Setting(containerEl).setName("Gi\u1ECDng \u0111\u1ECDc").setDesc("Ch\u1ECDn gi\u1ECDng ti\u1EBFng Anh c\u1EE7a h\u1EC7 th\u1ED1ng").addDropdown((d) => {
       d.addOption("", "\u2014 T\u1EF1 \u0111\u1ED9ng (en) \u2014");
       for (const v of window.speechSynthesis.getVoices()) {
         if (v.lang.startsWith("en")) d.addOption(v.name, `${v.name} (${v.lang})`);
@@ -6221,8 +6519,113 @@ var VocabForgeSettingTab = class extends import_obsidian8.PluginSettingTab {
         await this.plugin.saveAll();
       });
     });
-    containerEl.createEl("h3", { text: "AI CLI local \u2014 plugin kh\xF4ng y\xEAu c\u1EA7u API key" });
-    new import_obsidian8.Setting(containerEl).setName("AI m\u1EB7c \u0111\u1ECBnh").setDesc("Auto s\u1EBD ch\u1ECDn CLI kh\u1EA3 d\u1EE5ng theo th\u1EE9 t\u1EF1 Claude \u2192 Grok \u2192 Gemini \u2192 Codex").addDropdown(
+    containerEl.createEl("h3", { text: "AI \u2014 CLI local (desktop) ho\u1EB7c API key (c\u1EA3 iPhone/iPad)" });
+    new import_obsidian9.Setting(containerEl).setName("Ch\u1EBF \u0111\u1ED9 AI").setDesc("T\u1EF1 \u0111\u1ED9ng: d\xF9ng CLI tr\xEAn desktop, t\u1EF1 chuy\u1EC3n sang API khi CLI l\u1ED7i ho\u1EB7c khi d\xF9ng mobile").addDropdown(
+      (d) => d.addOption("auto", "T\u1EF1 \u0111\u1ED9ng (CLI \u2192 API)").addOption("cli", "Ch\u1EC9 CLI (desktop)").addOption("api", "Ch\u1EC9 API (ho\u1EA1t \u0111\u1ED9ng tr\xEAn iPhone/iPad)").setValue(this.plugin.settings.aiMode).onChange(async (v) => {
+        this.plugin.settings.aiMode = v;
+        this.plugin.resetAiProvider();
+        await this.plugin.saveAll();
+        this.display();
+      })
+    );
+    if (this.plugin.settings.aiMode !== "cli") this.displayApiSettings(containerEl);
+    if (this.plugin.settings.aiMode !== "api") this.displayCliSettings(containerEl);
+    containerEl.createEl("h3", { text: "L\u1ED9 tr\xECnh c\xE1 nh\xE2n" });
+    new import_obsidian9.Setting(containerEl).setName("M\u1EE5c ti\xEAu h\u1ECDc").addDropdown(
+      (d) => d.addOption("business", "Business English").addOption("daily", "Giao ti\u1EBFp h\u1EB1ng ng\xE0y").addOption("ielts", "IELTS").addOption("content", "Content creator").addOption("ai-tech", "AI & Technology").addOption("cambridge", "Cambridge / CEFR").setValue(this.plugin.settings.learningGoal).onChange(async (v) => {
+        this.plugin.settings.learningGoal = v;
+        await this.plugin.saveAll();
+      })
+    );
+    new import_obsidian9.Setting(containerEl).setName("Th\u1EDDi l\u01B0\u1EE3ng m\u1ED7i ng\xE0y").setDesc("Adaptive Coach s\u1EBD t\u1EA1o phi\xEAn h\u1ECDc v\u1EEBa v\u1EDBi th\u1EDDi gian n\xE0y").addSlider(
+      (s) => s.setLimits(5, 30, 5).setValue(this.plugin.settings.dailyMinutes).setDynamicTooltip().onChange(async (v) => {
+        this.plugin.settings.dailyMinutes = v;
+        await this.plugin.saveAll();
+      })
+    );
+    new import_obsidian9.Setting(containerEl).setName("S\u1ED5 l\u1ED7i c\xE1 nh\xE2n").setDesc("L\u01B0u c\xE1c l\u1ED7i vi\u1EBFt \u0111\xE3 \u0111\u01B0\u1EE3c AI s\u1EEDa v\xE0o note Markdown n\xE0y").addText(
+      (t) => t.setValue(this.plugin.settings.errorNotebookPath).onChange(async (v) => {
+        this.plugin.settings.errorNotebookPath = v.trim() || "5. Toolbox/English/My English Errors.md";
+        await this.plugin.saveAll();
+      })
+    );
+    new import_obsidian9.Setting(containerEl).setName("Th\xF4ng tin & T\xE1c gi\u1EA3").setDesc("Tony Hoang (Tr\u1EA7n V\u0103n Ho\xE0ng) \xB7 Email: tony@tranvanhoang.com").addButton(
+      (b) => b.setButtonText("\u2139\uFE0F Th\xF4ng tin plugin").onClick(() => {
+        new AboutModal(this.app, this.plugin).open();
+      })
+    ).addButton(
+      (b) => b.setButtonText("\u2709\uFE0F G\u1EEDi Email").onClick(() => {
+        window.open("mailto:tony@tranvanhoang.com");
+      })
+    );
+  }
+  displayApiSettings(containerEl) {
+    const s = this.plugin.settings;
+    const info = AI_API_PROVIDERS[s.apiProvider];
+    new import_obsidian9.Setting(containerEl).setName("Nh\xE0 cung c\u1EA5p API").setDesc("API key \u0111\u01B0\u1EE3c l\u01B0u trong data.json c\u1EE7a vault \u2014 c\u1EA9n th\u1EADn khi sync/chia s\u1EBB vault").addDropdown((d) => {
+      for (const p of AI_API_PROVIDER_IDS) d.addOption(p, AI_API_PROVIDERS[p].label);
+      d.setValue(s.apiProvider).onChange(async (v) => {
+        s.apiProvider = v;
+        this.apiModelCustom = false;
+        await this.plugin.saveAll();
+        this.display();
+      });
+    });
+    new import_obsidian9.Setting(containerEl).setName(`API key ${info.label}`).setDesc(`T\u1EA1o key t\u1EA1i ${info.keyUrl}`).addText((t) => {
+      t.inputEl.type = "password";
+      t.setPlaceholder("sk-\u2026").setValue(s.apiKeys[s.apiProvider] ?? "").onChange(async (v) => {
+        s.apiKeys[s.apiProvider] = v.trim();
+        await this.plugin.saveAll();
+      });
+    }).addButton((b) => b.setButtonText("\u{1F511} L\u1EA5y key").onClick(() => window.open(info.keyUrl)));
+    const current = (s.apiModels[s.apiProvider] ?? "").trim() || info.defaultModel;
+    const custom = this.apiModelCustom || !info.models.includes(current);
+    const modelSetting = new import_obsidian9.Setting(containerEl).setName("Model AI").setDesc(custom ? `T\u1EF1 nh\u1EADp t\xEAn model \u2014 m\u1EB7c \u0111\u1ECBnh: ${info.defaultModel}` : "Ch\u1ECDn model, ho\u1EB7c ch\u1ECDn \u201CKh\xE1c\u201D \u0111\u1EC3 t\u1EF1 nh\u1EADp");
+    if (custom) {
+      modelSetting.addText(
+        (t) => t.setPlaceholder(info.defaultModel).setValue(s.apiModels[s.apiProvider] ?? "").onChange(async (v) => {
+          s.apiModels[s.apiProvider] = v.trim();
+          await this.plugin.saveAll();
+        })
+      ).addButton(
+        (b) => b.setButtonText("\u21A9 Danh s\xE1ch").onClick(async () => {
+          this.apiModelCustom = false;
+          s.apiModels[s.apiProvider] = info.defaultModel;
+          await this.plugin.saveAll();
+          this.display();
+        })
+      );
+    } else {
+      modelSetting.addDropdown((d) => {
+        for (const m of info.models) d.addOption(m, m);
+        d.addOption("__custom__", "Kh\xE1c (t\u1EF1 nh\u1EADp)\u2026");
+        d.setValue(current).onChange(async (v) => {
+          if (v === "__custom__") {
+            this.apiModelCustom = true;
+            this.display();
+            return;
+          }
+          s.apiModels[s.apiProvider] = v;
+          await this.plugin.saveAll();
+        });
+      });
+    }
+    new import_obsidian9.Setting(containerEl).setName("Ki\u1EC3m tra k\u1EBFt n\u1ED1i API").setDesc("G\u1EEDi m\u1ED9t c\xE2u ng\u1EAFn t\u1EDBi model \u0111\xE3 ch\u1ECDn \u0111\u1EC3 x\xE1c nh\u1EADn key ho\u1EA1t \u0111\u1ED9ng").addButton(
+      (b) => b.setButtonText("\u26A1 Test").onClick(async () => {
+        b.setDisabled(true).setButtonText("\u0110ang test\u2026");
+        try {
+          const reply = await this.plugin.testAiApi();
+          new import_obsidian9.Notice(`\u2705 ${info.label} OK: ${reply}`);
+        } catch (e) {
+          new import_obsidian9.Notice(`\u274C ${e instanceof Error ? e.message : String(e)}`, 8e3);
+        } finally {
+          b.setDisabled(false).setButtonText("\u26A1 Test");
+        }
+      })
+    );
+  }
+  displayCliSettings(containerEl) {
+    new import_obsidian9.Setting(containerEl).setName("CLI m\u1EB7c \u0111\u1ECBnh").setDesc("Auto s\u1EBD ch\u1ECDn CLI kh\u1EA3 d\u1EE5ng theo th\u1EE9 t\u1EF1 Claude \u2192 Grok \u2192 Gemini \u2192 Codex").addDropdown(
       (d) => d.addOption("auto", "T\u1EF1 \u0111\u1ED9ng").addOption("claude", "Claude CLI").addOption("codex", "Codex CLI").addOption("gemini", "Gemini CLI").addOption("grok", "Grok CLI").setValue(this.plugin.settings.aiProvider).onChange(async (v) => {
         this.plugin.settings.aiProvider = v;
         this.plugin.resetAiProvider();
@@ -6236,7 +6639,7 @@ var VocabForgeSettingTab = class extends import_obsidian8.PluginSettingTab {
       ["Grok CLI", "grokPath", "grok"]
     ];
     for (const [label, key, fallback] of cliPaths) {
-      new import_obsidian8.Setting(containerEl).setName(`\u0110\u01B0\u1EDDng d\u1EABn ${label}`).addText(
+      new import_obsidian9.Setting(containerEl).setName(`\u0110\u01B0\u1EDDng d\u1EABn ${label}`).addText(
         (t) => t.setValue(this.plugin.settings[key]).onChange(async (v) => {
           this.plugin.settings[key] = v.trim() || fallback;
           this.plugin.resetAiProvider();
@@ -6244,34 +6647,6 @@ var VocabForgeSettingTab = class extends import_obsidian8.PluginSettingTab {
         })
       );
     }
-    containerEl.createEl("h3", { text: "L\u1ED9 tr\xECnh c\xE1 nh\xE2n" });
-    new import_obsidian8.Setting(containerEl).setName("M\u1EE5c ti\xEAu h\u1ECDc").addDropdown(
-      (d) => d.addOption("business", "Business English").addOption("daily", "Giao ti\u1EBFp h\u1EB1ng ng\xE0y").addOption("ielts", "IELTS").addOption("content", "Content creator").addOption("ai-tech", "AI & Technology").addOption("cambridge", "Cambridge / CEFR").setValue(this.plugin.settings.learningGoal).onChange(async (v) => {
-        this.plugin.settings.learningGoal = v;
-        await this.plugin.saveAll();
-      })
-    );
-    new import_obsidian8.Setting(containerEl).setName("Th\u1EDDi l\u01B0\u1EE3ng m\u1ED7i ng\xE0y").setDesc("Adaptive Coach s\u1EBD t\u1EA1o phi\xEAn h\u1ECDc v\u1EEBa v\u1EDBi th\u1EDDi gian n\xE0y").addSlider(
-      (s) => s.setLimits(5, 30, 5).setValue(this.plugin.settings.dailyMinutes).setDynamicTooltip().onChange(async (v) => {
-        this.plugin.settings.dailyMinutes = v;
-        await this.plugin.saveAll();
-      })
-    );
-    new import_obsidian8.Setting(containerEl).setName("S\u1ED5 l\u1ED7i c\xE1 nh\xE2n").setDesc("L\u01B0u c\xE1c l\u1ED7i vi\u1EBFt \u0111\xE3 \u0111\u01B0\u1EE3c AI s\u1EEDa v\xE0o note Markdown n\xE0y").addText(
-      (t) => t.setValue(this.plugin.settings.errorNotebookPath).onChange(async (v) => {
-        this.plugin.settings.errorNotebookPath = v.trim() || "5. Toolbox/English/My English Errors.md";
-        await this.plugin.saveAll();
-      })
-    );
-    new import_obsidian8.Setting(containerEl).setName("Th\xF4ng tin & T\xE1c gi\u1EA3").setDesc("Tony Hoang (Tr\u1EA7n V\u0103n Ho\xE0ng) \xB7 Email: tony@tranvanhoang.com").addButton(
-      (b) => b.setButtonText("\u2139\uFE0F Th\xF4ng tin plugin").onClick(() => {
-        new AboutModal(this.app, this.plugin).open();
-      })
-    ).addButton(
-      (b) => b.setButtonText("\u2709\uFE0F G\u1EEDi Email").onClick(() => {
-        window.open("mailto:tony@tranvanhoang.com");
-      })
-    );
   }
 };
 
@@ -6314,7 +6689,7 @@ var AiCliError = class extends Error {
 function nodeRequire2(moduleName) {
   const requireFn = window.require;
   if (!requireFn) {
-    throw new Error("AI CLI ch\u1EC9 ho\u1EA1t \u0111\u1ED9ng tr\xEAn Obsidian desktop");
+    throw new Error("AI CLI ch\u1EC9 ho\u1EA1t \u0111\u1ED9ng tr\xEAn Obsidian desktop \u2014 tr\xEAn iPhone/iPad h\xE3y chuy\u1EC3n C\xE0i \u0111\u1EB7t \u2192 AI sang ch\u1EBF \u0111\u1ED9 API v\xE0 nh\u1EADp API key");
   }
   return requireFn(moduleName);
 }
@@ -6657,7 +7032,7 @@ async function runAiCli(prompt, options) {
 }
 
 // src/smartCaptureModal.ts
-var import_obsidian9 = require("obsidian");
+var import_obsidian10 = require("obsidian");
 
 // src/youtube.ts
 var YOUTUBE_HOSTS = /* @__PURE__ */ new Set([
@@ -7002,7 +7377,7 @@ function localSentenceFallback(cues, maxCandidates) {
     timestampSeconds: cue.startSeconds
   }));
 }
-var SmartCaptureModal = class extends import_obsidian9.Modal {
+var SmartCaptureModal = class extends import_obsidian10.Modal {
   constructor(app, store, options = {}) {
     super(app);
     this.store = store;
@@ -7033,13 +7408,13 @@ var SmartCaptureModal = class extends import_obsidian9.Modal {
   }
   renderInput() {
     this.renderHeader();
-    new import_obsidian9.Setting(this.contentEl).setName("Link YouTube").setDesc("N\u1EBFu m\xE1y c\xF3 yt-dlp, plugin s\u1EBD t\u1EF1 t\u1EA3i subtitle ti\u1EBFng Anh").addText((text) => {
+    new import_obsidian10.Setting(this.contentEl).setName("Link YouTube").setDesc("N\u1EBFu m\xE1y c\xF3 yt-dlp, plugin s\u1EBD t\u1EF1 t\u1EA3i subtitle ti\u1EBFng Anh").addText((text) => {
       text.setPlaceholder("https://www.youtube.com/watch?v=\u2026").setValue(this.url);
       text.onChange((value) => this.url = value.trim());
       text.setDisabled(this.busy);
       text.inputEl.addClass("vf-input-wide");
     });
-    new import_obsidian9.Setting(this.contentEl).setName("T\xEAn ngu\u1ED3n").addText((text) => {
+    new import_obsidian10.Setting(this.contentEl).setName("T\xEAn ngu\u1ED3n").addText((text) => {
       text.setPlaceholder("T\xEAn video ho\u1EB7c note").setValue(this.sourceTitle);
       text.onChange((value) => {
         this.sourceTitle = value;
@@ -7047,12 +7422,12 @@ var SmartCaptureModal = class extends import_obsidian9.Modal {
       });
       text.setDisabled(this.busy);
     });
-    new import_obsidian9.Setting(this.contentEl).setName("Deck").addText((text) => {
+    new import_obsidian10.Setting(this.contentEl).setName("Deck").addText((text) => {
       text.setPlaceholder("general").setValue(this.category);
       text.onChange((value) => this.category = value.trim().toLocaleLowerCase() || "general");
       text.setDisabled(this.busy);
     });
-    const transcriptSetting = new import_obsidian9.Setting(this.contentEl).setName("Transcript / n\u1ED9i dung note").setDesc("H\u1ED7 tr\u1EE3 VTT, SRT, [00:12] c\xE2u tho\u1EA1i, ho\u1EB7c v\u0103n b\u1EA3n th\u01B0\u1EDDng").addTextArea((area) => {
+    const transcriptSetting = new import_obsidian10.Setting(this.contentEl).setName("Transcript / n\u1ED9i dung note").setDesc("H\u1ED7 tr\u1EE3 VTT, SRT, [00:12] c\xE2u tho\u1EA1i, ho\u1EB7c v\u0103n b\u1EA3n th\u01B0\u1EDDng").addTextArea((area) => {
       area.setPlaceholder("D\xE1n transcript \u1EDF \u0111\xE2y, ho\u1EB7c d\xF9ng c\xE1c n\xFAt b\xEAn d\u01B0\u1EDBi\u2026").setValue(this.transcript).onChange((value) => this.transcript = value);
       area.inputEl.rows = 12;
       area.setDisabled(this.busy);
@@ -7065,15 +7440,15 @@ var SmartCaptureModal = class extends import_obsidian9.Modal {
       (button) => button.setButtonText(this.busy ? "\u0110ang t\u1EA3i\u2026" : "T\u1EA3i subtitle").setDisabled(this.busy).onClick(() => void this.downloadSubtitles())
     );
     if (this.status) this.contentEl.createDiv({ cls: "vf-muted vf-smart-status", text: this.status });
-    const actions = new import_obsidian9.Setting(this.contentEl);
+    const actions = new import_obsidian10.Setting(this.contentEl);
     actions.addButton(
       (button) => button.setButtonText(this.busy ? "\u0110ang ph\xE2n t\xEDch\u2026" : this.options.extractor ? "\u2728 AI ch\u1ECDn c\u1EE5m n\xEAn h\u1ECDc" : "T\u1EA1o th\u1EBB c\xE2u").setCta().setDisabled(this.busy).onClick(() => void this.extract())
     );
   }
   async useActiveNote() {
     const file = this.app.workspace.getActiveFile();
-    if (!(file instanceof import_obsidian9.TFile)) {
-      new import_obsidian9.Notice("Kh\xF4ng c\xF3 note Markdown n\xE0o \u0111ang m\u1EDF");
+    if (!(file instanceof import_obsidian10.TFile)) {
+      new import_obsidian10.Notice("Kh\xF4ng c\xF3 note Markdown n\xE0o \u0111ang m\u1EDF");
       return;
     }
     this.transcript = await this.app.vault.cachedRead(file);
@@ -7087,7 +7462,7 @@ var SmartCaptureModal = class extends import_obsidian9.Modal {
   }
   async downloadSubtitles() {
     if (!isYouTubeUrl(this.url)) {
-      new import_obsidian9.Notice("H\xE3y nh\u1EADp m\u1ED9t link YouTube h\u1EE3p l\u1EC7");
+      new import_obsidian10.Notice("H\xE3y nh\u1EADp m\u1ED9t link YouTube h\u1EE3p l\u1EC7");
       return false;
     }
     this.busy = true;
@@ -7101,12 +7476,12 @@ var SmartCaptureModal = class extends import_obsidian9.Modal {
       this.cues = result.cues;
       if (!this.sourceTitleEdited) this.sourceTitle = result.title;
       this.status = `\u0110\xE3 t\u1EA3i ${result.cues.length} \u0111o\u1EA1n subtitle.`;
-      new import_obsidian9.Notice("\u2705 \u0110\xE3 t\u1EA3i subtitle ti\u1EBFng Anh");
+      new import_obsidian10.Notice("\u2705 \u0110\xE3 t\u1EA3i subtitle ti\u1EBFng Anh");
       return true;
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       this.status = `Kh\xF4ng t\u1EF1 t\u1EA3i \u0111\u01B0\u1EE3c subtitle: ${detail}. B\u1EA1n v\u1EABn c\xF3 th\u1EC3 d\xE1n transcript ho\u1EB7c d\xF9ng note \u0111ang m\u1EDF.`;
-      new import_obsidian9.Notice("Kh\xF4ng t\u1EA3i \u0111\u01B0\u1EE3c subtitle \u2014 h\xE3y d\xF9ng ph\u1EA7n d\xE1n transcript");
+      new import_obsidian10.Notice("Kh\xF4ng t\u1EA3i \u0111\u01B0\u1EE3c subtitle \u2014 h\xE3y d\xF9ng ph\u1EA7n d\xE1n transcript");
       return false;
     } finally {
       if (!this.closed && generation === this.runGeneration) {
@@ -7121,12 +7496,12 @@ var SmartCaptureModal = class extends import_obsidian9.Modal {
       if (!downloaded) return;
     }
     if (!this.transcript.trim()) {
-      new import_obsidian9.Notice("H\xE3y d\xE1n transcript, d\xF9ng note \u0111ang m\u1EDF, ho\u1EB7c t\u1EA3i subtitle");
+      new import_obsidian10.Notice("H\xE3y d\xE1n transcript, d\xF9ng note \u0111ang m\u1EDF, ho\u1EB7c t\u1EA3i subtitle");
       return;
     }
     this.busy = true;
     const generation = ++this.runGeneration;
-    this.status = this.options.extractor ? "AI CLI \u0111ang ch\u1ECDn c\xE1c c\u1EE5m h\u1EEFu d\u1EE5ng\u2026" : "\u0110ang t\xE1ch c\xE1c c\xE2u t\u1EEB transcript\u2026";
+    this.status = this.options.extractor ? "AI \u0111ang ch\u1ECDn c\xE1c c\u1EE5m h\u1EEFu d\u1EE5ng\u2026" : "\u0110ang t\xE1ch c\xE1c c\xE2u t\u1EEB transcript\u2026";
     this.renderInput();
     let extracted = false;
     try {
@@ -7149,10 +7524,10 @@ var SmartCaptureModal = class extends import_obsidian9.Modal {
         try {
           suggestions = await this.options.extractor(context);
         } catch (error) {
-          console.warn("Vocab Forge: AI CLI unavailable, using local sentence capture", error);
+          console.warn("Vocab Forge: AI unavailable, using local sentence capture", error);
           suggestions = localSentenceFallback(this.cues, maxCandidates);
-          this.status = "AI CLI ch\u01B0a s\u1EB5n s\xE0ng \u2014 \u0111\xE3 chuy\u1EC3n sang ch\u1EBF \u0111\u1ED9 t\u1EA1o th\u1EBB c\xE2u c\u1EE5c b\u1ED9.";
-          new import_obsidian9.Notice("AI CLI ch\u01B0a s\u1EB5n s\xE0ng \u2014 d\xF9ng Smart Capture c\u1EE5c b\u1ED9");
+          this.status = "AI ch\u01B0a s\u1EB5n s\xE0ng (ki\u1EC3m tra CLI ho\u1EB7c API key trong C\xE0i \u0111\u1EB7t) \u2014 \u0111\xE3 chuy\u1EC3n sang ch\u1EBF \u0111\u1ED9 t\u1EA1o th\u1EBB c\xE2u c\u1EE5c b\u1ED9.";
+          new import_obsidian10.Notice("AI ch\u01B0a s\u1EB5n s\xE0ng \u2014 d\xF9ng Smart Capture c\u1EE5c b\u1ED9");
         }
       } else suggestions = localSentenceFallback(this.cues, maxCandidates);
       if (this.closed || generation !== this.runGeneration) return;
@@ -7163,14 +7538,14 @@ var SmartCaptureModal = class extends import_obsidian9.Modal {
       if (!suggestions.length) throw new Error("Kh\xF4ng t\xECm th\u1EA5y n\u1ED9i dung ph\xF9 h\u1EE3p \u0111\u1EC3 t\u1EA1o th\u1EBB");
       this.preparePreview(suggestions);
       if (!this.previewCards.length) throw new Error("AI kh\xF4ng tr\u1EA3 v\u1EC1 c\u1EE5m n\xE0o th\u1EF1c s\u1EF1 c\xF3 trong transcript");
-      if (this.status.startsWith("AI CLI \u0111ang")) {
+      if (this.status.startsWith("AI \u0111ang")) {
         this.status = `\u0110\xE3 \u0111\u1ED1i chi\u1EBFu ${this.previewCards.length} th\u1EBB v\u1EDBi transcript ngu\u1ED3n.`;
       }
       extracted = true;
     } catch (error) {
       console.error("Vocab Forge Smart Capture:", error);
       this.status = error instanceof Error ? error.message : "Ph\xE2n t\xEDch th\u1EA5t b\u1EA1i";
-      new import_obsidian9.Notice(this.status);
+      new import_obsidian10.Notice(this.status);
     } finally {
       if (!this.closed && generation === this.runGeneration) {
         this.busy = false;
@@ -7221,7 +7596,7 @@ var SmartCaptureModal = class extends import_obsidian9.Modal {
     if (this.status) this.contentEl.createDiv({ cls: "vf-muted vf-smart-status", text: this.status });
     const selected = this.previewCards.filter((card) => card.selected).length;
     this.contentEl.createEl("h3", { text: `Xem tr\u01B0\u1EDBc \xB7 ${selected}/${this.previewCards.length} th\u1EBB \u0111\u01B0\u1EE3c ch\u1ECDn` });
-    const toolbar = new import_obsidian9.Setting(this.contentEl);
+    const toolbar = new import_obsidian10.Setting(this.contentEl);
     toolbar.addButton(
       (button) => button.setButtonText("Ch\u1ECDn t\u1EA5t c\u1EA3").setDisabled(this.busy).onClick(() => {
         for (const card of this.previewCards) card.selected = !card.duplicate;
@@ -7237,7 +7612,7 @@ var SmartCaptureModal = class extends import_obsidian9.Modal {
     const list = this.contentEl.createDiv({ cls: "vf-smart-preview-list" });
     this.previewCards.forEach((card, index) => {
       const item = list.createDiv({ cls: `vf-smart-preview-card${card.selected ? " is-selected" : ""}` });
-      const heading = new import_obsidian9.Setting(item).setName(card.input.word);
+      const heading = new import_obsidian10.Setting(item).setName(card.input.word);
       heading.setDesc(
         card.duplicate ? "\u0110\xE3 c\xF3 trong vault \u2014 b\u1ECF ch\u1ECDn m\u1EB7c \u0111\u1ECBnh" : `${card.input.type} \xB7 ${card.input.category}${card.timestampSeconds == null ? "" : ` \xB7 ${Math.floor(card.timestampSeconds)}s`}`
       );
@@ -7281,7 +7656,7 @@ var SmartCaptureModal = class extends import_obsidian9.Modal {
         this.previewCards[index].input.quote = quoteInput.value.trim();
       };
     });
-    const actions = new import_obsidian9.Setting(this.contentEl);
+    const actions = new import_obsidian10.Setting(this.contentEl);
     actions.addButton((button) => button.setButtonText("\u2190 S\u1EEDa ngu\u1ED3n").setDisabled(this.busy).onClick(() => this.renderInput()));
     actions.addButton(
       (button) => button.setButtonText(this.busy ? "\u0110ang t\u1EA1o\u2026" : `T\u1EA1o ${selected} th\u1EBB`).setCta().setDisabled(this.busy || selected === 0).onClick(() => void this.createSelected())
@@ -7311,12 +7686,12 @@ var SmartCaptureModal = class extends import_obsidian9.Modal {
     this.busy = false;
     if (created) await this.options.onCardsCreated?.(created);
     if (failed.length) {
-      new import_obsidian9.Notice(`\u0110\xE3 t\u1EA1o ${created} th\u1EBB; ${failed.length} th\u1EBB l\u1ED7i. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.`);
+      new import_obsidian10.Notice(`\u0110\xE3 t\u1EA1o ${created} th\u1EBB; ${failed.length} th\u1EBB l\u1ED7i. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.`);
       this.previewCards = this.previewCards.filter((card) => failed.includes(card.input.word));
       this.renderPreview();
       return;
     }
-    new import_obsidian9.Notice(`\u2705 Smart Capture \u0111\xE3 t\u1EA1o ${created} th\u1EBB`);
+    new import_obsidian10.Notice(`\u2705 Smart Capture \u0111\xE3 t\u1EA1o ${created} th\u1EBB`);
     this.close();
   }
   onClose() {
@@ -7327,10 +7702,11 @@ var SmartCaptureModal = class extends import_obsidian9.Modal {
 };
 
 // src/main.ts
-var VocabForgePlugin = class extends import_obsidian10.Plugin {
+var VocabForgePlugin = class extends import_obsidian11.Plugin {
   constructor() {
     super(...arguments);
     this.aiSessions = /* @__PURE__ */ new Map();
+    this.aiApiSessions = /* @__PURE__ */ new Map();
     this.autoAiProvider = null;
     this.autoAiFailures = /* @__PURE__ */ new Set();
     this.aiWorkingDirectory = "";
@@ -7342,7 +7718,14 @@ var VocabForgePlugin = class extends import_obsidian10.Plugin {
     const emptySkill = () => ({ attempts: 0, totalScore: 0, lastAt: "" });
     const savedSkills = raw?.skillStats;
     this.data = {
-      settings: { ...DEFAULT_SETTINGS, ...raw?.settings ?? {} },
+      settings: {
+        ...DEFAULT_SETTINGS,
+        ...raw?.settings ?? {},
+        // merge sâu: data.json cũ có thể thiếu key/model của provider mới thêm,
+        // và spread nông sẽ dùng chung object với DEFAULT_SETTINGS
+        apiKeys: { ...DEFAULT_SETTINGS.apiKeys, ...raw?.settings?.apiKeys ?? {} },
+        apiModels: { ...DEFAULT_SETTINGS.apiModels, ...raw?.settings?.apiModels ?? {} }
+      },
       stats: raw?.stats ?? {},
       xp: raw?.xp ?? 0,
       freezes: raw?.freezes ?? 1,
@@ -7410,7 +7793,7 @@ var VocabForgePlugin = class extends import_obsidian10.Plugin {
     this.statusEl = this.addStatusBarItem();
     this.statusEl.addClass("vf-statusbar", "mod-clickable");
     this.statusEl.onclick = () => void this.activateView();
-    const refresh = (0, import_obsidian10.debounce)(() => {
+    const refresh = (0, import_obsidian11.debounce)(() => {
       this.invalidateKnownWords();
       this.refreshStatusBar();
     }, 2e3, true);
@@ -7507,7 +7890,50 @@ var VocabForgePlugin = class extends import_obsidian10.Plugin {
     this.autoAiProvider = found;
     return found;
   }
+  cliSupported() {
+    return import_obsidian11.Platform.isDesktopApp && typeof window.require === "function";
+  }
+  apiKeyFor(provider) {
+    return (this.settings.apiKeys[provider] ?? "").trim();
+  }
+  apiModelFor(provider) {
+    return (this.settings.apiModels[provider] ?? "").trim() || AI_API_PROVIDERS[provider].defaultModel;
+  }
+  /** Đã cấu hình đủ để chạy backend API chưa (có key cho provider đang chọn) */
+  apiReady() {
+    return this.apiKeyFor(this.settings.apiProvider).length > 0;
+  }
+  /** Chọn backend cho một yêu cầu; phiên hội thoại tiếp tục trên backend đã bắt đầu */
+  resolveAiBackend(sessionKey) {
+    if (sessionKey) {
+      if (this.aiApiSessions.has(sessionKey)) return "api";
+      if (this.aiSessions.has(sessionKey)) return "cli";
+    }
+    if (this.settings.aiMode === "api") return "api";
+    if (this.settings.aiMode === "cli") return "cli";
+    if (!this.cliSupported()) {
+      if (this.apiReady()) return "api";
+      throw new Error(
+        "Tr\xEAn iPhone/iPad c\u1EA7n API key: m\u1EDF C\xE0i \u0111\u1EB7t \u2192 AI, ch\u1ECDn nh\xE0 cung c\u1EA5p (DeepSeek, MiniMax, OpenAI, Claude, Gemini, OpenRouter) v\xE0 nh\u1EADp key."
+      );
+    }
+    return "cli";
+  }
   async runAI(prompt, timeoutMs = 12e4, sessionKey) {
+    if (this.resolveAiBackend(sessionKey) === "api") {
+      return this.runAiViaApi(prompt, timeoutMs, sessionKey);
+    }
+    try {
+      return await this.runAiViaCli(prompt, timeoutMs, sessionKey);
+    } catch (error) {
+      const midCliSession = sessionKey ? this.aiSessions.has(sessionKey) : false;
+      if (this.settings.aiMode === "auto" && this.apiReady() && !midCliSession) {
+        return this.runAiViaApi(prompt, timeoutMs, sessionKey);
+      }
+      throw error;
+    }
+  }
+  async runAiViaCli(prompt, timeoutMs, sessionKey) {
     const previous = sessionKey ? this.aiSessions.get(sessionKey) : void 0;
     const provider = previous?.provider ?? await this.selectedAiProvider();
     const session = previous && previous.provider === provider ? { mode: "resume", id: previous.id } : sessionKey ? { mode: "new" } : { mode: "none" };
@@ -7524,29 +7950,85 @@ var VocabForgePlugin = class extends import_obsidian10.Plugin {
       if (this.settings.aiProvider === "auto" && !previous && this.autoAiFailures.size < 3) {
         this.autoAiFailures.add(provider);
         this.autoAiProvider = null;
-        return this.runAI(prompt, timeoutMs, sessionKey);
+        return this.runAiViaCli(prompt, timeoutMs, sessionKey);
       }
       throw error;
     }
     if (sessionKey && result.sessionId) this.aiSessions.set(sessionKey, { provider, id: result.sessionId });
     return result.text;
   }
+  async runAiViaApi(prompt, timeoutMs, sessionKey) {
+    const provider = this.settings.apiProvider;
+    const apiKey = this.apiKeyFor(provider);
+    if (!apiKey) {
+      throw new Error(`Ch\u01B0a c\xF3 API key cho ${AI_API_PROVIDERS[provider].label} \u2014 v\xE0o C\xE0i \u0111\u1EB7t \u2192 AI \u0111\u1EC3 nh\u1EADp.`);
+    }
+    const history = sessionKey ? this.aiApiSessions.get(sessionKey) ?? [] : [];
+    const messages = [...history, { role: "user", content: prompt }];
+    const text = await runAiApi(messages, {
+      provider,
+      apiKey,
+      model: this.apiModelFor(provider),
+      timeoutMs
+    });
+    if (sessionKey) {
+      let next = [...messages, { role: "assistant", content: text }];
+      if (next.length > 24) next = [...next.slice(0, 2), ...next.slice(-22)];
+      this.aiApiSessions.set(sessionKey, next);
+    }
+    return text;
+  }
+  /** Gửi một câu ngắn tới model API đang chọn để xác nhận key hoạt động */
+  async testAiApi() {
+    const provider = this.settings.apiProvider;
+    const reply = await runAiApi(
+      [{ role: "user", content: 'Reply with the single word "OK".' }],
+      {
+        provider,
+        apiKey: this.apiKeyFor(provider),
+        model: this.apiModelFor(provider),
+        timeoutMs: 45e3
+      }
+    );
+    return reply.trim().slice(0, 120);
+  }
   clearAiSession(sessionKey) {
     this.aiSessions.delete(sessionKey);
+    this.aiApiSessions.delete(sessionKey);
   }
   resetAiProvider() {
     this.autoAiProvider = null;
     this.autoAiFailures.clear();
     this.aiSessions.clear();
+    this.aiApiSessions.clear();
     for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_VOCAB)) {
       if (leaf.view instanceof VocabReviewView) leaf.view.resetAiConversation();
     }
   }
   async aiStatusSummary() {
-    const statuses = await detectAiCliProviders({
-      paths: this.aiPaths()
-    });
-    return statuses.map((s) => `${s.available ? "\u2705" : "\u25CB"} ${s.provider}${s.version ? ` \xB7 ${s.version}` : ""}`).join("\n");
+    const lines = [];
+    const modeLabel = { auto: "T\u1EF1 \u0111\u1ED9ng (CLI \u2192 API)", cli: "Ch\u1EC9 CLI", api: "Ch\u1EC9 API" }[this.settings.aiMode];
+    lines.push(`Ch\u1EBF \u0111\u1ED9 AI: ${modeLabel}`);
+    const provider = this.settings.apiProvider;
+    const info = AI_API_PROVIDERS[provider];
+    lines.push(
+      `${this.apiReady() ? "\u2705" : "\u25CB"} API: ${info.label} \xB7 ${this.apiModelFor(provider)}${this.apiReady() ? "" : " \xB7 ch\u01B0a c\xF3 key"}`
+    );
+    if (this.cliSupported()) {
+      try {
+        const statuses = await detectAiCliProviders({
+          paths: this.aiPaths()
+        });
+        for (const s of statuses) {
+          lines.push(`${s.available ? "\u2705" : "\u25CB"} CLI ${s.provider}${s.version ? ` \xB7 ${s.version}` : ""}`);
+        }
+      } catch {
+        lines.push("\u25CB CLI: kh\xF4ng ki\u1EC3m tra \u0111\u01B0\u1EE3c");
+      }
+    } else {
+      lines.push("\u25CB CLI: kh\xF4ng kh\u1EA3 d\u1EE5ng tr\xEAn thi\u1EBFt b\u1ECB n\xE0y (d\xF9ng API)");
+    }
+    return lines.join("\n");
   }
   cardFromSelection(editor, view) {
     const sel = editor.getSelection().trim();
@@ -7625,7 +8107,7 @@ var VocabForgePlugin = class extends import_obsidian10.Plugin {
         { data: this.data, cards: this.store.getAllCards(), streak: this.computeStreak() },
         todayKey()
       );
-      for (const b of fresh) new import_obsidian10.Notice(`${b.icon} Huy hi\u1EC7u m\u1EDBi: ${b.name} \u2014 ${b.desc}!`, 7e3);
+      for (const b of fresh) new import_obsidian11.Notice(`${b.icon} Huy hi\u1EC7u m\u1EDBi: ${b.name} \u2014 ${b.desc}!`, 7e3);
     } catch (e) {
       console.error("Vocab Forge badges:", e);
     }
@@ -7643,7 +8125,7 @@ var VocabForgePlugin = class extends import_obsidian10.Plugin {
       if (due === 0) return;
       this.data.lastReminder = key;
       void this.saveAll();
-      new import_obsidian10.Notice(`\u{1F4DA} Vocab Forge: ${due} th\u1EBB \u0111ang ch\u1EDD \xF4n \u2014 gi\u1EEF chu\u1ED7i ${this.computeStreak()} ng\xE0y \u{1F525}`, 1e4);
+      new import_obsidian11.Notice(`\u{1F4DA} Vocab Forge: ${due} th\u1EBB \u0111ang ch\u1EDD \xF4n \u2014 gi\u1EEF chu\u1ED7i ${this.computeStreak()} ng\xE0y \u{1F525}`, 1e4);
       if (typeof Notification !== "undefined" && Notification.permission !== "denied") {
         const fire = () => new Notification("Vocab Forge \u{1F393}", {
           body: `${due} th\u1EBB \u0111ang ch\u1EDD \xF4n h\xF4m nay \u2014 v\xE0o h\u1ECDc th\xF4i!`
@@ -7677,7 +8159,7 @@ var VocabForgePlugin = class extends import_obsidian10.Plugin {
     this.data.questRewardDates.push(todayKey());
     this.data.xp += 50;
     if (this.data.freezes < MAX_FREEZES) this.data.freezes++;
-    new import_obsidian10.Notice("\u{1F3C6} Ho\xE0n th\xE0nh nhi\u1EC7m v\u1EE5 ng\xE0y! +50 XP, +1 \u{1F9CA} streak freeze");
+    new import_obsidian11.Notice("\u{1F3C6} Ho\xE0n th\xE0nh nhi\u1EC7m v\u1EE5 ng\xE0y! +50 XP, +1 \u{1F9CA} streak freeze");
   }
   /** Tự dùng streak freeze để vá các ngày nghỉ (nếu đủ freeze vá kín) */
   autoFreeze() {
@@ -7692,7 +8174,7 @@ var VocabForgePlugin = class extends import_obsidian10.Plugin {
         if (gap.length > 0 && gap.length <= this.data.freezes) {
           this.data.frozenDays.push(...gap);
           this.data.freezes -= gap.length;
-          new import_obsidian10.Notice(`\u{1F9CA} \u0110\xE3 d\xF9ng ${gap.length} streak freeze \u0111\u1EC3 gi\u1EEF chu\u1ED7i ng\xE0y!`);
+          new import_obsidian11.Notice(`\u{1F9CA} \u0110\xE3 d\xF9ng ${gap.length} streak freeze \u0111\u1EC3 gi\u1EEF chu\u1ED7i ng\xE0y!`);
           void this.saveAll();
         }
         return;
@@ -7806,15 +8288,15 @@ var VocabForgePlugin = class extends import_obsidian10.Plugin {
       const fs = req("fs");
       const data = fs.readFileSync(tmp);
       const folder = "5. Toolbox/Attachments/Vocab";
-      if (!this.app.vault.getAbstractFileByPath((0, import_obsidian10.normalizePath)(folder))) {
+      if (!this.app.vault.getAbstractFileByPath((0, import_obsidian11.normalizePath)(folder))) {
         try {
-          await this.app.vault.createFolder((0, import_obsidian10.normalizePath)(folder));
+          await this.app.vault.createFolder((0, import_obsidian11.normalizePath)(folder));
         } catch {
         }
       }
       const imgName = `${file.basename}.png`;
       await this.app.vault.adapter.writeBinary(
-        (0, import_obsidian10.normalizePath)(`${folder}/${imgName}`),
+        (0, import_obsidian11.normalizePath)(`${folder}/${imgName}`),
         data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
       );
       await this.app.fileManager.processFrontMatter(file, (fm) => {

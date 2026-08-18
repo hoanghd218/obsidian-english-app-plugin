@@ -1,6 +1,6 @@
 # 🎓 Vocab Forge 2.0 — English Fluency OS for Obsidian
 
-Turn the YouTube videos and notes you already consume into a complete learning loop: **capture → remember → listen → speak → improve**. Everything stays in your Obsidian vault and AI features run through your signed-in local CLI; the plugin never asks for or passes an API key.
+Turn the YouTube videos and notes you already consume into a complete learning loop: **capture → remember → listen → speak → improve**. Everything stays in your Obsidian vault. AI features run through your signed-in local CLI (no API key needed on desktop) **or** through a direct API key — DeepSeek, MiniMax, OpenAI, Claude, Gemini or OpenRouter — which also works on **iPhone/iPad**.
 
 > Học từ vựng tiếng Anh từ chính các video YouTube bạn xem — ngay trong Obsidian, giao diện như app thật, thuật toán lặp lại ngắt quãng FSRS.
 
@@ -12,7 +12,7 @@ Turn the YouTube videos and notes you already consume into a complete learning l
 - **Voice Roleplay** — answer by microphone or keyboard, hear the AI partner speak, track target expressions, and receive end-of-session feedback. Writing corrections from card practice are saved to a personal Markdown error notebook.
 - **Adaptive Today Coach** — balances due reviews, weak skills, listening, shadowing and new cards inside a configurable 5–30 minute daily session.
 - **Video Comprehension Score** — estimates vocabulary coverage and CEFR difficulty, ranks unknown words, and sends the transcript directly to Smart Capture.
-- **Local AI CLI router** — choose Claude CLI, Codex CLI, Gemini CLI or Grok CLI, or let Auto select an installed/signed-in provider. API-key environment variables are deliberately removed from child processes.
+- **Flexible AI backend: local CLI or direct API** — on desktop, choose Claude CLI, Codex CLI, Gemini CLI or Grok CLI (Auto selects a signed-in provider; API-key environment variables are deliberately removed from child processes). Or enter an API key for DeepSeek, MiniMax, OpenAI, Claude, Gemini or OpenRouter, pick a model, and use every AI feature on mobile too. Auto mode falls back from CLI to API when the CLI is unavailable.
 - **Two-sided flashcards** — front: word/phrase/sentence + IPA + auto text-to-speech; back: English + Vietnamese meaning, the **verbatim quote from the source video** (highlighted), collocations, an illustration image, and a link that opens YouTube **at the exact timestamp**.
 - **FSRS scheduling** via [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs) — 4 rating buttons (Again / Hard / Good / Easy) with interval previews, daily new-card limit, "again" cards return within the session.
 - **Decks by category** — group cards into decks (business, startup, content, idiom, ielts, …). Study everything or one deck at a time.
@@ -22,9 +22,9 @@ Turn the YouTube videos and notes you already consume into a complete learning l
 - **Quick capture** — add-card modal, or select text in any note → right-click → *Create vocab card* (source note + video URL auto-filled).
 - **In-app settings** — new cards/day, target retention, TTS voice & speed, cards folder.
 
-## 🤖 Local AI setup — plugin does not request an API key
+## 🤖 AI setup — local CLI (desktop) or API key (any device)
 
-Install and sign in to at least one supported CLI using its normal subscription/OAuth login:
+**Option A — local CLI, no API key.** Install and sign in to at least one supported CLI using its normal subscription/OAuth login:
 
 ```bash
 claude --version
@@ -33,7 +33,9 @@ gemini --version
 grok --version
 ```
 
-Open **Vocab Forge → Settings → AI CLI**, select `Auto` or a provider, and press **Kiểm tra**. The plugin uses `execFile` without a shell, disables provider tools/write access for learning prompts, and does not pass common API-key environment variables.
+Open **Vocab Forge → Settings → AI**, keep mode `Tự động` or `Chỉ CLI`, select a provider, and press **Kiểm tra**. The plugin uses `execFile` without a shell, disables provider tools/write access for learning prompts, and does not pass common API-key environment variables to CLIs.
+
+**Option B — direct API key (works on iPhone/iPad).** In **Vocab Forge → Settings → AI**, set mode to `Chỉ API` (or leave `Tự động` for CLI-with-API-fallback), pick a provider — **DeepSeek, MiniMax, OpenAI, Claude (Anthropic), Gemini (Google) or OpenRouter** — paste its API key, and choose a model from the suggestions or type any model ID. Use the **⚡ Test** button to verify the connection. Requests go through Obsidian's `requestUrl`, so no CORS issues and full mobile support. Note: the key is stored in plain text in the plugin's `data.json` inside your vault — be careful when syncing or sharing the vault.
 
 For automatic YouTube subtitles, install `yt-dlp` and ensure `yt-dlp --version` works. Smart Capture still supports pasted transcripts and active notes when `yt-dlp` is unavailable.
 

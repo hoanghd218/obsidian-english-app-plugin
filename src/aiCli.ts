@@ -164,7 +164,7 @@ export class AiCliError extends Error {
 function nodeRequire(moduleName: string): unknown {
 	const requireFn = (window as unknown as { require?: (name: string) => unknown }).require;
 	if (!requireFn) {
-		throw new Error("AI CLI chỉ hoạt động trên Obsidian desktop");
+		throw new Error("AI CLI chỉ hoạt động trên Obsidian desktop — trên iPhone/iPad hãy chuyển Cài đặt → AI sang chế độ API và nhập API key");
 	}
 	return requireFn(moduleName);
 }

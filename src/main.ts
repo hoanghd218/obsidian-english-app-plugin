@@ -2,6 +2,7 @@ import {
 	Editor,
 	MarkdownView,
 	Notice,
+	Platform,
 	Plugin,
 	TFile,
 	WorkspaceLeaf,
@@ -33,6 +34,12 @@ import {
 	type AiCliProvider,
 } from "./aiCli";
 import {
+	AI_API_PROVIDERS,
+	runAiApi,
+	type AiApiProvider,
+	type AiChatMessage,
+} from "./aiApi";
+import {
 	buildSmartCapturePrompt,
 	parseSmartCaptureSuggestions,
 	SmartCaptureModal,
@@ -45,6 +52,7 @@ export default class VocabForgePlugin extends Plugin {
 	scheduler!: FSRS;
 	private statusEl!: HTMLElement;
 	private readonly aiSessions = new Map<string, { provider: AiCliProvider; id: string }>();
+	private readonly aiApiSessions = new Map<string, AiChatMessage[]>();
 	private autoAiProvider: AiCliProvider | null = null;
 	private readonly autoAiFailures = new Set<AiCliProvider>();
 	private aiWorkingDirectory = "";
@@ -54,7 +62,14 @@ export default class VocabForgePlugin extends Plugin {
 		const emptySkill = () => ({ attempts: 0, totalScore: 0, lastAt: "" });
 		const savedSkills = raw?.skillStats;
 		this.data = {
-			settings: { ...DEFAULT_SETTINGS, ...(raw?.settings ?? {}) },
+			settings: {
+				...DEFAULT_SETTINGS,
+				...(raw?.settings ?? {}),
+				// merge sâu: data.json cũ có thể thiếu key/model của provider mới thêm,
+				// và spread nông sẽ dùng chung object với DEFAULT_SETTINGS
+				apiKeys: { ...DEFAULT_SETTINGS.apiKeys, ...(raw?.settings?.apiKeys ?? {}) },
+				apiModels: { ...DEFAULT_SETTINGS.apiModels, ...(raw?.settings?.apiModels ?? {}) },
+			},
 			stats: raw?.stats ?? {},
 			xp: raw?.xp ?? 0,
 			freezes: raw?.freezes ?? 1,
@@ -248,7 +263,58 @@ export default class VocabForgePlugin extends Plugin {
 		return found;
 	}
 
+	private cliSupported(): boolean {
+		return Platform.isDesktopApp &&
+			typeof (window as unknown as { require?: unknown }).require === "function";
+	}
+
+	apiKeyFor(provider: AiApiProvider): string {
+		return (this.settings.apiKeys[provider] ?? "").trim();
+	}
+
+	apiModelFor(provider: AiApiProvider): string {
+		return (this.settings.apiModels[provider] ?? "").trim() || AI_API_PROVIDERS[provider].defaultModel;
+	}
+
+	/** Đã cấu hình đủ để chạy backend API chưa (có key cho provider đang chọn) */
+	apiReady(): boolean {
+		return this.apiKeyFor(this.settings.apiProvider).length > 0;
+	}
+
+	/** Chọn backend cho một yêu cầu; phiên hội thoại tiếp tục trên backend đã bắt đầu */
+	private resolveAiBackend(sessionKey?: string): "cli" | "api" {
+		if (sessionKey) {
+			if (this.aiApiSessions.has(sessionKey)) return "api";
+			if (this.aiSessions.has(sessionKey)) return "cli";
+		}
+		if (this.settings.aiMode === "api") return "api";
+		if (this.settings.aiMode === "cli") return "cli";
+		if (!this.cliSupported()) {
+			if (this.apiReady()) return "api";
+			throw new Error(
+				"Trên iPhone/iPad cần API key: mở Cài đặt → AI, chọn nhà cung cấp (DeepSeek, MiniMax, OpenAI, Claude, Gemini, OpenRouter) và nhập key."
+			);
+		}
+		return "cli";
+	}
+
 	async runAI(prompt: string, timeoutMs = 120_000, sessionKey?: string): Promise<string> {
+		if (this.resolveAiBackend(sessionKey) === "api") {
+			return this.runAiViaApi(prompt, timeoutMs, sessionKey);
+		}
+		try {
+			return await this.runAiViaCli(prompt, timeoutMs, sessionKey);
+		} catch (error) {
+			// Chế độ tự động: CLI lỗi (chưa cài / chưa đăng nhập) → chuyển sang API nếu đã có key.
+			const midCliSession = sessionKey ? this.aiSessions.has(sessionKey) : false;
+			if (this.settings.aiMode === "auto" && this.apiReady() && !midCliSession) {
+				return this.runAiViaApi(prompt, timeoutMs, sessionKey);
+			}
+			throw error;
+		}
+	}
+
+	private async runAiViaCli(prompt: string, timeoutMs: number, sessionKey?: string): Promise<string> {
 		const previous = sessionKey ? this.aiSessions.get(sessionKey) : undefined;
 		const provider = previous?.provider ?? await this.selectedAiProvider();
 		const session = previous && previous.provider === provider
@@ -271,7 +337,7 @@ export default class VocabForgePlugin extends Plugin {
 			if (this.settings.aiProvider === "auto" && !previous && this.autoAiFailures.size < 3) {
 				this.autoAiFailures.add(provider);
 				this.autoAiProvider = null;
-				return this.runAI(prompt, timeoutMs, sessionKey);
+				return this.runAiViaCli(prompt, timeoutMs, sessionKey);
 			}
 			throw error;
 		}
@@ -279,26 +345,83 @@ export default class VocabForgePlugin extends Plugin {
 		return result.text;
 	}
 
+	private async runAiViaApi(prompt: string, timeoutMs: number, sessionKey?: string): Promise<string> {
+		const provider = this.settings.apiProvider;
+		const apiKey = this.apiKeyFor(provider);
+		if (!apiKey) {
+			throw new Error(`Chưa có API key cho ${AI_API_PROVIDERS[provider].label} — vào Cài đặt → AI để nhập.`);
+		}
+		const history = sessionKey ? this.aiApiSessions.get(sessionKey) ?? [] : [];
+		const messages: AiChatMessage[] = [...history, { role: "user", content: prompt }];
+		const text = await runAiApi(messages, {
+			provider,
+			apiKey,
+			model: this.apiModelFor(provider),
+			timeoutMs,
+		});
+		if (sessionKey) {
+			let next: AiChatMessage[] = [...messages, { role: "assistant", content: text }];
+			// Giữ lượt mở đầu (bối cảnh roleplay) + các lượt gần nhất để request không phình to
+			if (next.length > 24) next = [...next.slice(0, 2), ...next.slice(-22)];
+			this.aiApiSessions.set(sessionKey, next);
+		}
+		return text;
+	}
+
+	/** Gửi một câu ngắn tới model API đang chọn để xác nhận key hoạt động */
+	async testAiApi(): Promise<string> {
+		const provider = this.settings.apiProvider;
+		const reply = await runAiApi(
+			[{ role: "user", content: 'Reply with the single word "OK".' }],
+			{
+				provider,
+				apiKey: this.apiKeyFor(provider),
+				model: this.apiModelFor(provider),
+				timeoutMs: 45_000,
+			}
+		);
+		return reply.trim().slice(0, 120);
+	}
+
 	clearAiSession(sessionKey: string): void {
 		this.aiSessions.delete(sessionKey);
+		this.aiApiSessions.delete(sessionKey);
 	}
 
 	resetAiProvider(): void {
 		this.autoAiProvider = null;
 		this.autoAiFailures.clear();
 		this.aiSessions.clear();
+		this.aiApiSessions.clear();
 		for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_VOCAB)) {
 			if (leaf.view instanceof VocabReviewView) leaf.view.resetAiConversation();
 		}
 	}
 
 	async aiStatusSummary(): Promise<string> {
-		const statuses = await detectAiCliProviders({
-			paths: this.aiPaths(),
-		});
-		return statuses
-			.map((s) => `${s.available ? "✅" : "○"} ${s.provider}${s.version ? ` · ${s.version}` : ""}`)
-			.join("\n");
+		const lines: string[] = [];
+		const modeLabel = { auto: "Tự động (CLI → API)", cli: "Chỉ CLI", api: "Chỉ API" }[this.settings.aiMode];
+		lines.push(`Chế độ AI: ${modeLabel}`);
+		const provider = this.settings.apiProvider;
+		const info = AI_API_PROVIDERS[provider];
+		lines.push(
+			`${this.apiReady() ? "✅" : "○"} API: ${info.label} · ${this.apiModelFor(provider)}${this.apiReady() ? "" : " · chưa có key"}`
+		);
+		if (this.cliSupported()) {
+			try {
+				const statuses = await detectAiCliProviders({
+					paths: this.aiPaths(),
+				});
+				for (const s of statuses) {
+					lines.push(`${s.available ? "✅" : "○"} CLI ${s.provider}${s.version ? ` · ${s.version}` : ""}`);
+				}
+			} catch {
+				lines.push("○ CLI: không kiểm tra được");
+			}
+		} else {
+			lines.push("○ CLI: không khả dụng trên thiết bị này (dùng API)");
+		}
+		return lines.join("\n");
 	}
 
 	private cardFromSelection(editor: Editor, view: MarkdownView): void {

@@ -353,7 +353,7 @@ export class SmartCaptureModal extends Modal {
 		}
 		this.busy = true;
 		const generation = ++this.runGeneration;
-		this.status = this.options.extractor ? "AI CLI đang chọn các cụm hữu dụng…" : "Đang tách các câu từ transcript…";
+		this.status = this.options.extractor ? "AI đang chọn các cụm hữu dụng…" : "Đang tách các câu từ transcript…";
 		this.renderInput();
 		let extracted = false;
 		try {
@@ -376,10 +376,10 @@ export class SmartCaptureModal extends Modal {
 				try {
 					suggestions = await this.options.extractor(context);
 				} catch (error) {
-					console.warn("Vocab Forge: AI CLI unavailable, using local sentence capture", error);
+					console.warn("Vocab Forge: AI unavailable, using local sentence capture", error);
 					suggestions = localSentenceFallback(this.cues, maxCandidates);
-					this.status = "AI CLI chưa sẵn sàng — đã chuyển sang chế độ tạo thẻ câu cục bộ.";
-					new Notice("AI CLI chưa sẵn sàng — dùng Smart Capture cục bộ");
+					this.status = "AI chưa sẵn sàng (kiểm tra CLI hoặc API key trong Cài đặt) — đã chuyển sang chế độ tạo thẻ câu cục bộ.";
+					new Notice("AI chưa sẵn sàng — dùng Smart Capture cục bộ");
 				}
 			} else suggestions = localSentenceFallback(this.cues, maxCandidates);
 			if (this.closed || generation !== this.runGeneration) return;
@@ -390,7 +390,7 @@ export class SmartCaptureModal extends Modal {
 			if (!suggestions.length) throw new Error("Không tìm thấy nội dung phù hợp để tạo thẻ");
 			this.preparePreview(suggestions);
 			if (!this.previewCards.length) throw new Error("AI không trả về cụm nào thực sự có trong transcript");
-			if (this.status.startsWith("AI CLI đang")) {
+			if (this.status.startsWith("AI đang")) {
 				this.status = `Đã đối chiếu ${this.previewCards.length} thẻ với transcript nguồn.`;
 			}
 			extracted = true;

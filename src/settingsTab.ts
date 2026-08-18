@@ -1,8 +1,13 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, Notice, PluginSettingTab, Setting } from "obsidian";
 import type VocabForgePlugin from "./main";
 import { AboutModal } from "./aboutModal";
+import { AI_API_PROVIDERS, AI_API_PROVIDER_IDS, type AiApiProvider } from "./aiApi";
+import type { AiMode } from "./types";
 
 export class VocabForgeSettingTab extends PluginSettingTab {
+	/** Đang nhập model tuỳ chỉnh (thay vì chọn từ danh sách gợi ý) */
+	private apiModelCustom = false;
+
 	constructor(app: App, private plugin: VocabForgePlugin) {
 		super(app, plugin);
 	}
@@ -78,42 +83,26 @@ export class VocabForgeSettingTab extends PluginSettingTab {
 				});
 			});
 
-		containerEl.createEl("h3", { text: "AI CLI local — plugin không yêu cầu API key" });
+		containerEl.createEl("h3", { text: "AI — CLI local (desktop) hoặc API key (cả iPhone/iPad)" });
 		new Setting(containerEl)
-			.setName("AI mặc định")
-			.setDesc("Auto sẽ chọn CLI khả dụng theo thứ tự Claude → Grok → Gemini → Codex")
+			.setName("Chế độ AI")
+			.setDesc("Tự động: dùng CLI trên desktop, tự chuyển sang API khi CLI lỗi hoặc khi dùng mobile")
 			.addDropdown((d) =>
 				d
-					.addOption("auto", "Tự động")
-					.addOption("claude", "Claude CLI")
-					.addOption("codex", "Codex CLI")
-					.addOption("gemini", "Gemini CLI")
-					.addOption("grok", "Grok CLI")
-					.setValue(this.plugin.settings.aiProvider)
+					.addOption("auto", "Tự động (CLI → API)")
+					.addOption("cli", "Chỉ CLI (desktop)")
+					.addOption("api", "Chỉ API (hoạt động trên iPhone/iPad)")
+					.setValue(this.plugin.settings.aiMode)
 					.onChange(async (v) => {
-						this.plugin.settings.aiProvider = v as typeof this.plugin.settings.aiProvider;
+						this.plugin.settings.aiMode = v as AiMode;
 						this.plugin.resetAiProvider();
 						await this.plugin.saveAll();
+						this.display();
 					})
 			);
 
-		const cliPaths: Array<[string, "claudePath" | "codexPath" | "geminiPath" | "grokPath", string]> = [
-			["Claude CLI", "claudePath", "claude"],
-			["Codex CLI", "codexPath", "codex"],
-			["Gemini CLI", "geminiPath", "gemini"],
-			["Grok CLI", "grokPath", "grok"],
-		];
-		for (const [label, key, fallback] of cliPaths) {
-			new Setting(containerEl)
-				.setName(`Đường dẫn ${label}`)
-				.addText((t) =>
-					t.setValue(this.plugin.settings[key]).onChange(async (v) => {
-						this.plugin.settings[key] = v.trim() || fallback;
-						this.plugin.resetAiProvider();
-						await this.plugin.saveAll();
-					})
-				);
-		}
+		if (this.plugin.settings.aiMode !== "cli") this.displayApiSettings(containerEl);
+		if (this.plugin.settings.aiMode !== "api") this.displayCliSettings(containerEl);
 
 		containerEl.createEl("h3", { text: "Lộ trình cá nhân" });
 		new Setting(containerEl)
@@ -164,5 +153,132 @@ export class VocabForgeSettingTab extends PluginSettingTab {
 					window.open("mailto:tony@tranvanhoang.com");
 				})
 			);
+	}
+
+	private displayApiSettings(containerEl: HTMLElement): void {
+		const s = this.plugin.settings;
+		const info = AI_API_PROVIDERS[s.apiProvider];
+
+		new Setting(containerEl)
+			.setName("Nhà cung cấp API")
+			.setDesc("API key được lưu trong data.json của vault — cẩn thận khi sync/chia sẻ vault")
+			.addDropdown((d) => {
+				for (const p of AI_API_PROVIDER_IDS) d.addOption(p, AI_API_PROVIDERS[p].label);
+				d.setValue(s.apiProvider).onChange(async (v) => {
+					s.apiProvider = v as AiApiProvider;
+					this.apiModelCustom = false;
+					await this.plugin.saveAll();
+					this.display();
+				});
+			});
+
+		new Setting(containerEl)
+			.setName(`API key ${info.label}`)
+			.setDesc(`Tạo key tại ${info.keyUrl}`)
+			.addText((t) => {
+				t.inputEl.type = "password";
+				t.setPlaceholder("sk-…")
+					.setValue(s.apiKeys[s.apiProvider] ?? "")
+					.onChange(async (v) => {
+						s.apiKeys[s.apiProvider] = v.trim();
+						await this.plugin.saveAll();
+					});
+			})
+			.addButton((b) => b.setButtonText("🔑 Lấy key").onClick(() => window.open(info.keyUrl)));
+
+		const current = (s.apiModels[s.apiProvider] ?? "").trim() || info.defaultModel;
+		const custom = this.apiModelCustom || !info.models.includes(current);
+		const modelSetting = new Setting(containerEl)
+			.setName("Model AI")
+			.setDesc(custom ? `Tự nhập tên model — mặc định: ${info.defaultModel}` : "Chọn model, hoặc chọn “Khác” để tự nhập");
+		if (custom) {
+			modelSetting
+				.addText((t) =>
+					t
+						.setPlaceholder(info.defaultModel)
+						.setValue(s.apiModels[s.apiProvider] ?? "")
+						.onChange(async (v) => {
+							s.apiModels[s.apiProvider] = v.trim();
+							await this.plugin.saveAll();
+						})
+				)
+				.addButton((b) =>
+					b.setButtonText("↩ Danh sách").onClick(async () => {
+						this.apiModelCustom = false;
+						s.apiModels[s.apiProvider] = info.defaultModel;
+						await this.plugin.saveAll();
+						this.display();
+					})
+				);
+		} else {
+			modelSetting.addDropdown((d) => {
+				for (const m of info.models) d.addOption(m, m);
+				d.addOption("__custom__", "Khác (tự nhập)…");
+				d.setValue(current).onChange(async (v) => {
+					if (v === "__custom__") {
+						this.apiModelCustom = true;
+						this.display();
+						return;
+					}
+					s.apiModels[s.apiProvider] = v;
+					await this.plugin.saveAll();
+				});
+			});
+		}
+
+		new Setting(containerEl)
+			.setName("Kiểm tra kết nối API")
+			.setDesc("Gửi một câu ngắn tới model đã chọn để xác nhận key hoạt động")
+			.addButton((b) =>
+				b.setButtonText("⚡ Test").onClick(async () => {
+					b.setDisabled(true).setButtonText("Đang test…");
+					try {
+						const reply = await this.plugin.testAiApi();
+						new Notice(`✅ ${info.label} OK: ${reply}`);
+					} catch (e) {
+						new Notice(`❌ ${e instanceof Error ? e.message : String(e)}`, 8000);
+					} finally {
+						b.setDisabled(false).setButtonText("⚡ Test");
+					}
+				})
+			);
+	}
+
+	private displayCliSettings(containerEl: HTMLElement): void {
+		new Setting(containerEl)
+			.setName("CLI mặc định")
+			.setDesc("Auto sẽ chọn CLI khả dụng theo thứ tự Claude → Grok → Gemini → Codex")
+			.addDropdown((d) =>
+				d
+					.addOption("auto", "Tự động")
+					.addOption("claude", "Claude CLI")
+					.addOption("codex", "Codex CLI")
+					.addOption("gemini", "Gemini CLI")
+					.addOption("grok", "Grok CLI")
+					.setValue(this.plugin.settings.aiProvider)
+					.onChange(async (v) => {
+						this.plugin.settings.aiProvider = v as typeof this.plugin.settings.aiProvider;
+						this.plugin.resetAiProvider();
+						await this.plugin.saveAll();
+					})
+			);
+
+		const cliPaths: Array<[string, "claudePath" | "codexPath" | "geminiPath" | "grokPath", string]> = [
+			["Claude CLI", "claudePath", "claude"],
+			["Codex CLI", "codexPath", "codex"],
+			["Gemini CLI", "geminiPath", "gemini"],
+			["Grok CLI", "grokPath", "grok"],
+		];
+		for (const [label, key, fallback] of cliPaths) {
+			new Setting(containerEl)
+				.setName(`Đường dẫn ${label}`)
+				.addText((t) =>
+					t.setValue(this.plugin.settings[key]).onChange(async (v) => {
+						this.plugin.settings[key] = v.trim() || fallback;
+						this.plugin.resetAiProvider();
+						await this.plugin.saveAll();
+					})
+				);
+		}
 	}
 }
