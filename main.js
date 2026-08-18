@@ -25,7 +25,7 @@ __export(main_exports, {
   default: () => VocabForgePlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian9 = require("obsidian");
+var import_obsidian10 = require("obsidian");
 
 // src/ai.ts
 function nodeRequire(mod) {
@@ -494,7 +494,7 @@ var AboutModal = class extends import_obsidian2.Modal {
 };
 
 // src/reviewView.ts
-var import_obsidian5 = require("obsidian");
+var import_obsidian6 = require("obsidian");
 
 // src/imageModal.ts
 var import_obsidian3 = require("obsidian");
@@ -531,6 +531,120 @@ var ImageModal = class extends import_obsidian3.Modal {
       cls: "vf-image-modal-hint"
     });
     hint.onclick = () => this.close();
+  }
+  onClose() {
+    this.contentEl.empty();
+  }
+};
+
+// src/cardDetailModal.ts
+var import_obsidian4 = require("obsidian");
+var CardDetailModal = class extends import_obsidian4.Modal {
+  constructor(app, card, options) {
+    super(app);
+    this.card = card;
+    this.options = options;
+    this.side = "front";
+    this.innerEl = null;
+    this.frontButton = null;
+    this.backButton = null;
+  }
+  onOpen() {
+    const { contentEl, modalEl } = this;
+    contentEl.empty();
+    modalEl.addClass("vf-card-detail-modal-shell");
+    contentEl.addClass("vf-card-detail-modal");
+    const header = contentEl.createDiv({ cls: "vf-card-detail-header" });
+    const title = header.createDiv();
+    title.createDiv({ text: "Card Detail", cls: "vf-eyebrow" });
+    title.createEl("h2", { text: this.card.word });
+    const close = header.createEl("button", {
+      text: "\u2715",
+      cls: "vf-btn-icon",
+      attr: { "aria-label": "\u0110\xF3ng chi ti\u1EBFt th\u1EBB" }
+    });
+    close.onclick = () => this.close();
+    const sidePicker = contentEl.createDiv({ cls: "vf-detail-side-picker", attr: { role: "tablist" } });
+    this.frontButton = sidePicker.createEl("button", { text: "Front \xB7 T\u1EEB", cls: "vf-detail-side-button" });
+    this.backButton = sidePicker.createEl("button", { text: "Back \xB7 Ngh\u0129a", cls: "vf-detail-side-button" });
+    this.frontButton.setAttr("role", "tab");
+    this.backButton.setAttr("role", "tab");
+    this.frontButton.onclick = () => this.showSide("front");
+    this.backButton.onclick = () => this.showSide("back");
+    const stage = contentEl.createDiv({ cls: "vf-detail-stage" });
+    this.innerEl = stage.createDiv({ cls: "vf-detail-card-inner" });
+    this.renderFront(this.innerEl.createDiv({ cls: "vf-detail-face vf-detail-front" }));
+    this.renderBack(this.innerEl.createDiv({ cls: "vf-detail-face vf-detail-back" }));
+    stage.onclick = (event) => {
+      if (event.target.closest("button, a")) return;
+      this.showSide(this.side === "front" ? "back" : "front");
+    };
+    const footer = contentEl.createDiv({ cls: "vf-detail-footer" });
+    const speak = footer.createEl("button", { text: "\u{1F50A} Nghe ph\xE1t \xE2m", cls: "vf-btn-icon" });
+    speak.onclick = () => this.options.onSpeak(this.card.word);
+    const flip = footer.createEl("button", { text: "\u21BB L\u1EADt th\u1EBB", cls: "vf-btn-hero vf-btn-hero-small" });
+    flip.onclick = () => this.showSide(this.side === "front" ? "back" : "front");
+    const edit = footer.createEl("button", { text: "\u270E M\u1EDF note Markdown", cls: "vf-btn-icon" });
+    edit.onclick = () => {
+      this.close();
+      this.options.onOpenNote();
+    };
+    this.showSide("front");
+  }
+  renderFront(face) {
+    const media = face.createDiv({ cls: `vf-detail-media${this.options.imageSrc ? "" : " vf-detail-media-empty"}` });
+    if (this.options.imageSrc) {
+      media.createEl("img", {
+        attr: { src: this.options.imageSrc, alt: `Minh h\u1ECDa cho ${this.card.word}` }
+      });
+    } else media.createSpan({ text: categoryEmoji(this.card.category), cls: "vf-detail-media-emoji" });
+    const badges = media.createDiv({ cls: "vf-detail-badges" });
+    badges.createSpan({ text: this.card.type, cls: "vf-pill" });
+    badges.createSpan({ text: `${categoryEmoji(this.card.category)} ${this.card.category}`, cls: "vf-pill" });
+    const body = face.createDiv({ cls: "vf-detail-front-body" });
+    body.createDiv({ text: this.card.word, cls: "vf-detail-word" });
+    if (this.card.ipa) body.createDiv({ text: this.card.ipa, cls: "vf-detail-ipa" });
+    body.createDiv({ text: "B\u1EA5m v\xE0o th\u1EBB ho\u1EB7c n\xFAt L\u1EADt \u0111\u1EC3 xem ngh\u0129a", cls: "vf-muted vf-detail-hint" });
+  }
+  renderBack(face) {
+    const scroll = face.createDiv({ cls: "vf-detail-back-scroll" });
+    const head = scroll.createDiv({ cls: "vf-detail-back-head" });
+    head.createDiv({ text: this.card.word, cls: "vf-detail-back-word" });
+    if (this.card.ipa) head.createDiv({ text: this.card.ipa, cls: "vf-detail-ipa" });
+    if (this.card.meaningVi) this.detailBlock(scroll, "\u{1F1FB}\u{1F1F3} Ngh\u0129a ti\u1EBFng Vi\u1EC7t", this.card.meaningVi, "vf-detail-meaning-vi");
+    if (this.card.meaningEn) this.detailBlock(scroll, "\u{1F1EC}\u{1F1E7} English meaning", this.card.meaningEn);
+    if (this.card.quote) this.detailBlock(scroll, "\u{1F4AC} C\xE2u trong ng\u1EEF c\u1EA3nh", `\u201C${this.card.quote}\u201D`, "vf-detail-quote");
+    if (this.card.collocations.length) {
+      const block = scroll.createDiv({ cls: "vf-detail-block" });
+      block.createDiv({ text: "\u{1F517} Collocations", cls: "vf-detail-label" });
+      const chips = block.createDiv({ cls: "vf-detail-chips" });
+      for (const item of this.card.collocations) chips.createSpan({ text: item, cls: "vf-chip" });
+    }
+    if (this.card.forms.length) this.detailBlock(scroll, "\u{1F331} Word forms", this.card.forms.join(" \xB7 "));
+    if (this.card.myExample) this.detailBlock(scroll, "\u270D\uFE0F V\xED d\u1EE5 c\u1EE7a b\u1EA1n", this.card.myExample);
+    if (this.card.mnemonic) this.detailBlock(scroll, "\u{1F9E0} M\u1EB9o nh\u1EDB", this.card.mnemonic);
+    if (this.card.grammarNote) this.detailBlock(scroll, "\u{1F4D6} Ghi ch\xFA ng\u1EEF ph\xE1p", this.card.grammarNote);
+    if (this.card.source || this.card.sourceUrl) {
+      const source = scroll.createDiv({ cls: "vf-detail-source" });
+      source.createSpan({ text: `Ngu\u1ED3n: ${this.card.source || "YouTube"}` });
+      if (this.card.sourceUrl) {
+        const link = source.createEl("button", { text: "\u2197 M\u1EDF ngu\u1ED3n", cls: "vf-btn-tiny" });
+        link.onclick = () => window.open(this.card.sourceUrl);
+      }
+    }
+  }
+  detailBlock(parent, label, value, cls = "") {
+    const block = parent.createDiv({ cls: `vf-detail-block ${cls}`.trim() });
+    block.createDiv({ text: label, cls: "vf-detail-label" });
+    block.createDiv({ text: value, cls: "vf-detail-value" });
+  }
+  showSide(side) {
+    this.side = side;
+    this.innerEl?.toggleClass("is-back", side === "back");
+    this.frontButton?.toggleClass("is-active", side === "front");
+    this.backButton?.toggleClass("is-active", side === "back");
+    this.frontButton?.setAttr("aria-selected", String(side === "front"));
+    this.backButton?.setAttr("aria-selected", String(side === "back"));
   }
   onClose() {
     this.contentEl.empty();
@@ -2821,7 +2935,7 @@ function checkBadges(ctx, todayKey2) {
 }
 
 // src/learning.ts
-var import_obsidian4 = require("obsidian");
+var import_obsidian5 = require("obsidian");
 var ITEM_SECONDS = {
   review: 24,
   recall: 42,
@@ -3041,15 +3155,15 @@ var FUNCTION_WORDS = new Set(
   "a an the and or but if then than so because as at by for from in into of on onto to with is am are was were be been being do does did have has had i you he she it we they me him her us them my your his its our their this that these those who whom whose which what when where why how not no yes can could may might must shall should will would".split(" ")
 );
 async function appendErrorNotebookEntry(app, entry, options = {}) {
-  const path = (0, import_obsidian4.normalizePath)(options.path ?? "Vocab Forge/My English Errors.md");
+  const path = (0, import_obsidian5.normalizePath)(options.path ?? "Vocab Forge/My English Errors.md");
   const title = options.title ?? "My English Errors";
   const parent = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
   if (parent) await ensureVaultFolder(app, parent);
   const existing = app.vault.getAbstractFileByPath(path);
-  if (existing && !(existing instanceof import_obsidian4.TFile)) throw new Error(`Cannot write error notebook: ${path} is not a file`);
+  if (existing && !(existing instanceof import_obsidian5.TFile)) throw new Error(`Cannot write error notebook: ${path} is not a file`);
   const createdAt = entry.createdAt ?? /* @__PURE__ */ new Date();
   const block = formatErrorNotebookEntry(entry, createdAt);
-  if (existing instanceof import_obsidian4.TFile) {
+  if (existing instanceof import_obsidian5.TFile) {
     await app.vault.append(existing, `
 ${block}`);
     return existing;
@@ -3088,11 +3202,11 @@ function formatErrorNotebookEntry(entry, createdAt = entry.createdAt ?? /* @__PU
 }
 async function ensureVaultFolder(app, folderPath) {
   let current = "";
-  for (const part of (0, import_obsidian4.normalizePath)(folderPath).split("/").filter(Boolean)) {
+  for (const part of (0, import_obsidian5.normalizePath)(folderPath).split("/").filter(Boolean)) {
     current = current ? `${current}/${part}` : part;
     const existing = app.vault.getAbstractFileByPath(current);
     if (!existing) await app.vault.createFolder(current);
-    else if (!(existing instanceof import_obsidian4.TFolder)) throw new Error(`Cannot create folder: ${current} is a file`);
+    else if (!(existing instanceof import_obsidian5.TFolder)) throw new Error(`Cannot create folder: ${current} is a file`);
   }
 }
 function stableEntryId(entry, date) {
@@ -3463,7 +3577,7 @@ var STATE_LABELS = {
   [State.Review]: "\xD4n t\u1EADp",
   [State.Relearning]: "H\u1ECDc l\u1EA1i"
 };
-var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
+var VocabReviewView = class _VocabReviewView extends import_obsidian6.ItemView {
   constructor(leaf, plugin) {
     super(leaf);
     this.plugin = plugin;
@@ -3686,7 +3800,8 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
     const due = this.plugin.store.getDueEntries(this.plugin.settings.reverseEnabled);
     const news = this.plugin.store.getNewCards();
     const revNews = this.plugin.settings.reverseEnabled ? this.plugin.store.getRevNewCards() : [];
-    const newAvailable = Math.min(news.length + revNews.length, this.plugin.newRemainingToday());
+    const totalNewUnlearned = news.length + revNews.length;
+    const newAvailable = Math.min(totalNewUnlearned, this.plugin.newRemainingToday());
     const all = this.plugin.store.getAllCards();
     const learned2 = all.filter((c) => c.fsrs.state !== State.New).length;
     const today = this.plugin.data.stats[todayKey()];
@@ -3694,17 +3809,52 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
     const hero = main.createDiv({ cls: "vf-hero" });
     const heroLeft = hero.createDiv({ cls: "vf-hero-left" });
     heroLeft.createDiv({ text: this.greeting(), cls: "vf-hero-hi" });
-    heroLeft.createDiv({
-      text: total > 0 ? `H\xF4m nay c\xF3 ${due.length} th\u1EBB \u0111\u1EBFn h\u1EA1n v\xE0 ${newAvailable} th\u1EBB m\u1EDBi \u0111ang ch\u1EDD b\u1EA1n.` : "B\u1EA1n \u0111\xE3 ho\xE0n th\xE0nh m\u1EE5c ti\xEAu h\xF4m nay. Tuy\u1EC7t v\u1EDDi! \u{1F389}",
-      cls: "vf-hero-sub"
-    });
+    let subText = "";
+    if (total > 0) {
+      subText = `H\xF4m nay c\xF3 ${due.length} th\u1EBB \u0111\u1EBFn h\u1EA1n v\xE0 ${newAvailable} th\u1EBB m\u1EDBi theo l\u1ECBch.`;
+      if (totalNewUnlearned > newAvailable) {
+        subText += ` (C\xF2n ${totalNewUnlearned - newAvailable} th\u1EBB m\u1EDBi trong kho)`;
+      }
+    } else if (totalNewUnlearned > 0) {
+      subText = `B\u1EA1n \u0111\xE3 ho\xE0n th\xE0nh m\u1EE5c ti\xEAu h\xF4m nay! B\u1EA1n c\xF2n ${totalNewUnlearned} th\u1EBB m\u1EDBi trong kho n\u1EBFu mu\u1ED1n h\u1ECDc ti\u1EBFp.`;
+    } else {
+      subText = "B\u1EA1n \u0111\xE3 ho\xE0n th\xE0nh t\u1EA5t c\u1EA3 th\u1EBB trong kho t\u1EEB. Tuy\u1EC7t v\u1EDDi! \u{1F389}";
+    }
+    heroLeft.createDiv({ text: subText, cls: "vf-hero-sub" });
     const heroBtns = heroLeft.createDiv({ cls: "vf-hero-btns" });
-    const startBtn = heroBtns.createEl("button", {
-      text: total > 0 ? `\u25B6  H\u1ECDc ngay \xB7 ${total} th\u1EBB` : "\u2713 \u0110\xE3 xong h\xF4m nay",
-      cls: "vf-btn-hero"
-    });
-    startBtn.disabled = total === 0;
-    startBtn.onclick = () => this.startSession(null);
+    if (total > 0) {
+      const startBtn = heroBtns.createEl("button", {
+        text: `\u25B6  H\u1ECDc ngay \xB7 ${total} th\u1EBB`,
+        cls: "vf-btn-hero"
+      });
+      startBtn.onclick = () => this.startSession(null);
+      if (totalNewUnlearned > newAvailable) {
+        const extraBtn = heroBtns.createEl("button", {
+          text: `\u2728 Th\xEAm +5 t\u1EEB m\u1EDBi`,
+          cls: "vf-btn-hero-ghost"
+        });
+        extraBtn.onclick = () => this.startSession(null, newAvailable + 5);
+      }
+    } else if (totalNewUnlearned > 0) {
+      const learnMoreBtn = heroBtns.createEl("button", {
+        text: `\u2728 H\u1ECDc th\xEAm ${Math.min(5, totalNewUnlearned)} t\u1EEB m\u1EDBi`,
+        cls: "vf-btn-hero"
+      });
+      learnMoreBtn.onclick = () => this.startSession(null, Math.min(5, totalNewUnlearned));
+      if (totalNewUnlearned > 5) {
+        const learn10Btn = heroBtns.createEl("button", {
+          text: `\u2728 H\u1ECDc th\xEAm ${Math.min(10, totalNewUnlearned)} t\u1EEB`,
+          cls: "vf-btn-hero-ghost"
+        });
+        learn10Btn.onclick = () => this.startSession(null, Math.min(10, totalNewUnlearned));
+      }
+    } else {
+      const doneBtn = heroBtns.createEl("button", {
+        text: "\u2713 \u0110\xE3 xong h\xF4m nay",
+        cls: "vf-btn-hero"
+      });
+      doneBtn.disabled = true;
+    }
     const practiceBtn = heroBtns.createEl("button", { text: "\u{1F3AF} Luy\u1EC7n t\u1EADp", cls: "vf-btn-hero-ghost" });
     practiceBtn.onclick = () => {
       this.section = "practice";
@@ -3723,7 +3873,8 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
     ring.createDiv({ text: `${pct}%`, cls: "vf-hero-ring-text" });
     const tiles = main.createDiv({ cls: "vf-tiles" });
     this.tile(tiles, "\u23F0", String(due.length), "\u0110\u1EBFn h\u1EA1n", "vf-tile-due");
-    this.tile(tiles, "\u2728", String(newAvailable), "Th\u1EBB m\u1EDBi", "vf-tile-new");
+    const newTileValue = newAvailable > 0 ? `${newAvailable}${totalNewUnlearned > newAvailable ? ` (${totalNewUnlearned})` : ""}` : totalNewUnlearned > 0 ? `0 (${totalNewUnlearned})` : "0";
+    this.tile(tiles, "\u2728", newTileValue, totalNewUnlearned > newAvailable ? "Th\u1EBB m\u1EDBi (kho)" : "Th\u1EBB m\u1EDBi", "vf-tile-new");
     this.tile(tiles, "\u{1F4D6}", String(today?.reviews ?? 0), "L\u01B0\u1EE3t \xF4n h\xF4m nay", "");
     this.tile(tiles, "\u{1F3C6}", `${learned2}/${all.length}`, "\u0110\xE3 h\u1ECDc / t\u1ED5ng", "");
     this.renderAdaptiveCoach(main, all);
@@ -3811,7 +3962,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
       history: this.plugin.data.stats,
       skillPerformance,
       minutes: this.plugin.settings.dailyMinutes,
-      newCardLimit: this.plugin.newRemainingToday(),
+      newCardLimit: Math.max(this.plugin.newRemainingToday(), Math.min(5, this.plugin.store.getNewCards().length)),
       reverseEnabled: this.plugin.settings.reverseEnabled
     });
     const grid = main.createDiv({ cls: "vf-coach-grid" });
@@ -3829,8 +3980,13 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
         this.labMode = plan.weakSkill === "shadowing" ? "shadowing" : "dictation";
         this.section = "lab";
         this.render();
-      } else if (plan.dueCount > 0) this.startSession(null);
-      else this.startPractice("mix");
+      } else if (plan.dueCount > 0 || this.plugin.newRemainingToday() > 0) {
+        this.startSession(null);
+      } else if (this.plugin.store.getNewCards().length > 0) {
+        this.startSession(null, 5);
+      } else {
+        this.startPractice("mix");
+      }
     };
     const goal = grid.createDiv({ cls: "vf-goal-card" });
     goal.createDiv({ text: "L\u1ED9 tr\xECnh hi\u1EC7n t\u1EA1i", cls: "vf-eyebrow" });
@@ -3941,13 +4097,46 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
     head.createEl("h3", { text: `${categoryEmoji(cat)} ${cat}` });
     head.createSpan({ text: `${cards.length} th\u1EBB \xB7 ${due} due \xB7 ${fresh} m\u1EDBi`, cls: "vf-muted" });
     const actions = main.createDiv({ cls: "vf-actions" });
-    const total = due + Math.min(fresh, this.plugin.newRemainingToday());
-    const study = actions.createEl("button", {
-      text: total > 0 ? `\u25B6  H\u1ECDc deck n\xE0y (${total})` : "\u2713 Deck \u0111\xE3 xong h\xF4m nay",
-      cls: "vf-btn-hero vf-btn-hero-small"
+    const remainingQuota = this.plugin.newRemainingToday();
+    const standardNew = Math.min(fresh, remainingQuota);
+    const totalStandard = due + standardNew;
+    if (totalStandard > 0) {
+      const study = actions.createEl("button", {
+        text: `\u25B6  H\u1ECDc deck n\xE0y (${totalStandard})`,
+        cls: "vf-btn-hero vf-btn-hero-small"
+      });
+      study.onclick = () => this.startSession(cat);
+    }
+    if (fresh > 0) {
+      const extraCount = Math.min(5, fresh > standardNew ? fresh - standardNew : fresh);
+      const extraBtn = actions.createEl("button", {
+        text: totalStandard === 0 ? `\u2728 H\u1ECDc t\u1EEB m\u1EDBi (${fresh})` : `\u2728 Th\xEAm +${extraCount} t\u1EEB m\u1EDBi`,
+        cls: totalStandard === 0 ? "vf-btn-hero vf-btn-hero-small" : "vf-btn-hero-ghost vf-btn-hero-small"
+      });
+      extraBtn.onclick = () => this.startSession(cat, totalStandard === 0 ? Math.min(5, fresh) : standardNew + extraCount);
+      if (fresh > 5) {
+        const allBtn = actions.createEl("button", {
+          text: `\u2728 H\u1ECDc t\u1EA5t c\u1EA3 t\u1EEB m\u1EDBi (${fresh})`,
+          cls: "vf-btn-hero-ghost vf-btn-hero-small"
+        });
+        allBtn.onclick = () => this.startSession(cat, "all");
+      }
+    } else if (totalStandard === 0) {
+      const doneBtn = actions.createEl("button", {
+        text: "\u2713 Deck \u0111\xE3 xong h\xF4m nay",
+        cls: "vf-btn-hero vf-btn-hero-small"
+      });
+      doneBtn.disabled = true;
+    }
+    const practiceBtn = actions.createEl("button", {
+      text: "\u{1F3AF} Luy\u1EC7n t\u1EADp deck",
+      cls: "vf-btn-hero-ghost vf-btn-hero-small"
     });
-    study.disabled = total === 0;
-    study.onclick = () => this.startSession(cat);
+    practiceBtn.onclick = () => {
+      this.practiceDeck = cat;
+      this.section = "practice";
+      this.render();
+    };
     const toolbar = main.createDiv({ cls: "vf-list-toolbar" });
     const search = toolbar.createEl("input", {
       cls: "vf-search",
@@ -4014,7 +4203,12 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
           text: STATE_LABELS[c.fsrs.state] ?? "?",
           cls: `vf-pill vf-pill-state-${c.fsrs.state}`
         });
-        row.onclick = () => this.app.workspace.openLinkText(c.file.path, "", true);
+        const detail = right.createEl("button", { text: "\u{1F441} Xem", cls: "vf-btn-tiny vf-card-detail-button" });
+        detail.onclick = (event) => {
+          event.stopPropagation();
+          this.openCardDetail(c);
+        };
+        row.onclick = () => this.openCardDetail(c);
       }
       return;
     }
@@ -4037,16 +4231,29 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
       body.createDiv({ text: c.meaningVi || c.meaningEn, cls: "vf-tile-meaning" });
       const foot = body.createDiv({ cls: "vf-tile-foot" });
       foot.createSpan({ text: TYPE_LABELS[c.type] ?? c.type, cls: "vf-pill" });
-      const speak = foot.createEl("button", { text: "\u{1F50A}", cls: "vf-btn-tiny" });
+      const tileActions = foot.createDiv({ cls: "vf-tile-actions" });
+      const detail = tileActions.createEl("button", { text: "\u{1F441} Xem", cls: "vf-btn-tiny vf-card-detail-button" });
+      detail.onclick = (e) => {
+        e.stopPropagation();
+        this.openCardDetail(c);
+      };
+      const speak = tileActions.createEl("button", { text: "\u{1F50A}", cls: "vf-btn-tiny" });
       speak.onclick = (e) => {
         e.stopPropagation();
         this.plugin.speak(c.word);
       };
-      tile.onclick = () => this.app.workspace.openLinkText(c.file.path, "", true);
+      tile.onclick = () => this.openCardDetail(c);
     }
   }
+  openCardDetail(card) {
+    new CardDetailModal(this.app, card, {
+      imageSrc: this.thumbnailFor(card),
+      onSpeak: (text) => this.plugin.speak(text),
+      onOpenNote: () => void this.app.workspace.openLinkText(card.file.path, "", true)
+    }).open();
+  }
   // =============================================================== REVIEW
-  startSession(category) {
+  startSession(category = null, extraNewCount) {
     this.sessionCategory = category;
     let due = this.plugin.store.getDueEntries(this.plugin.settings.reverseEnabled);
     let news = this.plugin.store.getNewCards();
@@ -4056,18 +4263,32 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
       news = news.filter((c) => c.category === category);
       revNews = revNews.filter((c) => c.category === category);
     }
-    const budget = this.plugin.newRemainingToday();
-    const newEntries = [
+    let newEntries = [
       ...news.map((c) => ({ card: c, dir: "fwd" })),
       ...revNews.map((c) => ({ card: c, dir: "rev" }))
-    ].slice(0, budget);
+    ];
+    if (extraNewCount !== void 0) {
+      const take = extraNewCount === "all" ? newEntries.length : Math.max(0, extraNewCount);
+      newEntries = newEntries.slice(0, take);
+    } else {
+      const budget = this.plugin.newRemainingToday();
+      if (budget > 0 || due.length > 0) {
+        newEntries = newEntries.slice(0, budget);
+      } else if (newEntries.length > 0) {
+        const extraBatch = Math.min(this.plugin.settings.newPerDay || 5, newEntries.length);
+        newEntries = newEntries.slice(0, extraBatch);
+        new import_obsidian6.Notice(`B\u1EAFt \u0111\u1EA7u h\u1ECDc th\xEAm ${newEntries.length} t\u1EEB m\u1EDBi \u2728`);
+      } else {
+        newEntries = [];
+      }
+    }
     this.queue = [...due, ...newEntries];
     this.sessionTotal = this.queue.length;
     this.sessionDone = 0;
     if (!this.queue.length) {
       this.section = "dashboard";
       this.render();
-      new import_obsidian5.Notice("Kh\xF4ng c\xF2n th\u1EBB \u0111\u1EC3 h\u1ECDc \u{1F389}");
+      new import_obsidian6.Notice("Kh\xF4ng c\xF2n th\u1EBB \u0111\u1EC3 h\u1ECDc \u{1F389}");
       return;
     }
     this.section = "review";
@@ -4145,7 +4366,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
     const checkBtn = writeBox.createEl("button", { text: "AI ch\u1EA5m", cls: "vf-btn-icon vf-btn-ai" });
     checkBtn.onclick = () => void this.aiAction(checkBtn, async () => {
       if (!this.aiSentence.trim()) {
-        new import_obsidian5.Notice("G\xF5 c\xE2u c\u1EE7a b\u1EA1n tr\u01B0\u1EDBc \u0111\xE3");
+        new import_obsidian6.Notice("G\xF5 c\xE2u c\u1EE7a b\u1EA1n tr\u01B0\u1EDBc \u0111\xE3");
         return;
       }
       const raw = await this.plugin.runAI(
@@ -4153,7 +4374,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
         12e4
       );
       this.aiResult = extractJson(raw);
-      if (!this.aiResult) new import_obsidian5.Notice("AI tr\u1EA3 l\u1EDDi kh\xF4ng \u0111\xFAng \u0111\u1ECBnh d\u1EA1ng \u2014 th\u1EED l\u1EA1i");
+      if (!this.aiResult) new import_obsidian6.Notice("AI tr\u1EA3 l\u1EDDi kh\xF4ng \u0111\xFAng \u0111\u1ECBnh d\u1EA1ng \u2014 th\u1EED l\u1EA1i");
       else {
         this.plugin.recordSkill("writing", this.aiResult.score * 10);
         if (this.aiResult.corrected.trim() && this.aiResult.corrected.trim() !== this.aiSentence.trim()) {
@@ -4168,7 +4389,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
             }, { path: this.plugin.settings.errorNotebookPath });
           } catch (error) {
             console.warn("Vocab Forge: kh\xF4ng l\u01B0u \u0111\u01B0\u1EE3c S\u1ED5 l\u1ED7i", error);
-            new import_obsidian5.Notice("\u0110\xE3 ch\u1EA5m c\xE2u nh\u01B0ng ch\u01B0a l\u01B0u \u0111\u01B0\u1EE3c v\xE0o S\u1ED5 l\u1ED7i");
+            new import_obsidian6.Notice("\u0110\xE3 ch\u1EA5m c\xE2u nh\u01B0ng ch\u01B0a l\u01B0u \u0111\u01B0\u1EE3c v\xE0o S\u1ED5 l\u1ED7i");
           }
         }
       }
@@ -4190,7 +4411,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
       save.onclick = async () => {
         const sentence = (r.score >= 7 ? this.aiSentence : r.corrected).trim();
         await this.plugin.store.saveExtraField(card, "my_example", sentence);
-        new import_obsidian5.Notice("\u0110\xE3 l\u01B0u c\xE2u c\u1EE7a b\u1EA1n v\xE0o th\u1EBB \u270D\uFE0F");
+        new import_obsidian6.Notice("\u0110\xE3 l\u01B0u c\xE2u c\u1EE7a b\u1EA1n v\xE0o th\u1EBB \u270D\uFE0F");
         this.render();
       };
     }
@@ -4205,7 +4426,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
       await fn();
     } catch (e) {
       console.error("Vocab Forge AI:", e);
-      new import_obsidian5.Notice("L\u1ED7i g\u1ECDi AI CLI \u2014 ki\u1EC3m tra provider v\xE0 tr\u1EA1ng th\xE1i \u0111\u0103ng nh\u1EADp trong C\xE0i \u0111\u1EB7t");
+      new import_obsidian6.Notice("L\u1ED7i g\u1ECDi AI CLI \u2014 ki\u1EC3m tra provider v\xE0 tr\u1EA1ng th\xE1i \u0111\u0103ng nh\u1EADp trong C\xE0i \u0111\u1EB7t");
     } finally {
       this.aiBusy = false;
       btn.disabled = false;
@@ -4411,11 +4632,11 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
         this.sessionTotal++;
       }
       if (grade === Rating.Again && next.lapses >= 4 && !card.mnemonic) {
-        new import_obsidian5.Notice(`\u{1F624} "${card.word}" \u0111\xE3 qu\xEAn ${next.lapses} l\u1EA7n \u2014 b\u1EA5m \u{1F9E0} T\u1EA1o m\u1EB9o nh\u1EDB \u1EDF m\u1EB7t sau th\u1EBB!`, 6e3);
+        new import_obsidian6.Notice(`\u{1F624} "${card.word}" \u0111\xE3 qu\xEAn ${next.lapses} l\u1EA7n \u2014 b\u1EA5m \u{1F9E0} T\u1EA1o m\u1EB9o nh\u1EDB \u1EDF m\u1EB7t sau th\u1EBB!`, 6e3);
       }
     } catch (e) {
       console.error("Vocab Forge: l\u1ED7i khi l\u01B0u th\u1EBB", e);
-      new import_obsidian5.Notice("Vocab Forge: kh\xF4ng l\u01B0u \u0111\u01B0\u1EE3c th\u1EBB \u2014 xem console");
+      new import_obsidian6.Notice("Vocab Forge: kh\xF4ng l\u01B0u \u0111\u01B0\u1EE3c th\u1EBB \u2014 xem console");
     } finally {
       this.rating = false;
     }
@@ -4423,6 +4644,14 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
     this.nextCard();
   }
   renderDone(main) {
+    const cat = this.sessionCategory;
+    let news = this.plugin.store.getNewCards();
+    let revNews = this.plugin.settings.reverseEnabled ? this.plugin.store.getRevNewCards() : [];
+    if (cat) {
+      news = news.filter((c) => c.category === cat);
+      revNews = revNews.filter((c) => c.category === cat);
+    }
+    const totalNew = news.length + revNews.length;
     const done = main.createDiv({ cls: "vf-done" });
     done.createEl("div", { text: "\u{1F389}", cls: "vf-done-emoji" });
     done.createEl("h2", { text: "Xong phi\xEAn h\xF4m nay!" });
@@ -4430,8 +4659,47 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
       text: `B\u1EA1n \u0111\xE3 \xF4n ${this.sessionDone} l\u01B0\u1EE3t. Chu\u1ED7i ng\xE0y: ${this.computeStreak()} \u{1F525}`,
       cls: "vf-muted"
     });
-    const btn = done.createEl("button", { text: "\u2190 V\u1EC1 Dashboard", cls: "vf-btn-hero vf-btn-hero-small" });
-    btn.onclick = () => {
+    if (totalNew > 0) {
+      const extraBox = done.createDiv({ cls: "vf-done-extra-box" });
+      extraBox.createDiv({
+        text: `\u2728 C\xF2n ${totalNew} th\u1EBB t\u1EEB v\u1EF1ng m\u1EDBi${cat ? ` trong "${cat}"` : " trong kho"}. B\u1EA1n c\xF3 mu\u1ED1n h\u1ECDc th\xEAm kh\xF4ng?`,
+        cls: "vf-done-extra-title"
+      });
+      const extraBtns = extraBox.createDiv({ cls: "vf-done-extra-btns" });
+      const b5 = extraBtns.createEl("button", {
+        text: `\u2728 H\u1ECDc th\xEAm ${Math.min(5, totalNew)} t\u1EEB m\u1EDBi`,
+        cls: "vf-btn-hero vf-btn-hero-small"
+      });
+      b5.onclick = () => this.startSession(cat, Math.min(5, totalNew));
+      if (totalNew > 5) {
+        const b10 = extraBtns.createEl("button", {
+          text: `\u2728 H\u1ECDc th\xEAm ${Math.min(10, totalNew)} t\u1EEB`,
+          cls: "vf-btn-hero-ghost vf-btn-hero-small"
+        });
+        b10.onclick = () => this.startSession(cat, Math.min(10, totalNew));
+      }
+      if (totalNew > 10) {
+        const bAll = extraBtns.createEl("button", {
+          text: `\u2728 H\u1ECDc t\u1EA5t c\u1EA3 (${totalNew} t\u1EEB)`,
+          cls: "vf-btn-hero-ghost vf-btn-hero-small"
+        });
+        bAll.onclick = () => this.startSession(cat, "all");
+      }
+    }
+    const navBtns = done.createDiv({ cls: "vf-done-nav-btns" });
+    const practiceBtn = navBtns.createEl("button", {
+      text: "\u{1F3AF} Sang Luy\u1EC7n t\u1EADp",
+      cls: "vf-btn-hero-ghost"
+    });
+    practiceBtn.onclick = () => {
+      this.section = "practice";
+      this.render();
+    };
+    const dashBtn = navBtns.createEl("button", {
+      text: "\u2190 V\u1EC1 Dashboard",
+      cls: "vf-btn-hero-ghost"
+    });
+    dashBtn.onclick = () => {
       this.section = "dashboard";
       this.render();
     };
@@ -4487,7 +4755,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
     if (this.practiceDeck) cards = cards.filter((c) => c.category === this.practiceDeck);
     const queue = mode === "mix" ? buildMixedQueue(cards, this.practiceSize) : buildPracticeQueue(mode, cards, this.practiceSize);
     if (queue.length < 3) {
-      new import_obsidian5.Notice("Deck n\xE0y ch\u01B0a \u0111\u1EE7 th\u1EBB ph\xF9 h\u1EE3p cho ch\u1EBF \u0111\u1ED9 \u0111\xF3 (c\u1EA7n \u2265 3)");
+      new import_obsidian6.Notice("Deck n\xE0y ch\u01B0a \u0111\u1EE7 th\u1EBB ph\xF9 h\u1EE3p cho ch\u1EBF \u0111\u1ED9 \u0111\xF3 (c\u1EA7n \u2265 3)");
       return;
     }
     this.practiceMode = mode;
@@ -4998,7 +5266,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
       checkAi.disabled = true;
       checkAi.setText("\u0110ang ki\u1EC3m tra\u2026");
       try {
-        new import_obsidian5.Notice(await this.plugin.aiStatusSummary(), 9e3);
+        new import_obsidian6.Notice(await this.plugin.aiStatusSummary(), 9e3);
       } finally {
         checkAi.disabled = false;
         checkAi.setText("Ki\u1EC3m tra");
@@ -5204,7 +5472,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
     const actions = box.createDiv({ cls: "vf-actions" });
     const check = actions.createEl("button", { text: "Ki\u1EC3m tra", cls: "vf-btn-hero vf-btn-hero-small" });
     check.onclick = () => {
-      if (!this.labAnswer.trim()) return new import_obsidian5.Notice("H\xE3y g\xF5 c\xE2u b\u1EA1n nghe \u0111\u01B0\u1EE3c tr\u01B0\u1EDBc");
+      if (!this.labAnswer.trim()) return new import_obsidian6.Notice("H\xE3y g\xF5 c\xE2u b\u1EA1n nghe \u0111\u01B0\u1EE3c tr\u01B0\u1EDBc");
       this.labDiff = diffTranscripts(card.quote, this.labAnswer);
       this.labReveal = true;
       this.plugin.recordSkill("listening", Math.round(this.labDiff.accuracy * 100));
@@ -5284,7 +5552,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
       console.error("Vocab Forge recorder:", e);
       this.audioRecorder.cancel();
       const cancelled = e instanceof Error && e.message.includes("cancelled");
-      if (this.section === "lab" && !cancelled) new import_obsidian5.Notice("Kh\xF4ng m\u1EDF \u0111\u01B0\u1EE3c microphone \u2014 ki\u1EC3m tra quy\u1EC1n microphone c\u1EE7a Obsidian");
+      if (this.section === "lab" && !cancelled) new import_obsidian6.Notice("Kh\xF4ng m\u1EDF \u0111\u01B0\u1EE3c microphone \u2014 ki\u1EC3m tra quy\u1EC1n microphone c\u1EE7a Obsidian");
     } finally {
       this.labStarting = false;
       if (this.section === "lab") this.render();
@@ -5308,10 +5576,10 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
       if (this.labShadowScore) {
         this.plugin.recordSkill("speaking", this.labShadowScore.overall);
         this.plugin.recordPractice(this.labShadowScore.overall >= 75);
-      } else new import_obsidian5.Notice("\u0110\xE3 ghi \xE2m \u2014 h\xE3y nghe l\u1EA1i b\u1EA3n thu \u0111\u1EC3 t\u1EF1 \u0111\u1ED1i chi\u1EBFu");
+      } else new import_obsidian6.Notice("\u0110\xE3 ghi \xE2m \u2014 h\xE3y nghe l\u1EA1i b\u1EA3n thu \u0111\u1EC3 t\u1EF1 \u0111\u1ED1i chi\u1EBFu");
     } catch (e) {
       console.error("Vocab Forge shadowing:", e);
-      new import_obsidian5.Notice("Kh\xF4ng ho\xE0n t\u1EA5t \u0111\u01B0\u1EE3c b\u1EA3n ghi \xE2m");
+      new import_obsidian6.Notice("Kh\xF4ng ho\xE0n t\u1EA5t \u0111\u01B0\u1EE3c b\u1EA3n ghi \xE2m");
     }
     this.render();
   }
@@ -5339,14 +5607,14 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
     const actions = card.createDiv({ cls: "vf-actions" });
     const analyze = actions.createEl("button", { text: "Ph\xE2n t\xEDch video", cls: "vf-btn-hero vf-btn-hero-small" });
     analyze.onclick = () => {
-      if (!this.coverageText.trim()) return new import_obsidian5.Notice("H\xE3y d\xE1n transcript tr\u01B0\u1EDBc");
+      if (!this.coverageText.trim()) return new import_obsidian6.Notice("H\xE3y d\xE1n transcript tr\u01B0\u1EDBc");
       this.coverageResult = analyzeVideoComprehension(this.cleanCoverageText(this.coverageText), this.plugin.store.getAllCards());
       this.render();
     };
     const active = actions.createEl("button", { text: "D\xF9ng note \u0111ang m\u1EDF", cls: "vf-btn-icon" });
     active.onclick = async () => {
       const file = this.app.workspace.getActiveFile();
-      if (!file) return new import_obsidian5.Notice("Kh\xF4ng c\xF3 note \u0111ang m\u1EDF");
+      if (!file) return new import_obsidian6.Notice("Kh\xF4ng c\xF3 note \u0111ang m\u1EDF");
       this.coverageText = await this.app.vault.read(file);
       this.coverageResult = analyzeVideoComprehension(this.cleanCoverageText(this.coverageText), this.plugin.store.getAllCards());
       this.render();
@@ -5486,14 +5754,14 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
         },
         onError: () => {
           this.chatListening = false;
-          new import_obsidian5.Notice("Kh\xF4ng nh\u1EADn \u0111\u01B0\u1EE3c gi\u1ECDng n\xF3i \u2014 ki\u1EC3m tra quy\u1EC1n microphone");
+          new import_obsidian6.Notice("Kh\xF4ng nh\u1EADn \u0111\u01B0\u1EE3c gi\u1ECDng n\xF3i \u2014 ki\u1EC3m tra quy\u1EC1n microphone");
           this.render();
         }
       });
       this.render();
     } catch {
       this.chatListening = false;
-      new import_obsidian5.Notice("Thi\u1EBFt b\u1ECB ch\u01B0a h\u1ED7 tr\u1EE3 speech recognition");
+      new import_obsidian6.Notice("Thi\u1EBFt b\u1ECB ch\u01B0a h\u1ED7 tr\u1EE3 speech recognition");
     }
   }
   pickChatWords() {
@@ -5516,7 +5784,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
     if (this.chatSession) this.plugin.clearAiSession(this.chatSession);
     this.chatWords = this.pickChatWords();
     if (this.chatWords.length < 2) {
-      new import_obsidian5.Notice("Ch\u01B0a \u0111\u1EE7 th\u1EBB \u0111\u1EC3 t\u1EA1o h\u1ED9i tho\u1EA1i");
+      new import_obsidian6.Notice("Ch\u01B0a \u0111\u1EE7 th\u1EBB \u0111\u1EC3 t\u1EA1o h\u1ED9i tho\u1EA1i");
       return;
     }
     this.chatMsgs = [];
@@ -5534,7 +5802,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
       this.plugin.speak(first.trim());
     } catch (e) {
       console.error("Vocab Forge chat:", e);
-      new import_obsidian5.Notice("Kh\xF4ng b\u1EAFt \u0111\u1EA7u \u0111\u01B0\u1EE3c h\u1ED9i tho\u1EA1i \u2014 ki\u1EC3m tra AI CLI");
+      new import_obsidian6.Notice("Kh\xF4ng b\u1EAFt \u0111\u1EA7u \u0111\u01B0\u1EE3c h\u1ED9i tho\u1EA1i \u2014 ki\u1EC3m tra AI CLI");
     } finally {
       this.chatBusy = false;
       this.render();
@@ -5553,7 +5821,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
       this.plugin.speak(reply.trim());
     } catch (e) {
       console.error("Vocab Forge chat:", e);
-      new import_obsidian5.Notice("L\u1ED7i g\u1EEDi tin \u2014 th\u1EED l\u1EA1i");
+      new import_obsidian6.Notice("L\u1ED7i g\u1EEDi tin \u2014 th\u1EED l\u1EA1i");
       this.chatMsgs.pop();
       this.chatInput = text;
     } finally {
@@ -5578,7 +5846,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
       this.chatSession = "";
     } catch (e) {
       console.error("Vocab Forge chat:", e);
-      new import_obsidian5.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c nh\u1EADn x\xE9t");
+      new import_obsidian6.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c nh\u1EADn x\xE9t");
     } finally {
       this.chatBusy = false;
       this.render();
@@ -5640,12 +5908,12 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
   }
   async generateStory() {
     const due = this.plugin.store.getDueCards();
-    const news = this.plugin.store.getNewCards().slice(0, this.plugin.newRemainingToday());
+    const news = this.plugin.store.getNewCards().slice(0, Math.max(5, this.plugin.newRemainingToday()));
     let pool = [...due, ...news].filter((c) => c.type !== "sentence" && c.type !== "passage" && c.type !== "grammar");
     if (pool.length < 3)
       pool = this.plugin.store.getAllCards().filter((c) => c.type !== "sentence" && c.type !== "passage" && c.type !== "grammar");
     if (pool.length < 3) {
-      new import_obsidian5.Notice("Ch\u01B0a \u0111\u1EE7 th\u1EBB \u0111\u1EC3 t\u1EA1o story");
+      new import_obsidian6.Notice("Ch\u01B0a \u0111\u1EE7 th\u1EBB \u0111\u1EC3 t\u1EA1o story");
       return;
     }
     const picked = sample(pool, 7);
@@ -5663,7 +5931,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
       await this.plugin.saveAll();
     } catch (e) {
       console.error("Vocab Forge story:", e);
-      new import_obsidian5.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c story \u2014 ki\u1EC3m tra AI CLI");
+      new import_obsidian6.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c story \u2014 ki\u1EC3m tra AI CLI");
     } finally {
       this.storyBusy = false;
       this.render();
@@ -5730,14 +5998,14 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian5.ItemView {
 };
 
 // src/store.ts
-var import_obsidian6 = require("obsidian");
+var import_obsidian7 = require("obsidian");
 var CardStore = class {
   constructor(app, getSettings) {
     this.app = app;
     this.getSettings = getSettings;
   }
   get folder() {
-    return (0, import_obsidian6.normalizePath)(this.getSettings().cardsFolder);
+    return (0, import_obsidian7.normalizePath)(this.getSettings().cardsFolder);
   }
   /** Đọc toàn bộ thẻ trong folder (dựa vào metadataCache nên rất nhanh) */
   getAllCards() {
@@ -5834,10 +6102,10 @@ var CardStore = class {
     const targetFolder = `${this.folder}/${category}`;
     await this.ensureFolder(targetFolder);
     const base = sanitizeFilename(input.word) || "card";
-    let path = (0, import_obsidian6.normalizePath)(`${targetFolder}/${base}.md`);
+    let path = (0, import_obsidian7.normalizePath)(`${targetFolder}/${base}.md`);
     let i = 1;
     while (this.app.vault.getAbstractFileByPath(path)) {
-      path = (0, import_obsidian6.normalizePath)(`${targetFolder}/${base} ${++i}.md`);
+      path = (0, import_obsidian7.normalizePath)(`${targetFolder}/${base} ${++i}.md`);
     }
     const empty = createEmptyCard(/* @__PURE__ */ new Date());
     const yaml = buildCardYaml(input, empty);
@@ -5861,8 +6129,8 @@ Ngu\u1ED3n: ${input.source || "_(ch\u01B0a r\xF5)_"}
           await this.app.vault.createFolder(cur);
         } catch (e) {
         }
-      } else if (!(existing instanceof import_obsidian6.TFolder)) {
-        new import_obsidian6.Notice(`Vocab Forge: "${cur}" \u0111\xE3 t\u1ED3n t\u1EA1i nh\u01B0ng kh\xF4ng ph\u1EA3i folder`);
+      } else if (!(existing instanceof import_obsidian7.TFolder)) {
+        new import_obsidian7.Notice(`Vocab Forge: "${cur}" \u0111\xE3 t\u1ED3n t\u1EA1i nh\u01B0ng kh\xF4ng ph\u1EA3i folder`);
         throw new Error("cards folder path conflict");
       }
     }
@@ -5908,8 +6176,8 @@ function buildCardYaml(input, fsrsCard) {
 }
 
 // src/settingsTab.ts
-var import_obsidian7 = require("obsidian");
-var VocabForgeSettingTab = class extends import_obsidian7.PluginSettingTab {
+var import_obsidian8 = require("obsidian");
+var VocabForgeSettingTab = class extends import_obsidian8.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.plugin = plugin;
@@ -5918,32 +6186,32 @@ var VocabForgeSettingTab = class extends import_obsidian7.PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.createEl("h2", { text: "Vocab Forge" });
-    new import_obsidian7.Setting(containerEl).setName("Folder ch\u1EE9a th\u1EBB").setDesc("M\u1ED7i th\u1EBB l\xE0 m\u1ED9t file .md trong folder n\xE0y").addText(
+    new import_obsidian8.Setting(containerEl).setName("Folder ch\u1EE9a th\u1EBB").setDesc("M\u1ED7i th\u1EBB l\xE0 m\u1ED9t file .md trong folder n\xE0y").addText(
       (t) => t.setValue(this.plugin.settings.cardsFolder).onChange(async (v) => {
         this.plugin.settings.cardsFolder = v.trim() || "5. Toolbox/English/Cards";
         await this.plugin.saveAll();
       })
     );
-    new import_obsidian7.Setting(containerEl).setName("S\u1ED1 th\u1EBB m\u1EDBi m\u1ED7i ng\xE0y").setDesc("Gi\u1EDBi h\u1EA1n th\u1EBB m\u1EDBi \u0111\u01B0a v\xE0o h\u1ECDc m\u1ED7i ng\xE0y (ki\u1EC3u Anki)").addSlider(
+    new import_obsidian8.Setting(containerEl).setName("S\u1ED1 th\u1EBB m\u1EDBi m\u1ED7i ng\xE0y").setDesc("Gi\u1EDBi h\u1EA1n th\u1EBB m\u1EDBi \u0111\u01B0a v\xE0o h\u1ECDc m\u1ED7i ng\xE0y (ki\u1EC3u Anki)").addSlider(
       (s) => s.setLimits(0, 50, 1).setValue(this.plugin.settings.newPerDay).setDynamicTooltip().onChange(async (v) => {
         this.plugin.settings.newPerDay = v;
         await this.plugin.saveAll();
       })
     );
-    new import_obsidian7.Setting(containerEl).setName("M\u1EE9c ghi nh\u1EDB m\u1EE5c ti\xEAu (retention)").setDesc("FSRS x\u1EBFp l\u1ECBch \u0111\u1EC3 b\u1EA1n nh\u1EDB \u0111\u01B0\u1EE3c ~t\u1EF7 l\u1EC7 n\xE0y khi \xF4n. 0.9 = c\xE2n b\u1EB1ng t\u1ED1t; cao h\u01A1n = \xF4n d\xE0y h\u01A1n").addSlider(
+    new import_obsidian8.Setting(containerEl).setName("M\u1EE9c ghi nh\u1EDB m\u1EE5c ti\xEAu (retention)").setDesc("FSRS x\u1EBFp l\u1ECBch \u0111\u1EC3 b\u1EA1n nh\u1EDB \u0111\u01B0\u1EE3c ~t\u1EF7 l\u1EC7 n\xE0y khi \xF4n. 0.9 = c\xE2n b\u1EB1ng t\u1ED1t; cao h\u01A1n = \xF4n d\xE0y h\u01A1n").addSlider(
       (s) => s.setLimits(0.8, 0.97, 0.01).setValue(this.plugin.settings.requestRetention).setDynamicTooltip().onChange(async (v) => {
         this.plugin.settings.requestRetention = v;
         this.plugin.rebuildScheduler();
         await this.plugin.saveAll();
       })
     );
-    new import_obsidian7.Setting(containerEl).setName("T\u1ED1c \u0111\u1ED9 \u0111\u1ECDc (TTS)").addSlider(
+    new import_obsidian8.Setting(containerEl).setName("T\u1ED1c \u0111\u1ED9 \u0111\u1ECDc (TTS)").addSlider(
       (s) => s.setLimits(0.5, 1.5, 0.05).setValue(this.plugin.settings.ttsRate).setDynamicTooltip().onChange(async (v) => {
         this.plugin.settings.ttsRate = v;
         await this.plugin.saveAll();
       })
     );
-    new import_obsidian7.Setting(containerEl).setName("Gi\u1ECDng \u0111\u1ECDc").setDesc("Ch\u1ECDn gi\u1ECDng ti\u1EBFng Anh c\u1EE7a h\u1EC7 th\u1ED1ng").addDropdown((d) => {
+    new import_obsidian8.Setting(containerEl).setName("Gi\u1ECDng \u0111\u1ECDc").setDesc("Ch\u1ECDn gi\u1ECDng ti\u1EBFng Anh c\u1EE7a h\u1EC7 th\u1ED1ng").addDropdown((d) => {
       d.addOption("", "\u2014 T\u1EF1 \u0111\u1ED9ng (en) \u2014");
       for (const v of window.speechSynthesis.getVoices()) {
         if (v.lang.startsWith("en")) d.addOption(v.name, `${v.name} (${v.lang})`);
@@ -5954,7 +6222,7 @@ var VocabForgeSettingTab = class extends import_obsidian7.PluginSettingTab {
       });
     });
     containerEl.createEl("h3", { text: "AI CLI local \u2014 plugin kh\xF4ng y\xEAu c\u1EA7u API key" });
-    new import_obsidian7.Setting(containerEl).setName("AI m\u1EB7c \u0111\u1ECBnh").setDesc("Auto s\u1EBD ch\u1ECDn CLI kh\u1EA3 d\u1EE5ng theo th\u1EE9 t\u1EF1 Claude \u2192 Grok \u2192 Gemini \u2192 Codex").addDropdown(
+    new import_obsidian8.Setting(containerEl).setName("AI m\u1EB7c \u0111\u1ECBnh").setDesc("Auto s\u1EBD ch\u1ECDn CLI kh\u1EA3 d\u1EE5ng theo th\u1EE9 t\u1EF1 Claude \u2192 Grok \u2192 Gemini \u2192 Codex").addDropdown(
       (d) => d.addOption("auto", "T\u1EF1 \u0111\u1ED9ng").addOption("claude", "Claude CLI").addOption("codex", "Codex CLI").addOption("gemini", "Gemini CLI").addOption("grok", "Grok CLI").setValue(this.plugin.settings.aiProvider).onChange(async (v) => {
         this.plugin.settings.aiProvider = v;
         this.plugin.resetAiProvider();
@@ -5968,7 +6236,7 @@ var VocabForgeSettingTab = class extends import_obsidian7.PluginSettingTab {
       ["Grok CLI", "grokPath", "grok"]
     ];
     for (const [label, key, fallback] of cliPaths) {
-      new import_obsidian7.Setting(containerEl).setName(`\u0110\u01B0\u1EDDng d\u1EABn ${label}`).addText(
+      new import_obsidian8.Setting(containerEl).setName(`\u0110\u01B0\u1EDDng d\u1EABn ${label}`).addText(
         (t) => t.setValue(this.plugin.settings[key]).onChange(async (v) => {
           this.plugin.settings[key] = v.trim() || fallback;
           this.plugin.resetAiProvider();
@@ -5977,25 +6245,25 @@ var VocabForgeSettingTab = class extends import_obsidian7.PluginSettingTab {
       );
     }
     containerEl.createEl("h3", { text: "L\u1ED9 tr\xECnh c\xE1 nh\xE2n" });
-    new import_obsidian7.Setting(containerEl).setName("M\u1EE5c ti\xEAu h\u1ECDc").addDropdown(
+    new import_obsidian8.Setting(containerEl).setName("M\u1EE5c ti\xEAu h\u1ECDc").addDropdown(
       (d) => d.addOption("business", "Business English").addOption("daily", "Giao ti\u1EBFp h\u1EB1ng ng\xE0y").addOption("ielts", "IELTS").addOption("content", "Content creator").addOption("ai-tech", "AI & Technology").addOption("cambridge", "Cambridge / CEFR").setValue(this.plugin.settings.learningGoal).onChange(async (v) => {
         this.plugin.settings.learningGoal = v;
         await this.plugin.saveAll();
       })
     );
-    new import_obsidian7.Setting(containerEl).setName("Th\u1EDDi l\u01B0\u1EE3ng m\u1ED7i ng\xE0y").setDesc("Adaptive Coach s\u1EBD t\u1EA1o phi\xEAn h\u1ECDc v\u1EEBa v\u1EDBi th\u1EDDi gian n\xE0y").addSlider(
+    new import_obsidian8.Setting(containerEl).setName("Th\u1EDDi l\u01B0\u1EE3ng m\u1ED7i ng\xE0y").setDesc("Adaptive Coach s\u1EBD t\u1EA1o phi\xEAn h\u1ECDc v\u1EEBa v\u1EDBi th\u1EDDi gian n\xE0y").addSlider(
       (s) => s.setLimits(5, 30, 5).setValue(this.plugin.settings.dailyMinutes).setDynamicTooltip().onChange(async (v) => {
         this.plugin.settings.dailyMinutes = v;
         await this.plugin.saveAll();
       })
     );
-    new import_obsidian7.Setting(containerEl).setName("S\u1ED5 l\u1ED7i c\xE1 nh\xE2n").setDesc("L\u01B0u c\xE1c l\u1ED7i vi\u1EBFt \u0111\xE3 \u0111\u01B0\u1EE3c AI s\u1EEDa v\xE0o note Markdown n\xE0y").addText(
+    new import_obsidian8.Setting(containerEl).setName("S\u1ED5 l\u1ED7i c\xE1 nh\xE2n").setDesc("L\u01B0u c\xE1c l\u1ED7i vi\u1EBFt \u0111\xE3 \u0111\u01B0\u1EE3c AI s\u1EEDa v\xE0o note Markdown n\xE0y").addText(
       (t) => t.setValue(this.plugin.settings.errorNotebookPath).onChange(async (v) => {
         this.plugin.settings.errorNotebookPath = v.trim() || "5. Toolbox/English/My English Errors.md";
         await this.plugin.saveAll();
       })
     );
-    new import_obsidian7.Setting(containerEl).setName("Th\xF4ng tin & T\xE1c gi\u1EA3").setDesc("Tony Hoang (Tr\u1EA7n V\u0103n Ho\xE0ng) \xB7 Email: tony@tranvanhoang.com").addButton(
+    new import_obsidian8.Setting(containerEl).setName("Th\xF4ng tin & T\xE1c gi\u1EA3").setDesc("Tony Hoang (Tr\u1EA7n V\u0103n Ho\xE0ng) \xB7 Email: tony@tranvanhoang.com").addButton(
       (b) => b.setButtonText("\u2139\uFE0F Th\xF4ng tin plugin").onClick(() => {
         new AboutModal(this.app, this.plugin).open();
       })
@@ -6389,7 +6657,7 @@ async function runAiCli(prompt, options) {
 }
 
 // src/smartCaptureModal.ts
-var import_obsidian8 = require("obsidian");
+var import_obsidian9 = require("obsidian");
 
 // src/youtube.ts
 var YOUTUBE_HOSTS = /* @__PURE__ */ new Set([
@@ -6734,7 +7002,7 @@ function localSentenceFallback(cues, maxCandidates) {
     timestampSeconds: cue.startSeconds
   }));
 }
-var SmartCaptureModal = class extends import_obsidian8.Modal {
+var SmartCaptureModal = class extends import_obsidian9.Modal {
   constructor(app, store, options = {}) {
     super(app);
     this.store = store;
@@ -6765,13 +7033,13 @@ var SmartCaptureModal = class extends import_obsidian8.Modal {
   }
   renderInput() {
     this.renderHeader();
-    new import_obsidian8.Setting(this.contentEl).setName("Link YouTube").setDesc("N\u1EBFu m\xE1y c\xF3 yt-dlp, plugin s\u1EBD t\u1EF1 t\u1EA3i subtitle ti\u1EBFng Anh").addText((text) => {
+    new import_obsidian9.Setting(this.contentEl).setName("Link YouTube").setDesc("N\u1EBFu m\xE1y c\xF3 yt-dlp, plugin s\u1EBD t\u1EF1 t\u1EA3i subtitle ti\u1EBFng Anh").addText((text) => {
       text.setPlaceholder("https://www.youtube.com/watch?v=\u2026").setValue(this.url);
       text.onChange((value) => this.url = value.trim());
       text.setDisabled(this.busy);
       text.inputEl.addClass("vf-input-wide");
     });
-    new import_obsidian8.Setting(this.contentEl).setName("T\xEAn ngu\u1ED3n").addText((text) => {
+    new import_obsidian9.Setting(this.contentEl).setName("T\xEAn ngu\u1ED3n").addText((text) => {
       text.setPlaceholder("T\xEAn video ho\u1EB7c note").setValue(this.sourceTitle);
       text.onChange((value) => {
         this.sourceTitle = value;
@@ -6779,12 +7047,12 @@ var SmartCaptureModal = class extends import_obsidian8.Modal {
       });
       text.setDisabled(this.busy);
     });
-    new import_obsidian8.Setting(this.contentEl).setName("Deck").addText((text) => {
+    new import_obsidian9.Setting(this.contentEl).setName("Deck").addText((text) => {
       text.setPlaceholder("general").setValue(this.category);
       text.onChange((value) => this.category = value.trim().toLocaleLowerCase() || "general");
       text.setDisabled(this.busy);
     });
-    const transcriptSetting = new import_obsidian8.Setting(this.contentEl).setName("Transcript / n\u1ED9i dung note").setDesc("H\u1ED7 tr\u1EE3 VTT, SRT, [00:12] c\xE2u tho\u1EA1i, ho\u1EB7c v\u0103n b\u1EA3n th\u01B0\u1EDDng").addTextArea((area) => {
+    const transcriptSetting = new import_obsidian9.Setting(this.contentEl).setName("Transcript / n\u1ED9i dung note").setDesc("H\u1ED7 tr\u1EE3 VTT, SRT, [00:12] c\xE2u tho\u1EA1i, ho\u1EB7c v\u0103n b\u1EA3n th\u01B0\u1EDDng").addTextArea((area) => {
       area.setPlaceholder("D\xE1n transcript \u1EDF \u0111\xE2y, ho\u1EB7c d\xF9ng c\xE1c n\xFAt b\xEAn d\u01B0\u1EDBi\u2026").setValue(this.transcript).onChange((value) => this.transcript = value);
       area.inputEl.rows = 12;
       area.setDisabled(this.busy);
@@ -6797,15 +7065,15 @@ var SmartCaptureModal = class extends import_obsidian8.Modal {
       (button) => button.setButtonText(this.busy ? "\u0110ang t\u1EA3i\u2026" : "T\u1EA3i subtitle").setDisabled(this.busy).onClick(() => void this.downloadSubtitles())
     );
     if (this.status) this.contentEl.createDiv({ cls: "vf-muted vf-smart-status", text: this.status });
-    const actions = new import_obsidian8.Setting(this.contentEl);
+    const actions = new import_obsidian9.Setting(this.contentEl);
     actions.addButton(
       (button) => button.setButtonText(this.busy ? "\u0110ang ph\xE2n t\xEDch\u2026" : this.options.extractor ? "\u2728 AI ch\u1ECDn c\u1EE5m n\xEAn h\u1ECDc" : "T\u1EA1o th\u1EBB c\xE2u").setCta().setDisabled(this.busy).onClick(() => void this.extract())
     );
   }
   async useActiveNote() {
     const file = this.app.workspace.getActiveFile();
-    if (!(file instanceof import_obsidian8.TFile)) {
-      new import_obsidian8.Notice("Kh\xF4ng c\xF3 note Markdown n\xE0o \u0111ang m\u1EDF");
+    if (!(file instanceof import_obsidian9.TFile)) {
+      new import_obsidian9.Notice("Kh\xF4ng c\xF3 note Markdown n\xE0o \u0111ang m\u1EDF");
       return;
     }
     this.transcript = await this.app.vault.cachedRead(file);
@@ -6819,7 +7087,7 @@ var SmartCaptureModal = class extends import_obsidian8.Modal {
   }
   async downloadSubtitles() {
     if (!isYouTubeUrl(this.url)) {
-      new import_obsidian8.Notice("H\xE3y nh\u1EADp m\u1ED9t link YouTube h\u1EE3p l\u1EC7");
+      new import_obsidian9.Notice("H\xE3y nh\u1EADp m\u1ED9t link YouTube h\u1EE3p l\u1EC7");
       return false;
     }
     this.busy = true;
@@ -6833,12 +7101,12 @@ var SmartCaptureModal = class extends import_obsidian8.Modal {
       this.cues = result.cues;
       if (!this.sourceTitleEdited) this.sourceTitle = result.title;
       this.status = `\u0110\xE3 t\u1EA3i ${result.cues.length} \u0111o\u1EA1n subtitle.`;
-      new import_obsidian8.Notice("\u2705 \u0110\xE3 t\u1EA3i subtitle ti\u1EBFng Anh");
+      new import_obsidian9.Notice("\u2705 \u0110\xE3 t\u1EA3i subtitle ti\u1EBFng Anh");
       return true;
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       this.status = `Kh\xF4ng t\u1EF1 t\u1EA3i \u0111\u01B0\u1EE3c subtitle: ${detail}. B\u1EA1n v\u1EABn c\xF3 th\u1EC3 d\xE1n transcript ho\u1EB7c d\xF9ng note \u0111ang m\u1EDF.`;
-      new import_obsidian8.Notice("Kh\xF4ng t\u1EA3i \u0111\u01B0\u1EE3c subtitle \u2014 h\xE3y d\xF9ng ph\u1EA7n d\xE1n transcript");
+      new import_obsidian9.Notice("Kh\xF4ng t\u1EA3i \u0111\u01B0\u1EE3c subtitle \u2014 h\xE3y d\xF9ng ph\u1EA7n d\xE1n transcript");
       return false;
     } finally {
       if (!this.closed && generation === this.runGeneration) {
@@ -6853,7 +7121,7 @@ var SmartCaptureModal = class extends import_obsidian8.Modal {
       if (!downloaded) return;
     }
     if (!this.transcript.trim()) {
-      new import_obsidian8.Notice("H\xE3y d\xE1n transcript, d\xF9ng note \u0111ang m\u1EDF, ho\u1EB7c t\u1EA3i subtitle");
+      new import_obsidian9.Notice("H\xE3y d\xE1n transcript, d\xF9ng note \u0111ang m\u1EDF, ho\u1EB7c t\u1EA3i subtitle");
       return;
     }
     this.busy = true;
@@ -6884,7 +7152,7 @@ var SmartCaptureModal = class extends import_obsidian8.Modal {
           console.warn("Vocab Forge: AI CLI unavailable, using local sentence capture", error);
           suggestions = localSentenceFallback(this.cues, maxCandidates);
           this.status = "AI CLI ch\u01B0a s\u1EB5n s\xE0ng \u2014 \u0111\xE3 chuy\u1EC3n sang ch\u1EBF \u0111\u1ED9 t\u1EA1o th\u1EBB c\xE2u c\u1EE5c b\u1ED9.";
-          new import_obsidian8.Notice("AI CLI ch\u01B0a s\u1EB5n s\xE0ng \u2014 d\xF9ng Smart Capture c\u1EE5c b\u1ED9");
+          new import_obsidian9.Notice("AI CLI ch\u01B0a s\u1EB5n s\xE0ng \u2014 d\xF9ng Smart Capture c\u1EE5c b\u1ED9");
         }
       } else suggestions = localSentenceFallback(this.cues, maxCandidates);
       if (this.closed || generation !== this.runGeneration) return;
@@ -6902,7 +7170,7 @@ var SmartCaptureModal = class extends import_obsidian8.Modal {
     } catch (error) {
       console.error("Vocab Forge Smart Capture:", error);
       this.status = error instanceof Error ? error.message : "Ph\xE2n t\xEDch th\u1EA5t b\u1EA1i";
-      new import_obsidian8.Notice(this.status);
+      new import_obsidian9.Notice(this.status);
     } finally {
       if (!this.closed && generation === this.runGeneration) {
         this.busy = false;
@@ -6953,7 +7221,7 @@ var SmartCaptureModal = class extends import_obsidian8.Modal {
     if (this.status) this.contentEl.createDiv({ cls: "vf-muted vf-smart-status", text: this.status });
     const selected = this.previewCards.filter((card) => card.selected).length;
     this.contentEl.createEl("h3", { text: `Xem tr\u01B0\u1EDBc \xB7 ${selected}/${this.previewCards.length} th\u1EBB \u0111\u01B0\u1EE3c ch\u1ECDn` });
-    const toolbar = new import_obsidian8.Setting(this.contentEl);
+    const toolbar = new import_obsidian9.Setting(this.contentEl);
     toolbar.addButton(
       (button) => button.setButtonText("Ch\u1ECDn t\u1EA5t c\u1EA3").setDisabled(this.busy).onClick(() => {
         for (const card of this.previewCards) card.selected = !card.duplicate;
@@ -6969,7 +7237,7 @@ var SmartCaptureModal = class extends import_obsidian8.Modal {
     const list = this.contentEl.createDiv({ cls: "vf-smart-preview-list" });
     this.previewCards.forEach((card, index) => {
       const item = list.createDiv({ cls: `vf-smart-preview-card${card.selected ? " is-selected" : ""}` });
-      const heading = new import_obsidian8.Setting(item).setName(card.input.word);
+      const heading = new import_obsidian9.Setting(item).setName(card.input.word);
       heading.setDesc(
         card.duplicate ? "\u0110\xE3 c\xF3 trong vault \u2014 b\u1ECF ch\u1ECDn m\u1EB7c \u0111\u1ECBnh" : `${card.input.type} \xB7 ${card.input.category}${card.timestampSeconds == null ? "" : ` \xB7 ${Math.floor(card.timestampSeconds)}s`}`
       );
@@ -7013,7 +7281,7 @@ var SmartCaptureModal = class extends import_obsidian8.Modal {
         this.previewCards[index].input.quote = quoteInput.value.trim();
       };
     });
-    const actions = new import_obsidian8.Setting(this.contentEl);
+    const actions = new import_obsidian9.Setting(this.contentEl);
     actions.addButton((button) => button.setButtonText("\u2190 S\u1EEDa ngu\u1ED3n").setDisabled(this.busy).onClick(() => this.renderInput()));
     actions.addButton(
       (button) => button.setButtonText(this.busy ? "\u0110ang t\u1EA1o\u2026" : `T\u1EA1o ${selected} th\u1EBB`).setCta().setDisabled(this.busy || selected === 0).onClick(() => void this.createSelected())
@@ -7043,12 +7311,12 @@ var SmartCaptureModal = class extends import_obsidian8.Modal {
     this.busy = false;
     if (created) await this.options.onCardsCreated?.(created);
     if (failed.length) {
-      new import_obsidian8.Notice(`\u0110\xE3 t\u1EA1o ${created} th\u1EBB; ${failed.length} th\u1EBB l\u1ED7i. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.`);
+      new import_obsidian9.Notice(`\u0110\xE3 t\u1EA1o ${created} th\u1EBB; ${failed.length} th\u1EBB l\u1ED7i. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.`);
       this.previewCards = this.previewCards.filter((card) => failed.includes(card.input.word));
       this.renderPreview();
       return;
     }
-    new import_obsidian8.Notice(`\u2705 Smart Capture \u0111\xE3 t\u1EA1o ${created} th\u1EBB`);
+    new import_obsidian9.Notice(`\u2705 Smart Capture \u0111\xE3 t\u1EA1o ${created} th\u1EBB`);
     this.close();
   }
   onClose() {
@@ -7059,7 +7327,7 @@ var SmartCaptureModal = class extends import_obsidian8.Modal {
 };
 
 // src/main.ts
-var VocabForgePlugin = class extends import_obsidian9.Plugin {
+var VocabForgePlugin = class extends import_obsidian10.Plugin {
   constructor() {
     super(...arguments);
     this.aiSessions = /* @__PURE__ */ new Map();
@@ -7142,7 +7410,7 @@ var VocabForgePlugin = class extends import_obsidian9.Plugin {
     this.statusEl = this.addStatusBarItem();
     this.statusEl.addClass("vf-statusbar", "mod-clickable");
     this.statusEl.onclick = () => void this.activateView();
-    const refresh = (0, import_obsidian9.debounce)(() => {
+    const refresh = (0, import_obsidian10.debounce)(() => {
       this.invalidateKnownWords();
       this.refreshStatusBar();
     }, 2e3, true);
@@ -7357,7 +7625,7 @@ var VocabForgePlugin = class extends import_obsidian9.Plugin {
         { data: this.data, cards: this.store.getAllCards(), streak: this.computeStreak() },
         todayKey()
       );
-      for (const b of fresh) new import_obsidian9.Notice(`${b.icon} Huy hi\u1EC7u m\u1EDBi: ${b.name} \u2014 ${b.desc}!`, 7e3);
+      for (const b of fresh) new import_obsidian10.Notice(`${b.icon} Huy hi\u1EC7u m\u1EDBi: ${b.name} \u2014 ${b.desc}!`, 7e3);
     } catch (e) {
       console.error("Vocab Forge badges:", e);
     }
@@ -7375,7 +7643,7 @@ var VocabForgePlugin = class extends import_obsidian9.Plugin {
       if (due === 0) return;
       this.data.lastReminder = key;
       void this.saveAll();
-      new import_obsidian9.Notice(`\u{1F4DA} Vocab Forge: ${due} th\u1EBB \u0111ang ch\u1EDD \xF4n \u2014 gi\u1EEF chu\u1ED7i ${this.computeStreak()} ng\xE0y \u{1F525}`, 1e4);
+      new import_obsidian10.Notice(`\u{1F4DA} Vocab Forge: ${due} th\u1EBB \u0111ang ch\u1EDD \xF4n \u2014 gi\u1EEF chu\u1ED7i ${this.computeStreak()} ng\xE0y \u{1F525}`, 1e4);
       if (typeof Notification !== "undefined" && Notification.permission !== "denied") {
         const fire = () => new Notification("Vocab Forge \u{1F393}", {
           body: `${due} th\u1EBB \u0111ang ch\u1EDD \xF4n h\xF4m nay \u2014 v\xE0o h\u1ECDc th\xF4i!`
@@ -7409,7 +7677,7 @@ var VocabForgePlugin = class extends import_obsidian9.Plugin {
     this.data.questRewardDates.push(todayKey());
     this.data.xp += 50;
     if (this.data.freezes < MAX_FREEZES) this.data.freezes++;
-    new import_obsidian9.Notice("\u{1F3C6} Ho\xE0n th\xE0nh nhi\u1EC7m v\u1EE5 ng\xE0y! +50 XP, +1 \u{1F9CA} streak freeze");
+    new import_obsidian10.Notice("\u{1F3C6} Ho\xE0n th\xE0nh nhi\u1EC7m v\u1EE5 ng\xE0y! +50 XP, +1 \u{1F9CA} streak freeze");
   }
   /** Tự dùng streak freeze để vá các ngày nghỉ (nếu đủ freeze vá kín) */
   autoFreeze() {
@@ -7424,7 +7692,7 @@ var VocabForgePlugin = class extends import_obsidian9.Plugin {
         if (gap.length > 0 && gap.length <= this.data.freezes) {
           this.data.frozenDays.push(...gap);
           this.data.freezes -= gap.length;
-          new import_obsidian9.Notice(`\u{1F9CA} \u0110\xE3 d\xF9ng ${gap.length} streak freeze \u0111\u1EC3 gi\u1EEF chu\u1ED7i ng\xE0y!`);
+          new import_obsidian10.Notice(`\u{1F9CA} \u0110\xE3 d\xF9ng ${gap.length} streak freeze \u0111\u1EC3 gi\u1EEF chu\u1ED7i ng\xE0y!`);
           void this.saveAll();
         }
         return;
@@ -7516,8 +7784,15 @@ var VocabForgePlugin = class extends import_obsidian9.Plugin {
     try {
       const due = this.store.getDueEntries(this.settings.reverseEnabled).length;
       const revNew = this.settings.reverseEnabled ? this.store.getRevNewCards().length : 0;
-      const newAvail = Math.min(this.store.getNewCards().length + revNew, this.newRemainingToday());
-      this.statusEl.setText(due + newAvail > 0 ? `\u{1F4DA} ${due} due \xB7 ${newAvail} m\u1EDBi` : "\u{1F4DA} xong \u2713");
+      const totalNew = this.store.getNewCards().length + revNew;
+      const newAvail = Math.min(totalNew, this.newRemainingToday());
+      if (due + newAvail > 0) {
+        this.statusEl.setText(`\u{1F4DA} ${due} due \xB7 ${newAvail} m\u1EDBi`);
+      } else if (totalNew > 0) {
+        this.statusEl.setText(`\u{1F4DA} 0 due \xB7 ${totalNew} m\u1EDBi`);
+      } else {
+        this.statusEl.setText("\u{1F4DA} xong \u2713");
+      }
     } catch {
     }
   }
@@ -7531,15 +7806,15 @@ var VocabForgePlugin = class extends import_obsidian9.Plugin {
       const fs = req("fs");
       const data = fs.readFileSync(tmp);
       const folder = "5. Toolbox/Attachments/Vocab";
-      if (!this.app.vault.getAbstractFileByPath((0, import_obsidian9.normalizePath)(folder))) {
+      if (!this.app.vault.getAbstractFileByPath((0, import_obsidian10.normalizePath)(folder))) {
         try {
-          await this.app.vault.createFolder((0, import_obsidian9.normalizePath)(folder));
+          await this.app.vault.createFolder((0, import_obsidian10.normalizePath)(folder));
         } catch {
         }
       }
       const imgName = `${file.basename}.png`;
       await this.app.vault.adapter.writeBinary(
-        (0, import_obsidian9.normalizePath)(`${folder}/${imgName}`),
+        (0, import_obsidian10.normalizePath)(`${folder}/${imgName}`),
         data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
       );
       await this.app.fileManager.processFrontMatter(file, (fm) => {

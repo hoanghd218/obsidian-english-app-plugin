@@ -572,8 +572,15 @@ export default class VocabForgePlugin extends Plugin {
 		try {
 			const due = this.store.getDueEntries(this.settings.reverseEnabled).length;
 			const revNew = this.settings.reverseEnabled ? this.store.getRevNewCards().length : 0;
-			const newAvail = Math.min(this.store.getNewCards().length + revNew, this.newRemainingToday());
-			this.statusEl.setText(due + newAvail > 0 ? `📚 ${due} due · ${newAvail} mới` : "📚 xong ✓");
+			const totalNew = this.store.getNewCards().length + revNew;
+			const newAvail = Math.min(totalNew, this.newRemainingToday());
+			if (due + newAvail > 0) {
+				this.statusEl.setText(`📚 ${due} due · ${newAvail} mới`);
+			} else if (totalNew > 0) {
+				this.statusEl.setText(`📚 0 due · ${totalNew} mới`);
+			} else {
+				this.statusEl.setText("📚 xong ✓");
+			}
 		} catch {
 			// vault chưa sẵn sàng — bỏ qua
 		}

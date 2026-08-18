@@ -2,6 +2,7 @@ import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
 import type VocabForgePlugin from "./main";
 import { AboutModal } from "./aboutModal";
 import { ImageModal } from "./imageModal";
+import { CardDetailModal } from "./cardDetailModal";
 import { renderMarkdown, renderInlineMarkdown } from "./markdown";
 import { formatInterval, Rating, State, type Grade } from "./srs";
 import {
@@ -312,7 +313,8 @@ export class VocabReviewView extends ItemView {
 		const revNews = this.plugin.settings.reverseEnabled
 			? this.plugin.store.getRevNewCards()
 			: [];
-		const newAvailable = Math.min(news.length + revNews.length, this.plugin.newRemainingToday());
+		const totalNewUnlearned = news.length + revNews.length;
+		const newAvailable = Math.min(totalNewUnlearned, this.plugin.newRemainingToday());
 		const all = this.plugin.store.getAllCards();
 		const learned = all.filter((c) => c.fsrs.state !== State.New).length;
 		const today = this.plugin.data.stats[todayKey()];
@@ -322,20 +324,57 @@ export class VocabReviewView extends ItemView {
 		const hero = main.createDiv({ cls: "vf-hero" });
 		const heroLeft = hero.createDiv({ cls: "vf-hero-left" });
 		heroLeft.createDiv({ text: this.greeting(), cls: "vf-hero-hi" });
-		heroLeft.createDiv({
-			text:
-				total > 0
-					? `Hôm nay có ${due.length} thẻ đến hạn và ${newAvailable} thẻ mới đang chờ bạn.`
-					: "Bạn đã hoàn thành mục tiêu hôm nay. Tuyệt vời! 🎉",
-			cls: "vf-hero-sub",
-		});
+
+		let subText = "";
+		if (total > 0) {
+			subText = `Hôm nay có ${due.length} thẻ đến hạn và ${newAvailable} thẻ mới theo lịch.`;
+			if (totalNewUnlearned > newAvailable) {
+				subText += ` (Còn ${totalNewUnlearned - newAvailable} thẻ mới trong kho)`;
+			}
+		} else if (totalNewUnlearned > 0) {
+			subText = `Bạn đã hoàn thành mục tiêu hôm nay! Bạn còn ${totalNewUnlearned} thẻ mới trong kho nếu muốn học tiếp.`;
+		} else {
+			subText = "Bạn đã hoàn thành tất cả thẻ trong kho từ. Tuyệt vời! 🎉";
+		}
+		heroLeft.createDiv({ text: subText, cls: "vf-hero-sub" });
+
 		const heroBtns = heroLeft.createDiv({ cls: "vf-hero-btns" });
-		const startBtn = heroBtns.createEl("button", {
-			text: total > 0 ? `▶  Học ngay · ${total} thẻ` : "✓ Đã xong hôm nay",
-			cls: "vf-btn-hero",
-		});
-		startBtn.disabled = total === 0;
-		startBtn.onclick = () => this.startSession(null);
+		if (total > 0) {
+			const startBtn = heroBtns.createEl("button", {
+				text: `▶  Học ngay · ${total} thẻ`,
+				cls: "vf-btn-hero",
+			});
+			startBtn.onclick = () => this.startSession(null);
+
+			if (totalNewUnlearned > newAvailable) {
+				const extraBtn = heroBtns.createEl("button", {
+					text: `✨ Thêm +5 từ mới`,
+					cls: "vf-btn-hero-ghost",
+				});
+				extraBtn.onclick = () => this.startSession(null, newAvailable + 5);
+			}
+		} else if (totalNewUnlearned > 0) {
+			const learnMoreBtn = heroBtns.createEl("button", {
+				text: `✨ Học thêm ${Math.min(5, totalNewUnlearned)} từ mới`,
+				cls: "vf-btn-hero",
+			});
+			learnMoreBtn.onclick = () => this.startSession(null, Math.min(5, totalNewUnlearned));
+
+			if (totalNewUnlearned > 5) {
+				const learn10Btn = heroBtns.createEl("button", {
+					text: `✨ Học thêm ${Math.min(10, totalNewUnlearned)} từ`,
+					cls: "vf-btn-hero-ghost",
+				});
+				learn10Btn.onclick = () => this.startSession(null, Math.min(10, totalNewUnlearned));
+			}
+		} else {
+			const doneBtn = heroBtns.createEl("button", {
+				text: "✓ Đã xong hôm nay",
+				cls: "vf-btn-hero",
+			});
+			doneBtn.disabled = true;
+		}
+
 		const practiceBtn = heroBtns.createEl("button", { text: "🎯 Luyện tập", cls: "vf-btn-hero-ghost" });
 		practiceBtn.onclick = () => { this.section = "practice"; this.render(); };
 		const storyBtn = heroBtns.createEl("button", { text: "📖 Story hôm nay", cls: "vf-btn-hero-ghost" });
@@ -350,7 +389,10 @@ export class VocabReviewView extends ItemView {
 		// --- Stat tiles
 		const tiles = main.createDiv({ cls: "vf-tiles" });
 		this.tile(tiles, "⏰", String(due.length), "Đến hạn", "vf-tile-due");
-		this.tile(tiles, "✨", String(newAvailable), "Thẻ mới", "vf-tile-new");
+		const newTileValue = newAvailable > 0
+			? `${newAvailable}${totalNewUnlearned > newAvailable ? ` (${totalNewUnlearned})` : ""}`
+			: totalNewUnlearned > 0 ? `0 (${totalNewUnlearned})` : "0";
+		this.tile(tiles, "✨", newTileValue, totalNewUnlearned > newAvailable ? "Thẻ mới (kho)" : "Thẻ mới", "vf-tile-new");
 		this.tile(tiles, "📖", String(today?.reviews ?? 0), "Lượt ôn hôm nay", "");
 		this.tile(tiles, "🏆", `${learned}/${all.length}`, "Đã học / tổng", "");
 
@@ -457,7 +499,7 @@ export class VocabReviewView extends ItemView {
 			history: this.plugin.data.stats,
 			skillPerformance,
 			minutes: this.plugin.settings.dailyMinutes,
-			newCardLimit: this.plugin.newRemainingToday(),
+			newCardLimit: Math.max(this.plugin.newRemainingToday(), Math.min(5, this.plugin.store.getNewCards().length)),
 			reverseEnabled: this.plugin.settings.reverseEnabled,
 		});
 		const grid = main.createDiv({ cls: "vf-coach-grid" });
@@ -475,8 +517,13 @@ export class VocabReviewView extends ItemView {
 				this.labMode = plan.weakSkill === "shadowing" ? "shadowing" : "dictation";
 				this.section = "lab";
 				this.render();
-			} else if (plan.dueCount > 0) this.startSession(null);
-			else this.startPractice("mix");
+			} else if (plan.dueCount > 0 || this.plugin.newRemainingToday() > 0) {
+				this.startSession(null);
+			} else if (this.plugin.store.getNewCards().length > 0) {
+				this.startSession(null, 5);
+			} else {
+				this.startPractice("mix");
+			}
 		};
 
 		const goal = grid.createDiv({ cls: "vf-goal-card" });
@@ -600,13 +647,52 @@ export class VocabReviewView extends ItemView {
 		head.createSpan({ text: `${cards.length} thẻ · ${due} due · ${fresh} mới`, cls: "vf-muted" });
 
 		const actions = main.createDiv({ cls: "vf-actions" });
-		const total = due + Math.min(fresh, this.plugin.newRemainingToday());
-		const study = actions.createEl("button", {
-			text: total > 0 ? `▶  Học deck này (${total})` : "✓ Deck đã xong hôm nay",
-			cls: "vf-btn-hero vf-btn-hero-small",
+		const remainingQuota = this.plugin.newRemainingToday();
+		const standardNew = Math.min(fresh, remainingQuota);
+		const totalStandard = due + standardNew;
+
+		if (totalStandard > 0) {
+			const study = actions.createEl("button", {
+				text: `▶  Học deck này (${totalStandard})`,
+				cls: "vf-btn-hero vf-btn-hero-small",
+			});
+			study.onclick = () => this.startSession(cat);
+		}
+
+		if (fresh > 0) {
+			const extraCount = Math.min(5, fresh > standardNew ? fresh - standardNew : fresh);
+			const extraBtn = actions.createEl("button", {
+				text: totalStandard === 0
+					? `✨ Học từ mới (${fresh})`
+					: `✨ Thêm +${extraCount} từ mới`,
+				cls: totalStandard === 0 ? "vf-btn-hero vf-btn-hero-small" : "vf-btn-hero-ghost vf-btn-hero-small",
+			});
+			extraBtn.onclick = () => this.startSession(cat, totalStandard === 0 ? Math.min(5, fresh) : standardNew + extraCount);
+
+			if (fresh > 5) {
+				const allBtn = actions.createEl("button", {
+					text: `✨ Học tất cả từ mới (${fresh})`,
+					cls: "vf-btn-hero-ghost vf-btn-hero-small",
+				});
+				allBtn.onclick = () => this.startSession(cat, "all");
+			}
+		} else if (totalStandard === 0) {
+			const doneBtn = actions.createEl("button", {
+				text: "✓ Deck đã xong hôm nay",
+				cls: "vf-btn-hero vf-btn-hero-small",
+			});
+			doneBtn.disabled = true;
+		}
+
+		const practiceBtn = actions.createEl("button", {
+			text: "🎯 Luyện tập deck",
+			cls: "vf-btn-hero-ghost vf-btn-hero-small",
 		});
-		study.disabled = total === 0;
-		study.onclick = () => this.startSession(cat);
+		practiceBtn.onclick = () => {
+			this.practiceDeck = cat;
+			this.section = "practice";
+			this.render();
+		};
 
 		const toolbar = main.createDiv({ cls: "vf-list-toolbar" });
 		const search = toolbar.createEl("input", {
@@ -669,7 +755,9 @@ export class VocabReviewView extends ItemView {
 					text: STATE_LABELS[c.fsrs.state] ?? "?",
 					cls: `vf-pill vf-pill-state-${c.fsrs.state}`,
 				});
-				row.onclick = () => this.app.workspace.openLinkText(c.file.path, "", true);
+				const detail = right.createEl("button", { text: "👁 Xem", cls: "vf-btn-tiny vf-card-detail-button" });
+				detail.onclick = (event) => { event.stopPropagation(); this.openCardDetail(c); };
+				row.onclick = () => this.openCardDetail(c);
 			}
 			return;
 		}
@@ -693,15 +781,26 @@ export class VocabReviewView extends ItemView {
 			body.createDiv({ text: c.meaningVi || c.meaningEn, cls: "vf-tile-meaning" });
 			const foot = body.createDiv({ cls: "vf-tile-foot" });
 			foot.createSpan({ text: TYPE_LABELS[c.type] ?? c.type, cls: "vf-pill" });
-			const speak = foot.createEl("button", { text: "🔊", cls: "vf-btn-tiny" });
+			const tileActions = foot.createDiv({ cls: "vf-tile-actions" });
+			const detail = tileActions.createEl("button", { text: "👁 Xem", cls: "vf-btn-tiny vf-card-detail-button" });
+			detail.onclick = (e) => { e.stopPropagation(); this.openCardDetail(c); };
+			const speak = tileActions.createEl("button", { text: "🔊", cls: "vf-btn-tiny" });
 			speak.onclick = (e) => { e.stopPropagation(); this.plugin.speak(c.word); };
-			tile.onclick = () => this.app.workspace.openLinkText(c.file.path, "", true);
+			tile.onclick = () => this.openCardDetail(c);
 		}
+	}
+
+	private openCardDetail(card: VocabCard): void {
+		new CardDetailModal(this.app, card, {
+			imageSrc: this.thumbnailFor(card),
+			onSpeak: (text) => this.plugin.speak(text),
+			onOpenNote: () => void this.app.workspace.openLinkText(card.file.path, "", true),
+		}).open();
 	}
 
 	// =============================================================== REVIEW
 
-	startSession(category: string | null): void {
+	startSession(category: string | null = null, extraNewCount?: number | "all"): void {
 		this.sessionCategory = category;
 		let due = this.plugin.store.getDueEntries(this.plugin.settings.reverseEnabled);
 		let news = this.plugin.store.getNewCards();
@@ -711,11 +810,28 @@ export class VocabReviewView extends ItemView {
 			news = news.filter((c) => c.category === category);
 			revNews = revNews.filter((c) => c.category === category);
 		}
-		const budget = this.plugin.newRemainingToday();
-		const newEntries: ReviewEntry[] = [
+
+		let newEntries: ReviewEntry[] = [
 			...news.map((c): ReviewEntry => ({ card: c, dir: "fwd" })),
 			...revNews.map((c): ReviewEntry => ({ card: c, dir: "rev" })),
-		].slice(0, budget);
+		];
+
+		if (extraNewCount !== undefined) {
+			const take = extraNewCount === "all" ? newEntries.length : Math.max(0, extraNewCount);
+			newEntries = newEntries.slice(0, take);
+		} else {
+			const budget = this.plugin.newRemainingToday();
+			if (budget > 0 || due.length > 0) {
+				newEntries = newEntries.slice(0, budget);
+			} else if (newEntries.length > 0) {
+				const extraBatch = Math.min(this.plugin.settings.newPerDay || 5, newEntries.length);
+				newEntries = newEntries.slice(0, extraBatch);
+				new Notice(`Bắt đầu học thêm ${newEntries.length} từ mới ✨`);
+			} else {
+				newEntries = [];
+			}
+		}
+
 		this.queue = [...due, ...newEntries];
 		this.sessionTotal = this.queue.length;
 		this.sessionDone = 0;
@@ -1109,6 +1225,15 @@ export class VocabReviewView extends ItemView {
 	}
 
 	private renderDone(main: HTMLElement): void {
+		const cat = this.sessionCategory;
+		let news = this.plugin.store.getNewCards();
+		let revNews = this.plugin.settings.reverseEnabled ? this.plugin.store.getRevNewCards() : [];
+		if (cat) {
+			news = news.filter((c) => c.category === cat);
+			revNews = revNews.filter((c) => c.category === cat);
+		}
+		const totalNew = news.length + revNews.length;
+
 		const done = main.createDiv({ cls: "vf-done" });
 		done.createEl("div", { text: "🎉", cls: "vf-done-emoji" });
 		done.createEl("h2", { text: "Xong phiên hôm nay!" });
@@ -1116,8 +1241,49 @@ export class VocabReviewView extends ItemView {
 			text: `Bạn đã ôn ${this.sessionDone} lượt. Chuỗi ngày: ${this.computeStreak()} 🔥`,
 			cls: "vf-muted",
 		});
-		const btn = done.createEl("button", { text: "← Về Dashboard", cls: "vf-btn-hero vf-btn-hero-small" });
-		btn.onclick = () => { this.section = "dashboard"; this.render(); };
+
+		if (totalNew > 0) {
+			const extraBox = done.createDiv({ cls: "vf-done-extra-box" });
+			extraBox.createDiv({
+				text: `✨ Còn ${totalNew} thẻ từ vựng mới${cat ? ` trong "${cat}"` : " trong kho"}. Bạn có muốn học thêm không?`,
+				cls: "vf-done-extra-title",
+			});
+			const extraBtns = extraBox.createDiv({ cls: "vf-done-extra-btns" });
+			const b5 = extraBtns.createEl("button", {
+				text: `✨ Học thêm ${Math.min(5, totalNew)} từ mới`,
+				cls: "vf-btn-hero vf-btn-hero-small",
+			});
+			b5.onclick = () => this.startSession(cat, Math.min(5, totalNew));
+
+			if (totalNew > 5) {
+				const b10 = extraBtns.createEl("button", {
+					text: `✨ Học thêm ${Math.min(10, totalNew)} từ`,
+					cls: "vf-btn-hero-ghost vf-btn-hero-small",
+				});
+				b10.onclick = () => this.startSession(cat, Math.min(10, totalNew));
+			}
+
+			if (totalNew > 10) {
+				const bAll = extraBtns.createEl("button", {
+					text: `✨ Học tất cả (${totalNew} từ)`,
+					cls: "vf-btn-hero-ghost vf-btn-hero-small",
+				});
+				bAll.onclick = () => this.startSession(cat, "all");
+			}
+		}
+
+		const navBtns = done.createDiv({ cls: "vf-done-nav-btns" });
+		const practiceBtn = navBtns.createEl("button", {
+			text: "🎯 Sang Luyện tập",
+			cls: "vf-btn-hero-ghost",
+		});
+		practiceBtn.onclick = () => { this.section = "practice"; this.render(); };
+
+		const dashBtn = navBtns.createEl("button", {
+			text: "← Về Dashboard",
+			cls: "vf-btn-hero-ghost",
+		});
+		dashBtn.onclick = () => { this.section = "dashboard"; this.render(); };
 	}
 
 	// ============================================================= PRACTICE
@@ -2398,7 +2564,7 @@ export class VocabReviewView extends ItemView {
 
 	private async generateStory(): Promise<void> {
 		const due = this.plugin.store.getDueCards();
-		const news = this.plugin.store.getNewCards().slice(0, this.plugin.newRemainingToday());
+		const news = this.plugin.store.getNewCards().slice(0, Math.max(5, this.plugin.newRemainingToday()));
 		let pool = [...due, ...news].filter((c) => c.type !== "sentence" && c.type !== "passage" && c.type !== "grammar");
 		if (pool.length < 3)
 			pool = this.plugin.store.getAllCards().filter((c) => c.type !== "sentence" && c.type !== "passage" && c.type !== "grammar");
