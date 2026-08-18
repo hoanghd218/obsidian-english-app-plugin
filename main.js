@@ -2304,6 +2304,11 @@ function formatInterval(from, due) {
 
 // src/practice.ts
 var MODE_INFO = {
+  mix: {
+    icon: "\u{1F500}",
+    name: "Tr\u1ED9n t\u1EA5t c\u1EA3 (Mix)",
+    desc: "\u0110\u1ED5i format ng\u1EABu nhi\xEAn m\u1ED7i c\xE2u \u2014 Cloze, G\xF5 t\u1EEB, X\u1EBFp c\xE2u, Tr\u1EAFc nghi\u1EC7m, T\xECm l\u1ED7i, N\u1ED1i c\u1EB7p"
+  },
   cloze: {
     icon: "\u{1F9E9}",
     name: "\u0110i\u1EC1n khuy\u1EBFt (Cloze)",
@@ -2315,7 +2320,7 @@ var MODE_INFO = {
     desc: "Nh\xECn ngh\u0129a Vi\u1EC7t + g\u1EE3i \xFD \u2192 g\xF5 \u0111\xFAng t\u1EEB ti\u1EBFng Anh"
   },
   builder: {
-    icon: "\u{1F500}",
+    icon: "\u{1F9F1}",
     name: "X\u1EBFp c\xE2u (Builder)",
     desc: "X\xE1o tr\u1ED9n c\xE2u quote \u2014 b\u1EA5m x\u1EBFp l\u1EA1i \u0111\xFAng th\u1EE9 t\u1EF1"
   },
@@ -2526,6 +2531,63 @@ function buildPracticeQueue(mode, cards, size) {
     else item = makeChoice(card, cards);
     if (item) items.push(item);
     if (items.length === size) break;
+  }
+  return items;
+}
+var SINGLE_CARD_MODES = ["cloze", "typing", "builder", "choice", "error"];
+function makeSingleItem(mode, card, pool) {
+  if (mode === "cloze") return makeCloze(card);
+  if (mode === "typing") return makeTyping(card);
+  if (mode === "builder") return makeBuilder(card);
+  if (mode === "error") return makeError(card);
+  if (mode === "choice") return makeChoice(card, pool);
+  return null;
+}
+function buildMixedQueue(cards, size) {
+  const learned2 = cards.filter((c) => c.fsrs.state !== State.New);
+  const fresh = cards.filter((c) => c.fsrs.state === State.New);
+  const ordered = shuffle([...shuffle(learned2), ...shuffle(fresh)]);
+  const eligibleForMatch = (c) => c.type !== "sentence" && c.type !== "passage" && c.type !== "grammar" && (c.meaningVi || c.meaningEn);
+  const used = /* @__PURE__ */ new Set();
+  const items = [];
+  let sinceMatch = 0;
+  let idx = 0;
+  while (items.length < size && idx < ordered.length) {
+    const threshold = 4 + Math.floor(Math.random() * 2);
+    if (sinceMatch >= threshold && items.length <= size - 3) {
+      const batch = [];
+      for (let k = idx; k < ordered.length && batch.length < MATCH_PAIRS_PER_ROUND; k++) {
+        const c = ordered[k];
+        if (!used.has(c.file.path) && eligibleForMatch(c)) batch.push(c);
+      }
+      if (batch.length >= 3) {
+        for (const c of batch) used.add(c.file.path);
+        items.push({
+          mode: "match",
+          card: batch[0],
+          pairs: batch.map((c) => ({
+            card: c,
+            word: c.word,
+            meaning: (c.meaningVi || c.meaningEn).slice(0, 80)
+          }))
+        });
+        sinceMatch = 0;
+        continue;
+      }
+    }
+    const card = ordered[idx];
+    idx++;
+    if (used.has(card.file.path)) continue;
+    let made = null;
+    for (const t of shuffle(SINGLE_CARD_MODES)) {
+      made = makeSingleItem(t, card, cards);
+      if (made) break;
+    }
+    if (made) {
+      used.add(card.file.path);
+      items.push(made);
+      sinceMatch++;
+    }
   }
   return items;
 }
@@ -3398,6 +3460,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
     Object.keys(MODE_INFO).forEach((mode, i) => {
       const info = MODE_INFO[mode];
       const tile = grid.createDiv({ cls: `vf-mode-tile vf-mode-${mode}` });
+      if (mode === "mix") tile.createDiv({ text: "\u2B50 \u0110\u1EC1 xu\u1EA5t", cls: "vf-mode-badge" });
       tile.createDiv({ text: info.icon, cls: "vf-mode-icon" });
       tile.createDiv({ text: info.name, cls: "vf-mode-name" });
       tile.createDiv({ text: info.desc, cls: "vf-mode-desc" });
@@ -3407,7 +3470,7 @@ var VocabReviewView = class _VocabReviewView extends import_obsidian2.ItemView {
   startPractice(mode) {
     let cards = this.plugin.store.getAllCards();
     if (this.practiceDeck) cards = cards.filter((c) => c.category === this.practiceDeck);
-    const queue = buildPracticeQueue(mode, cards, this.practiceSize);
+    const queue = mode === "mix" ? buildMixedQueue(cards, this.practiceSize) : buildPracticeQueue(mode, cards, this.practiceSize);
     if (queue.length < 3) {
       new import_obsidian2.Notice("Deck n\xE0y ch\u01B0a \u0111\u1EE7 th\u1EBB ph\xF9 h\u1EE3p cho ch\u1EBF \u0111\u1ED9 \u0111\xF3 (c\u1EA7n \u2265 3)");
       return;

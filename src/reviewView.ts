@@ -9,6 +9,7 @@ import {
 	type VocabCard,
 } from "./types";
 import {
+	buildMixedQueue,
 	buildPracticeQueue,
 	fuzzyEqual,
 	makeChoice,
@@ -928,12 +929,13 @@ export class VocabReviewView extends ItemView {
 			};
 		}
 
-		// 4 chế độ
+		// Các chế độ
 		main.createEl("h4", { text: "Chọn chế độ để bắt đầu" });
 		const grid = main.createDiv({ cls: "vf-mode-grid" });
 		(Object.keys(MODE_INFO) as PracticeMode[]).forEach((mode, i) => {
 			const info = MODE_INFO[mode];
 			const tile = grid.createDiv({ cls: `vf-mode-tile vf-mode-${mode}` });
+			if (mode === "mix") tile.createDiv({ text: "⭐ Đề xuất", cls: "vf-mode-badge" });
 			tile.createDiv({ text: info.icon, cls: "vf-mode-icon" });
 			tile.createDiv({ text: info.name, cls: "vf-mode-name" });
 			tile.createDiv({ text: info.desc, cls: "vf-mode-desc" });
@@ -944,7 +946,10 @@ export class VocabReviewView extends ItemView {
 	private startPractice(mode: PracticeMode): void {
 		let cards = this.plugin.store.getAllCards();
 		if (this.practiceDeck) cards = cards.filter((c) => c.category === this.practiceDeck);
-		const queue = buildPracticeQueue(mode, cards, this.practiceSize);
+		const queue =
+			mode === "mix"
+				? buildMixedQueue(cards, this.practiceSize)
+				: buildPracticeQueue(mode, cards, this.practiceSize);
 		if (queue.length < 3) {
 			new Notice("Deck này chưa đủ thẻ phù hợp cho chế độ đó (cần ≥ 3)");
 			return;

@@ -1,9 +1,14 @@
 import { State } from "./srs";
 import type { VocabCard } from "./types";
 
-export type PracticeMode = "cloze" | "typing" | "builder" | "choice" | "match" | "error";
+export type PracticeMode = "mix" | "cloze" | "typing" | "builder" | "choice" | "match" | "error";
 
 export const MODE_INFO: Record<PracticeMode, { icon: string; name: string; desc: string }> = {
+	mix: {
+		icon: "🔀",
+		name: "Trộn tất cả (Mix)",
+		desc: "Đổi format ngẫu nhiên mỗi câu — Cloze, Gõ từ, Xếp câu, Trắc nghiệm, Tìm lỗi, Nối cặp",
+	},
 	cloze: {
 		icon: "🧩",
 		name: "Điền khuyết (Cloze)",
@@ -15,7 +20,7 @@ export const MODE_INFO: Record<PracticeMode, { icon: string; name: string; desc:
 		desc: "Nhìn nghĩa Việt + gợi ý → gõ đúng từ tiếng Anh",
 	},
 	builder: {
-		icon: "🔀",
+		icon: "🧱",
 		name: "Xếp câu (Builder)",
 		desc: "Xáo trộn câu quote — bấm xếp lại đúng thứ tự",
 	},
@@ -281,6 +286,75 @@ export function buildPracticeQueue(
 		else item = makeChoice(card, cards);
 		if (item) items.push(item);
 		if (items.length === size) break;
+	}
+	return items;
+}
+
+const SINGLE_CARD_MODES: PracticeMode[] = ["cloze", "typing", "builder", "choice", "error"];
+
+function makeSingleItem(mode: PracticeMode, card: VocabCard, pool: VocabCard[]): PracticeItem | null {
+	if (mode === "cloze") return makeCloze(card);
+	if (mode === "typing") return makeTyping(card);
+	if (mode === "builder") return makeBuilder(card);
+	if (mode === "error") return makeError(card);
+	if (mode === "choice") return makeChoice(card, pool);
+	return null;
+}
+
+/**
+ * Trộn nhiều format bài tập trong 1 phiên (kiểu Duolingo): mỗi thẻ được gán ngẫu nhiên
+ * 1 trong 5 format đơn (Cloze/Gõ từ/Xếp câu/Trắc nghiệm/Tìm lỗi — thử lần lượt tới khi có
+ * format khả dụng cho thẻ đó), và cứ mỗi 4-5 câu lại chèn 1 vòng Nối cặp nếu còn đủ thẻ.
+ */
+export function buildMixedQueue(cards: VocabCard[], size: number): PracticeItem[] {
+	const learned = cards.filter((c) => c.fsrs.state !== State.New);
+	const fresh = cards.filter((c) => c.fsrs.state === State.New);
+	const ordered = shuffle([...shuffle(learned), ...shuffle(fresh)]);
+	const eligibleForMatch = (c: VocabCard) =>
+		c.type !== "sentence" && c.type !== "passage" && c.type !== "grammar" && (c.meaningVi || c.meaningEn);
+
+	const used = new Set<string>();
+	const items: PracticeItem[] = [];
+	let sinceMatch = 0;
+	let idx = 0;
+
+	while (items.length < size && idx < ordered.length) {
+		const threshold = 4 + Math.floor(Math.random() * 2); // chèn match sau mỗi 4-5 câu
+		if (sinceMatch >= threshold && items.length <= size - 3) {
+			const batch: VocabCard[] = [];
+			for (let k = idx; k < ordered.length && batch.length < MATCH_PAIRS_PER_ROUND; k++) {
+				const c = ordered[k];
+				if (!used.has(c.file.path) && eligibleForMatch(c)) batch.push(c);
+			}
+			if (batch.length >= 3) {
+				for (const c of batch) used.add(c.file.path);
+				items.push({
+					mode: "match",
+					card: batch[0],
+					pairs: batch.map((c) => ({
+						card: c,
+						word: c.word,
+						meaning: (c.meaningVi || c.meaningEn).slice(0, 80),
+					})),
+				});
+				sinceMatch = 0;
+				continue;
+			}
+		}
+
+		const card = ordered[idx];
+		idx++;
+		if (used.has(card.file.path)) continue;
+		let made: PracticeItem | null = null;
+		for (const t of shuffle(SINGLE_CARD_MODES)) {
+			made = makeSingleItem(t, card, cards);
+			if (made) break;
+		}
+		if (made) {
+			used.add(card.file.path);
+			items.push(made);
+			sinceMatch++;
+		}
 	}
 	return items;
 }
